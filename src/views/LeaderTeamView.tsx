@@ -17,7 +17,7 @@ export function LeaderTeamView() {
     setLoading(true);
     setError('');
     try {
-      const data = await listLeaderTeamMembers(profile);
+      const data = await listLeaderTeamMembers();
       setMembers(data);
     } catch (err) {
       console.error(err);
@@ -33,7 +33,7 @@ export function LeaderTeamView() {
 
   const filteredMembers = useMemo(() => {
     const q = search.toLowerCase();
-    return members.filter((member) => `${member.display_name} ${member.email} ${member.phone || ''} ${(member.sectors || []).join(' ')}`.toLowerCase().includes(q));
+    return members.filter((member) => `${member.display_name} ${member.email} ${member.phone || ''} ${member.primary_team || ''} ${(member.sectors || []).join(' ')}`.toLowerCase().includes(q));
   }, [members, search]);
 
   return (
@@ -42,7 +42,7 @@ export function LeaderTeamView() {
         <div>
           <p className="eyebrow">Liderança</p>
           <h2>Meus Liderados</h2>
-          <p className="muted">Veja os membros aprovados dos mesmos setores/equipes que você lidera.</p>
+          <p className="muted">Veja os membros aprovados da sua equipe principal e dos setores vinculados.</p>
         </div>
         <button className="secondary-button" type="button" onClick={loadData}><RefreshCw size={16} />Atualizar</button>
       </div>
@@ -53,7 +53,7 @@ export function LeaderTeamView() {
         <div className="section-header">
           <div>
             <h3>Equipe vinculada</h3>
-            <p className="muted">Seus setores: {profile?.sectors?.join(', ') || 'Nenhum setor definido'}</p>
+            <p className="muted">Equipe principal: {profile?.primary_team || 'Não definida'} · Setores: {profile?.sectors?.join(', ') || 'Nenhum setor definido'}</p>
           </div>
           <div className="search-box small-search"><Search size={18} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar liderado..." /></div>
         </div>
@@ -61,7 +61,7 @@ export function LeaderTeamView() {
         {loading ? (
           <p className="muted">Carregando liderados...</p>
         ) : filteredMembers.length === 0 ? (
-          <div className="empty-access-requests"><h4>Nenhum liderado encontrado</h4><p className="muted">Confira se os membros já foram aprovados e se estão nos seus setores.</p></div>
+          <div className="empty-access-requests"><h4>Nenhum liderado encontrado</h4><p className="muted">Confira se os membros já foram aprovados e se estão na sua equipe principal ou nos seus setores.</p></div>
         ) : (
           <div className="leader-team-list">
             {filteredMembers.map((member) => (
@@ -71,7 +71,7 @@ export function LeaderTeamView() {
                   <h4>{member.display_name}</h4>
                   <p className="muted">{member.email}</p>
                   <p className="muted">WhatsApp: {member.phone || 'Não informado'}</p>
-                  <p className="muted">Setores: {member.sectors?.join(', ') || 'Não informado'}</p>
+                  <p className="muted">Equipe principal: {member.primary_team || 'Não informada'} · Setores: {member.sectors?.join(', ') || 'Não informado'}</p>
                 </div>
                 <div className="leader-team-points"><Users size={18} /><strong>{member.points || 0} pts</strong></div>
               </div>

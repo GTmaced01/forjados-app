@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SECTORS, SHIRT_SIZES, SKILLS } from '../constants';
+import { PRIMARY_TEAMS, SECTORS, SHIRT_SIZES, SKILLS } from '../constants';
 import { updateMyRegistration } from '../services/profiles';
 import { useAuth } from '../components/AuthProvider';
 import type { UserRole } from '../types';
@@ -17,6 +17,7 @@ export function RegistrationView() {
     city: '',
     neighborhood: '',
     requested_role: 'member' as UserRole,
+    primary_team: '',
     sectors: [] as string[],
     specific_function: '',
     experience_level: 'beginner',
@@ -32,6 +33,16 @@ export function RegistrationView() {
     privacyPolicy: false,
     responsibilityTerm: false,
   });
+
+  function handlePrimaryTeamChange(primaryTeam: string) {
+    setForm((prev) => ({
+      ...prev,
+      primary_team: primaryTeam,
+      sectors: primaryTeam && !prev.sectors.includes(primaryTeam)
+        ? [primaryTeam, ...prev.sectors]
+        : prev.sectors,
+    }));
+  }
 
   function toggleSector(sector: string) {
     setForm((prev) => ({
@@ -57,6 +68,10 @@ export function RegistrationView() {
     setError('');
 
     try {
+      if (!form.primary_team) {
+        throw new Error('Selecione sua equipe principal.');
+      }
+
       if (form.sectors.length === 0) {
         throw new Error('Selecione pelo menos um setor.');
       }
@@ -68,6 +83,7 @@ export function RegistrationView() {
         city: form.city,
         neighborhood: form.neighborhood,
         requested_role: form.requested_role,
+        primary_team: form.primary_team,
         sectors: form.sectors,
         specific_function: form.specific_function,
         experience_level: form.experience_level,
@@ -168,9 +184,26 @@ export function RegistrationView() {
               <option value="treasury">Tesouraria</option>
             </select>
           </div>
+
+          <div>
+            <label>Equipe principal</label>
+            <select
+              required
+              value={form.primary_team}
+              onChange={(e) => handlePrimaryTeamChange(e.target.value)}
+            >
+              <option value="">Selecione sua equipe</option>
+              {PRIMARY_TEAMS.map((team) => (
+                <option key={team} value={team}>{team}</option>
+              ))}
+            </select>
+            <p className="field-hint">
+              Essa equipe será usada para vincular líderes e liderados.
+            </p>
+          </div>
         </div>
 
-        <label>Equipe/Setores</label>
+        <label>Outras equipes/setores que você também ajuda</label>
         <div className="chips">
           {SECTORS.map((sector) => (
             <button

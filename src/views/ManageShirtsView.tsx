@@ -406,7 +406,7 @@ export function ManageShirtsView() {
                   <div className="manage-shirt-card" key={shirt.id}>
                     <div className="manage-shirt-image">
                       {shirt.image_url ? (
-                        <img src={shirt.image_url} alt={shirt.name} />
+                        <img src={shirt.image_url} alt={shirt.name} loading="lazy" decoding="async" />
                       ) : (
                         <span>FORJADOS</span>
                       )}

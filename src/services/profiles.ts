@@ -1,7 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import type { InscriptionStatus, UserProfile, UserRole } from '../types';
-import { ensureProfileInServiceScale } from './serviceScale';
 
 export async function getMyProfile(currentUser?: User | null): Promise<UserProfile | null> {
   let user = currentUser ?? null;
@@ -62,6 +61,7 @@ export async function getMyProfile(currentUser?: User | null): Promise<UserProfi
       ? 'ADM-0001'
       : `EQP-${user.id.replaceAll('-', '').slice(0, 6).toUpperCase()}`,
     sectors: isInitialAdmin ? ['Liderança'] : [],
+    primary_team: isInitialAdmin ? 'Liderança' : user.user_metadata?.primary_team || null,
     has_vehicle: false,
     skills: [],
     points: 0,
@@ -88,6 +88,7 @@ export async function getMyProfile(currentUser?: User | null): Promise<UserProfi
     requested_role: isInitialAdmin ? 'admin' : user.user_metadata?.requested_role || 'member',
     inscription_status: isInitialAdmin ? 'approved' : 'pending',
     is_admin: isInitialAdmin,
+    primary_team: isInitialAdmin ? 'Liderança' : user.user_metadata?.primary_team || null,
   };
 
   const { data: minimalCreatedProfile, error: minimalInsertError } = await supabase
@@ -115,6 +116,7 @@ export async function updateMyRegistration(params: {
   city: string;
   neighborhood: string;
   requested_role: UserRole;
+  primary_team: string;
   sectors: string[];
   specific_function: string;
   experience_level: string;
@@ -157,14 +159,11 @@ export async function updateMyRegistration(params: {
 }
 
 export async function listProfiles(): Promise<UserProfile[]> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { data, error } = await supabase.rpc('admin_list_profiles');
 
   if (error) throw error;
 
-  return data as UserProfile[];
+  return (data || []) as UserProfile[];
 }
 
 export async function updateProfileStatus(params: {
@@ -172,12 +171,14 @@ export async function updateProfileStatus(params: {
   role?: UserRole;
   inscription_status?: InscriptionStatus;
   sectors?: string[];
+  primary_team?: string | null;
 }) {
   const payload: Record<string, unknown> = {};
 
   if (params.role) payload.role = params.role;
   if (params.inscription_status) payload.inscription_status = params.inscription_status;
   if (params.sectors) payload.sectors = params.sectors;
+  if (params.primary_team !== undefined) payload.primary_team = params.primary_team;
 
   const { error } = await supabase
     .from('profiles')
@@ -193,78 +194,43 @@ export async function adminUpdateProfile(params: {
   requested_role?: UserRole;
   inscription_status?: InscriptionStatus;
   sectors?: string[];
+  primary_team?: string | null;
   display_name?: string;
   phone?: string;
   city?: string;
   neighborhood?: string;
   internal_notes?: string;
 }) {
-  const payload: Record<string, unknown> = {};
-
-  if (params.role) payload.role = params.role;
-  if (params.requested_role) payload.requested_role = params.requested_role;
-  if (params.inscription_status) payload.inscription_status = params.inscription_status;
-  if (params.sectors) payload.sectors = params.sectors;
-  if (params.display_name !== undefined) payload.display_name = params.display_name;
-  if (params.phone !== undefined) payload.phone = params.phone;
-  if (params.city !== undefined) payload.city = params.city;
-  if (params.neighborhood !== undefined) payload.neighborhood = params.neighborhood;
-  if (params.internal_notes !== undefined) payload.internal_notes = params.internal_notes;
-
-  payload.updated_at = new Date().toISOString();
-
-  const { error } = await supabase
-    .from('profiles')
-    .update(payload)
-    .eq('id', params.userId);
+  const { error } = await supabase.rpc('admin_update_profile', {
+    p_user_id: params.userId,
+    p_role: params.role ?? null,
+    p_requested_role: params.requested_role ?? null,
+    p_inscription_status: params.inscription_status ?? null,
+    p_sectors: params.sectors ?? null,
+    p_primary_team: params.primary_team ?? null,
+    p_display_name: params.display_name ?? null,
+    p_phone: params.phone ?? null,
+    p_city: params.city ?? null,
+    p_neighborhood: params.neighborhood ?? null,
+    p_internal_notes: params.internal_notes ?? null,
+  });
 
   if (error) throw error;
 }
 
 export async function approveProfile(userId: string, role?: UserRole) {
-  const { data: profileData, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (profileError) throw profileError;
-
-  const payload: Record<string, unknown> = {
-    inscription_status: 'approved',
-    role: role || profileData?.requested_role || profileData?.role || 'member',
-    updated_at: new Date().toISOString(),
-  };
-
-  const { error } = await supabase
-    .from('profiles')
-    .update(payload)
-    .eq('id', userId);
+  const { error } = await supabase.rpc('admin_approve_profile', {
+    p_user_id: userId,
+    p_role: role || null,
+  });
 
   if (error) throw error;
-
-  if (profileData) {
-    try {
-      await ensureProfileInServiceScale({
-        displayName: profileData.display_name,
-        phone: profileData.phone,
-        sectors: profileData.sectors || [],
-        role: String(payload.role || 'member'),
-      });
-    } catch (scaleError) {
-      console.warn('Usuário aprovado, mas não foi possível inserir na escala automaticamente:', scaleError);
-    }
-  }
 }
 
 export async function rejectProfile(userId: string) {
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      inscription_status: 'rejected',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', userId);
+  const { error } = await supabase.rpc('admin_reject_profile', {
+    p_user_id: userId,
+  });
 
   if (error) throw error;
 }
@@ -276,6 +242,7 @@ export async function updateMyBasicProfile(params: {
   city: string;
   neighborhood: string;
   member_since?: string | null;
+  primary_team: string;
   sectors: string[];
   specific_function: string;
   shirt_size: string;
@@ -304,6 +271,7 @@ export async function updateMyBasicProfile(params: {
       city: params.city,
       neighborhood: params.neighborhood,
       member_since: params.member_since || null,
+      primary_team: params.primary_team,
       sectors: params.sectors,
       specific_function: params.specific_function,
       shirt_size: params.shirt_size,

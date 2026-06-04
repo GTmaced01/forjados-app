@@ -176,7 +176,7 @@ export function ManagePublicPanelView() {
               <div className="manage-products-list">
                 {filteredItems.map((item) => (
                   <div className="manage-product-card" key={item.id}>
-                    <div className="manage-product-image">{item.image_url ? <img src={item.image_url} alt={item.title}/> : formatPanelCategory(item.category)}</div>
+                    <div className="manage-product-image">{item.image_url ? <img src={item.image_url} alt={item.title} loading="lazy" decoding="async" /> : formatPanelCategory(item.category)}</div>
                     <div className="manage-product-info"><h4>{item.title}</h4><p className="muted">{item.content}</p><p className={item.is_active ? 'active-text' : 'inactive-text'}>{item.is_active ? 'Publicado' : 'Oculto'} {item.is_pinned ? '· Fixado' : ''}</p></div>
                     <div className="manage-redemption-actions"><button className="secondary-button" type="button" onClick={() => startEdit(item)}><Edit size={16}/>Editar</button><button className="reject-button" type="button" onClick={() => handleDelete(item)}><Trash2 size={16}/>Excluir</button></div>
                   </div>

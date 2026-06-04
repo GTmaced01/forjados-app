@@ -52,7 +52,7 @@ export function PublicPanelView() {
         <section className="public-panel-list">
           {items.map((item) => (
             <article className={`public-panel-card ${item.category}`} key={item.id}>
-              {item.image_url && <img src={item.image_url} alt={item.title} />}
+              {item.image_url && <img src={item.image_url} alt={item.title} loading="lazy" decoding="async" />}
               <div className="public-panel-card-content">
                 <div className="public-panel-meta">
                   <span>{formatPanelCategory(item.category)}</span>

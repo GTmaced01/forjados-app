@@ -194,7 +194,7 @@ export function ManagePointsStoreView() {
             {loading ? <p className="muted">Carregando produtos...</p> : filteredProducts.length === 0 ? <p className="muted">Nenhum produto encontrado.</p> : (
               <div className="manage-products-list">{filteredProducts.map((product) => (
                 <div className="manage-product-card" key={product.id}>
-                  <div className="manage-product-image">{product.image_url ? <img src={product.image_url} alt={product.name} /> : <Gift size={38} />}</div>
+                  <div className="manage-product-image">{product.image_url ? <img src={product.image_url} alt={product.name} loading="lazy" decoding="async" /> : <Gift size={38} />}</div>
                   <div className="manage-product-info"><h4>{product.name}</h4><p className="muted">{product.description || 'Sem descrição.'}</p><div className="manage-product-meta"><strong>{product.points_cost} pts</strong><span>Estoque: {product.stock}</span></div><p className={product.is_active ? 'active-text' : 'inactive-text'}>{product.is_active ? 'Ativo na loja' : 'Oculto na loja'}</p></div>
                   <div className="manage-redemption-actions"><button className="secondary-button edit-product-button" type="button" onClick={() => startEdit(product)}><Edit size={16} />Editar</button><button className="reject-button" type="button" onClick={() => handleDeleteProduct(product)}><Trash2 size={16} />Excluir</button></div>
                 </div>

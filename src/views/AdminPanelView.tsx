@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle, Search, Shield, UserX } from 'lucide-react';
-import { ROLE_LABELS, SECTORS, STATUS_LABELS } from '../constants';
+import { PRIMARY_TEAMS, ROLE_LABELS, SECTORS, STATUS_LABELS } from '../constants';
 import {
   adminUpdateProfile,
   approveProfile,
@@ -38,7 +38,7 @@ export function AdminPanelView() {
 
   const filteredProfiles = useMemo(() => {
     return profiles.filter((profile) => {
-      const text = `${profile.display_name} ${profile.email} ${profile.phone || ''}`
+      const text = `${profile.display_name} ${profile.email} ${profile.phone || ''} ${profile.primary_team || ''} ${(profile.sectors || []).join(' ')}`
         .toLowerCase();
 
       const matchesSearch = text.includes(search.toLowerCase());
@@ -149,6 +149,31 @@ export function AdminPanelView() {
     }
   }
 
+  async function handlePrimaryTeamChange(profile: UserProfile, primaryTeam: string) {
+    setSavingId(profile.id);
+    setError('');
+
+    const currentSectors = profile.sectors || [];
+    const newSectors = primaryTeam && !currentSectors.includes(primaryTeam)
+      ? [primaryTeam, ...currentSectors]
+      : currentSectors;
+
+    try {
+      await adminUpdateProfile({
+        userId: profile.id,
+        primary_team: primaryTeam || null,
+        sectors: newSectors,
+      });
+
+      await loadProfiles();
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Erro ao alterar equipe principal.');
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   const pendingCount = profiles.filter((p) => p.inscription_status === 'pending').length;
   const approvedCount = profiles.filter((p) => p.inscription_status === 'approved').length;
   const rejectedCount = profiles.filter((p) => p.inscription_status === 'rejected').length;
@@ -248,6 +273,10 @@ export function AdminPanelView() {
                         {ROLE_LABELS[profile.role]}
                       </span>
 
+                      {profile.primary_team && (
+                        <span className="role-badge">Equipe: {profile.primary_team}</span>
+                      )}
+
                       {profile.member_id && <span className="role-badge">{profile.member_id}</span>}
                     </div>
                   </div>
@@ -283,10 +312,24 @@ export function AdminPanelView() {
                       <option value="rejected">Recusado</option>
                     </select>
                   </div>
+
+                  <div>
+                    <label>Equipe principal</label>
+                    <select
+                      value={profile.primary_team || ''}
+                      disabled={isSaving}
+                      onChange={(e) => handlePrimaryTeamChange(profile, e.target.value)}
+                    >
+                      <option value="">Sem equipe principal</option>
+                      {PRIMARY_TEAMS.map((team) => (
+                        <option key={team} value={team}>{team}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div className="member-sectors">
-                  <label>Setores</label>
+                  <label>Equipes/setores extras</label>
 
                   <div className="chips">
                     {SECTORS.map((sector) => (

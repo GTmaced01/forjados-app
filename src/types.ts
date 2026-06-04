@@ -20,6 +20,7 @@ export interface UserProfile {
   member_id?: string;
 
   sectors: string[];
+  primary_team?: string | null;
   specific_function?: string;
   experience_level?: string;
   shirt_size?: string;

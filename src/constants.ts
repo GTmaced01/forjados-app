@@ -9,7 +9,16 @@ export const SECTORS = [
   'Tesouraria',
   'Louvor',
   'Saúde',
+  'Intercessão',
+  'Recepção',
+  'Cozinha',
+  'Transporte',
+  'Comunicação',
+  'Apoio',
+  'Outro',
 ];
+
+export const PRIMARY_TEAMS = SECTORS;
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   member: 'Equipe',

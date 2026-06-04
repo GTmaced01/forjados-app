@@ -3185,3 +3185,593 @@ nav button:hover {
     height: 180px;
   }
 }
+
+/* =========================
+   AJUSTES LOJA DE CAMISAS / ESTADO DA ABA
+========================= */
+
+.shirt-image-tip {
+  margin-top: -8px;
+  font-size: 13px;
+}
+
+.shirt-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.shirt-image {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 9 / 16 !important;
+  max-height: 760px;
+  background:
+    radial-gradient(circle at center, rgba(199, 154, 74, 0.12), transparent 45%),
+    #050505 !important;
+  padding: 0 !important;
+}
+
+.shirt-image img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  background: #050505;
+}
+
+.shirt-info {
+  flex: 1;
+}
+
+@media (max-width: 800px) {
+  .shirt-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .shirt-image {
+    aspect-ratio: 9 / 16 !important;
+    max-height: none !important;
+  }
+}
+
+/* =========================
+   ADMIN HOME / MOBILE POLISH 2026
+========================= */
+
+.admin-home-panel {
+  margin-top: 24px;
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(135deg, rgba(199, 154, 74, 0.09), rgba(255, 255, 255, 0.025)),
+    var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.admin-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.quick-card {
+  min-height: 128px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  text-align: left;
+  padding: 20px;
+  border-radius: 22px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(199, 154, 74, 0.16);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.quick-card:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.quick-card:not(:disabled):hover {
+  transform: translateY(-1px);
+  border-color: rgba(199, 154, 74, 0.42);
+  background: rgba(199, 154, 74, 0.08);
+}
+
+.quick-card span,
+.quick-card small {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.quick-card span {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.quick-card strong {
+  color: var(--gold);
+  font-size: 34px;
+  line-height: 1;
+}
+
+.quick-card small {
+  font-size: 12px;
+}
+
+.admin-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-action-row .secondary-button {
+  min-width: 150px;
+}
+
+@media (max-width: 1200px) {
+  .admin-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  .admin-home-panel {
+    padding: 18px !important;
+    border-radius: 22px !important;
+  }
+
+  .admin-quick-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px;
+  }
+
+  .quick-card {
+    min-height: 112px;
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .quick-card strong {
+    font-size: 28px;
+  }
+
+  .admin-action-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-action-row .secondary-button {
+    width: 100%;
+  }
+
+  .content > * {
+    max-width: 100%;
+  }
+
+  .hero,
+  .admin-header,
+  .panel,
+  .card {
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24) !important;
+  }
+
+  .public-panel-card-content,
+  .shirt-info,
+  .points-product-info {
+    padding: 18px !important;
+  }
+
+  .public-panel-card img {
+    height: auto !important;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  .points-history,
+  .manage-redemptions-list,
+  .manage-products-list,
+  .leader-team-list,
+  .access-requests-list {
+    gap: 12px !important;
+  }
+
+  .point-transaction-card,
+  .points-ranking-card,
+  .leader-team-card,
+  .access-request-card,
+  .manage-redemption-card,
+  .manage-product-card,
+  .manage-shirt-card {
+    padding: 16px !important;
+  }
+
+  .mobile-menu-button {
+    position: relative;
+  }
+
+  .sidebar.mobile-open {
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 460px) {
+  .admin-quick-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .quick-card {
+    min-height: 92px;
+  }
+
+  .hero h2,
+  .admin-header h2 {
+    font-size: 22px !important;
+  }
+
+  .sidebar-menu button,
+  .logout,
+  .primary-button,
+  .secondary-button,
+  .approve-button,
+  .reject-button {
+    min-height: 50px !important;
+  }
+}
+
+/* =========================
+   OTIMIZAÇÕES FINAIS DE UX/MOBILE
+========================= */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.shirt-image img,
+.manage-shirt-image img,
+.points-product-image img,
+.manage-product-image img,
+.public-panel-card img {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+@media (max-width: 800px) {
+  .shirt-card,
+  .points-product-card,
+  .public-panel-card,
+  .ride-card,
+  .treasury-card,
+  .order-card,
+  .manage-order-card {
+    overflow: hidden;
+  }
+
+  .shirt-image {
+    aspect-ratio: 9 / 16 !important;
+    height: auto !important;
+    max-height: 440px;
+  }
+
+  .shirt-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain !important;
+    background: rgba(0, 0, 0, 0.32);
+  }
+
+  .cart-panel {
+    border: 1px solid rgba(199, 154, 74, 0.18) !important;
+  }
+
+  .cart-actions {
+    justify-content: space-between;
+  }
+
+  .cart-actions button {
+    min-width: 42px;
+    min-height: 42px;
+  }
+
+  .order-receipt-box input[type='file'] {
+    padding: 12px;
+    min-height: 52px;
+  }
+
+  .admin-header .secondary-button,
+  .section-header .secondary-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =========================
+   MOBILE APP NAVIGATION - FINAL
+========================= */
+
+.mobile-app-topbar,
+.mobile-bottom-nav,
+.mobile-more-page {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  :root {
+    --mobile-bottom-height: 78px;
+  }
+
+  body {
+    overscroll-behavior-y: contain;
+  }
+
+  .layout {
+    display: block !important;
+    min-height: 100dvh !important;
+  }
+
+  .sidebar {
+    display: none !important;
+  }
+
+  .content {
+    min-height: 100dvh !important;
+    padding: calc(76px + env(safe-area-inset-top)) 14px calc(var(--mobile-bottom-height) + 18px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .mobile-app-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 80;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: calc(12px + env(safe-area-inset-top)) 14px 12px;
+    min-height: calc(62px + env(safe-area-inset-top));
+    background: rgba(15, 15, 16, 0.92);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .mobile-app-topbar strong {
+    display: block;
+    color: var(--gold);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 22px;
+    font-style: italic;
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+
+  .mobile-app-topbar span {
+    display: block;
+    max-width: 210px;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1.8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .mobile-app-topbar button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 0 14px;
+    border: 1px solid rgba(199, 154, 74, 0.22);
+    border-radius: 999px;
+    background: rgba(199, 154, 74, 0.12);
+    color: var(--gold);
+    font-weight: 900;
+  }
+
+  .mobile-bottom-nav {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    z-index: 90;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    min-height: 66px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 26px;
+    background: rgba(18, 18, 19, 0.94);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .mobile-bottom-nav button {
+    appearance: none;
+    display: grid;
+    place-items: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 50px;
+    padding: 6px 3px;
+    border: 0;
+    border-radius: 18px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .mobile-bottom-nav button svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .mobile-bottom-nav button.active {
+    background: var(--gold);
+    color: var(--bg);
+  }
+
+  .mobile-bottom-nav button:active {
+    transform: scale(0.97);
+  }
+
+  .mobile-more-page {
+    display: grid !important;
+    gap: 16px;
+  }
+
+  .mobile-more-header {
+    margin-bottom: 0 !important;
+  }
+
+  .mobile-more-section {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    background: var(--panel);
+  }
+
+  .mobile-more-section h3 {
+    margin: 0;
+    color: var(--gold);
+    font-size: 15px;
+  }
+
+  .mobile-more-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .mobile-more-grid button,
+  .mobile-more-logout {
+    width: 100%;
+    min-height: 52px !important;
+    justify-content: flex-start !important;
+    padding: 14px 16px !important;
+    border-radius: 16px !important;
+    text-align: left !important;
+  }
+
+  .mobile-more-grid button {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text);
+    font-weight: 900;
+  }
+
+  .mobile-more-grid button:active {
+    background: rgba(199, 154, 74, 0.16);
+  }
+
+  .mobile-more-logout {
+    display: flex !important;
+    margin-top: 0 !important;
+    border: 1px solid rgba(239, 68, 68, 0.22) !important;
+    background: rgba(239, 68, 68, 0.10) !important;
+  }
+
+  .hero,
+  .admin-header {
+    margin-bottom: 14px !important;
+  }
+
+  .hero h2,
+  .admin-header h2 {
+    font-size: 24px !important;
+    line-height: 1.1 !important;
+  }
+
+  .cards,
+  .admin-stats,
+  .admin-quick-grid {
+    gap: 12px !important;
+  }
+
+  .panel,
+  .panel.wide,
+  .card,
+  .hero,
+  .admin-header,
+  .admin-home-panel {
+    border-radius: 22px !important;
+  }
+
+  .shirt-grid,
+  .points-products-grid {
+    gap: 16px !important;
+  }
+
+  .shirt-card,
+  .points-product-card {
+    border-radius: 24px !important;
+  }
+
+  .shirt-info h3,
+  .points-product-info h3 {
+    font-size: 20px !important;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .approve-button,
+  .reject-button {
+    border-radius: 16px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .mobile-bottom-nav {
+    left: 6px;
+    right: 6px;
+    padding: 6px;
+    border-radius: 22px;
+  }
+
+  .mobile-bottom-nav button {
+    font-size: 9px;
+    border-radius: 15px;
+  }
+
+  .content {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}

@@ -15,7 +15,14 @@ import type { CartItem, Shirt, ShirtOrder, ShirtOrderItem } from '../types';
 export function ShirtsView() {
   const [shirts, setShirts] = useState<Shirt[]>([]);
   const [orders, setOrders] = useState<Array<ShirtOrder & { items?: ShirtOrderItem[] }>>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const savedCart = localStorage.getItem('forjados-shirt-cart');
+      return savedCart ? (JSON.parse(savedCart) as CartItem[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const { profile } = useAuth();
 
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
@@ -61,6 +68,14 @@ const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null);
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('forjados-shirt-cart', JSON.stringify(cart));
+    } catch {
+      // Ignora erro de armazenamento local.
+    }
+  }, [cart]);
 
   const cartTotal = useMemo(() => {
     return cart.reduce((total, item) => {
@@ -124,6 +139,7 @@ const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null);
     try {
       await createShirtOrder(cart);
       setCart([]);
+      localStorage.removeItem('forjados-shirt-cart');
       setSuccess('Pedido criado com sucesso. Agora envie o comprovante do pagamento.');
       await loadData();
     } catch (err) {
@@ -200,9 +216,9 @@ const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null);
       <div className="admin-header">
         <div>
           <p className="eyebrow">Fardas de um Forjado</p>
-          <h2>Camisas</h2>
+          <h2>Loja de Camisas</h2>
           <p className="muted">
-            Escolha suas camisas, adicione ao carrinho e finalize seu pedido.
+            Escolha sua camisa, adicione ao carrinho e finalize seu pedido.
           </p>
         </div>
 
@@ -217,7 +233,6 @@ const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null);
       <section className="shirts-layout">
         <div className="shirts-list">
           <h3>Modelos disponíveis</h3>
-
           {loading ? (
             <div className="panel center">
               <div className="loader"></div>
@@ -235,7 +250,7 @@ const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null);
                 <div className="shirt-card" key={shirt.id}>
                   <div className="shirt-image">
                     {shirt.image_url ? (
-                      <img src={shirt.image_url} alt={shirt.name} />
+                      <img src={shirt.image_url} alt={shirt.name} loading="lazy" decoding="async" />
                     ) : (
                       <span>FORJADOS</span>
                     )}

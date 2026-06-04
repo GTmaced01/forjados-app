@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Save } from 'lucide-react';
-import { SECTORS, SHIRT_SIZES } from '../constants';
+import { PRIMARY_TEAMS, SECTORS, SHIRT_SIZES } from '../constants';
 import { useAuth } from '../components/AuthProvider';
 import { updateMyBasicProfile } from '../services/profiles';
 
@@ -18,6 +18,7 @@ export function ProfileView() {
     city: profile?.city || '',
     neighborhood: profile?.neighborhood || '',
     member_since: profile?.member_since || '',
+    primary_team: profile?.primary_team || profile?.sectors?.[0] || '',
     sectors: profile?.sectors || [],
     specific_function: profile?.specific_function || '',
     shirt_size: profile?.shirt_size || 'M',
@@ -31,6 +32,16 @@ export function ProfileView() {
   });
 
   if (!profile) return null;
+
+  function handlePrimaryTeamChange(primaryTeam: string) {
+    setForm((prev) => ({
+      ...prev,
+      primary_team: primaryTeam,
+      sectors: primaryTeam && !prev.sectors.includes(primaryTeam)
+        ? [primaryTeam, ...prev.sectors]
+        : prev.sectors,
+    }));
+  }
 
   function toggleSector(sector: string) {
     setForm((prev) => ({
@@ -48,6 +59,10 @@ export function ProfileView() {
     setSuccess('');
 
     try {
+      if (!form.primary_team) {
+        throw new Error('Selecione sua equipe principal.');
+      }
+
       if (form.sectors.length === 0) {
         throw new Error('Selecione pelo menos um setor.');
       }
@@ -59,6 +74,7 @@ export function ProfileView() {
         city: form.city,
         neighborhood: form.neighborhood,
         member_since: form.member_since || null,
+        primary_team: form.primary_team,
         sectors: form.sectors,
         specific_function: form.specific_function,
         shirt_size: form.shirt_size,
@@ -170,7 +186,26 @@ export function ProfileView() {
         <section>
           <h3>Equipe e função</h3>
 
-          <label>Setores</label>
+          <div className="grid two">
+            <div>
+              <label>Equipe principal</label>
+              <select
+                required
+                value={form.primary_team}
+                onChange={(e) => handlePrimaryTeamChange(e.target.value)}
+              >
+                <option value="">Selecione sua equipe</option>
+                {PRIMARY_TEAMS.map((team) => (
+                  <option key={team} value={team}>{team}</option>
+                ))}
+              </select>
+              <p className="field-hint">
+                Líderes verão liderados da mesma equipe principal.
+              </p>
+            </div>
+          </div>
+
+          <label>Outras equipes/setores</label>
           <div className="chips">
             {SECTORS.map((sector) => (
               <button

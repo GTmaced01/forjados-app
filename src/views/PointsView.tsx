@@ -6,7 +6,7 @@ import { getErrorMessage, withTimeout } from '../services/safeAsync';
 import type { PointTransaction } from '../types';
 
 export function PointsView() {
-  const { profile, reloadProfile } = useAuth();
+  const { profile } = useAuth();
   const [transactions, setTransactions] = useState<PointTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -22,7 +22,6 @@ export function PointsView() {
         'Não foi possível carregar seu histórico de pontos.'
       );
       setTransactions(data);
-      await reloadProfile();
     } catch (err) {
       console.error(err);
       setError(getErrorMessage(err, 'Erro ao carregar pontos.'));

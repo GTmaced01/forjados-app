@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState('');
   const mountedRef = useRef(true);
+  const profileRef = useRef<UserProfile | null>(null);
 
   const loadProfileForUser = useCallback(async (currentUser: User | null) => {
     if (!mountedRef.current) return;
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!currentUser) {
       setUser(null);
       setProfile(null);
+      profileRef.current = null;
       setAuthError('');
       return;
     }
@@ -68,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setProfile(profileData);
+      profileRef.current = profileData;
       setAuthError('');
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
@@ -75,12 +78,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mountedRef.current) return;
 
       setProfile(null);
+      profileRef.current = null;
       setAuthError(getMessage(error, 'Não foi possível carregar seu perfil.'));
     }
   }, []);
 
   const reloadProfile = useCallback(async () => {
-    setLoading(true);
     setAuthError('');
 
     try {
@@ -92,17 +95,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error;
 
-      await loadProfileForUser(data.session?.user ?? null);
+      const currentUser = data.session?.user ?? null;
+
+      if (!currentUser) {
+        setUser(null);
+        setProfile(null);
+        profileRef.current = null;
+        return;
+      }
+
+      setUser(currentUser);
+
+      const profileData = await withTimeout(
+        getMyProfile(currentUser),
+        12000,
+        'Tempo limite ao atualizar perfil. Verifique a conexão e tente novamente.'
+      );
+
+      if (!mountedRef.current) return;
+
+      if (!profileData) {
+        throw new Error('Perfil não encontrado.');
+      }
+
+      setProfile(profileData);
+      profileRef.current = profileData;
+      setAuthError('');
     } catch (error) {
       console.error('Erro ao recarregar perfil:', error);
-      setProfile(null);
+
+      if (!mountedRef.current) return;
+
       setAuthError(getMessage(error, 'Não foi possível recarregar seu perfil.'));
-    } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
     }
-  }, [loadProfileForUser]);
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -128,6 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setUser(null);
         setProfile(null);
+        profileRef.current = null;
         setAuthError(getMessage(error, 'Não foi possível iniciar o aplicativo.'));
       } finally {
         if (mountedRef.current) {
@@ -144,15 +171,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!session?.user) {
         setUser(null);
         setProfile(null);
+        profileRef.current = null;
         setAuthError('');
         setLoading(false);
         return;
       }
 
-      setLoading(true);
+      const hasCurrentProfile = profileRef.current?.id === session.user.id;
+
+      if (!hasCurrentProfile) {
+        setLoading(true);
+      }
 
       loadProfileForUser(session.user).finally(() => {
-        if (mountedRef.current) {
+        if (mountedRef.current && !hasCurrentProfile) {
           setLoading(false);
         }
       });
