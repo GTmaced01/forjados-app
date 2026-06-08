@@ -4226,28 +4226,146 @@ svg {
   }
 }
 
-/* =========================
-   MOBILE APP POLISH — FORJADOS SITE INSPIRED
-   Mantém a estrutura atual, mas deixa a experiência mobile mais parecida com app.
-========================= */
+/* =========================================================
+   FORJADOS - POLIMENTO VISUAL FINAL
+   Visual premium inspirado no site:
+   preto abissal, ouro forjado, vidro escuro e luz vermelha sutil.
+   Aplicado em PC e mobile.
+========================================================= */
+
 :root {
-  --radius-lg: 28px;
-  --bg-deep: #080808;
-  --red-forge: #3A3021;
-  --steel: #8c8c8c;
+  --forjados-bg: #0f0f10;
+  --forjados-bg-deep: #080808;
+  --forjados-gold: #c79a4a;
+  --forjados-gold-dark: #a9782f;
+  --forjados-red-glow: rgba(183, 28, 28, 0.14);
+  --forjados-red-glow-soft: rgba(183, 28, 28, 0.08);
+  --forjados-glass: rgba(255, 255, 255, 0.045);
+  --forjados-glass-strong: rgba(255, 255, 255, 0.065);
+  --forjados-border: rgba(255, 255, 255, 0.10);
+  --forjados-gold-border: rgba(199, 154, 74, 0.20);
 }
 
+/* Fundo geral: escuro, elegante, com leve luz vermelha como no site */
+html,
 body {
   background:
-    radial-gradient(circle at 18% 0%, rgba(183, 28, 28, 0.26), transparent 34%),
-    radial-gradient(circle at 86% 18%, rgba(199, 154, 74, 0.08), transparent 28%),
-    linear-gradient(180deg, #0f0f10 0%, #080808 100%);
+    radial-gradient(circle at 8% 0%, var(--forjados-red-glow), transparent 28%),
+    radial-gradient(circle at 88% 12%, rgba(199, 154, 74, 0.08), transparent 30%),
+    linear-gradient(180deg, var(--forjados-bg) 0%, var(--forjados-bg-deep) 100%) !important;
 }
 
+/* Área principal */
+.layout,
+.main-content,
+.content,
+.auth-page,
+.page-center {
+  background:
+    radial-gradient(circle at 0% 0%, var(--forjados-red-glow-soft), transparent 26%),
+    radial-gradient(circle at 90% 10%, rgba(199, 154, 74, 0.06), transparent 28%),
+    var(--forjados-bg) !important;
+}
+
+/* Cards e painéis gerais */
+.card,
+.panel,
+.auth-card,
+.hero,
+.admin-header,
+.forjados-quote-card,
+.forjados-identity-panel,
+.public-panel-highlight-card,
+.inscription-message-card,
+.admin-home-panel,
+.access-requests-panel,
+.treasury-card,
+.receipt-item,
+.ride-card,
+.shirt-card,
+.points-product-card,
+.notification-card,
+.audit-card,
+.manage-order-card,
+.manage-shirt-card,
+.manage-product-card,
+.mobile-more-section {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)),
+    radial-gradient(circle at top left, rgba(199, 154, 74, 0.055), transparent 42%) !important;
+  border-color: var(--forjados-border) !important;
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.26) !important;
+}
+
+/* Destaques principais com luz vermelha bem sutil */
+.hero,
+.forjados-quote-card,
+.forjados-identity-panel,
+.public-panel-highlight-card,
+.inscription-message-card {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--forjados-gold-border) !important;
+}
+
+.hero::before,
+.forjados-quote-card::before,
+.forjados-identity-panel::before,
+.public-panel-highlight-card::before,
+.inscription-message-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.12), transparent 34%),
+    radial-gradient(circle at 100% 0%, rgba(199, 154, 74, 0.075), transparent 38%) !important;
+  opacity: 1;
+}
+
+.hero > *,
+.forjados-quote-card > *,
+.forjados-identity-panel > *,
+.public-panel-highlight-card > *,
+.inscription-message-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Remove bolhas ou manchas vermelhas fortes antigas */
+.hero::after,
+.card::before,
+.card::after,
+.panel::before,
+.panel::after,
+.admin-header::before,
+.admin-header::after,
+.forjados-identity-panel::after,
+.forjados-quote-card::after,
+.public-panel-highlight-card::after,
+.inscription-message-card::after {
+  background: none !important;
+}
+
+/* Sidebar no PC */
+.sidebar {
+  background:
+    linear-gradient(180deg, rgba(20, 20, 22, 0.98), rgba(12, 12, 13, 0.98)) !important;
+  border-right-color: rgba(199, 154, 74, 0.14) !important;
+  box-shadow: 18px 0 55px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Logo lateral */
 .logo {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.logo h1,
+.brand h1,
+.panel h1 {
+  color: var(--forjados-gold) !important;
 }
 
 .sidebar-logo-mark {
@@ -4256,53 +4374,136 @@ body {
   flex: 0 0 54px;
   border-radius: 16px;
   object-fit: cover;
-  border: 1px solid rgba(199, 154, 74, 0.35);
+  border: 1px solid rgba(199, 154, 74, 0.34);
+  background: #000;
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
 }
 
+/* Menu lateral */
 .sidebar-menu .nav-section-title {
-  color: rgba(255, 255, 255, 0.52);
+  color: rgba(255, 255, 255, 0.52) !important;
 }
 
-.hero,
-.admin-header,
-.forjados-quote-card,
-.forjados-identity-panel {
-  position: relative;
-  overflow: hidden;
+.sidebar-menu button {
+  border-color: transparent !important;
 }
 
-.hero::before,
-.admin-header::before,
-.forjados-quote-card::before,
-.forjados-identity-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
+.sidebar-menu button.active {
   background:
-    radial-gradient(circle at 12% 0%, rgba(199, 154, 74, 0.08), transparent 42%),
-    linear-gradient(135deg, rgba(199, 154, 74, 0.08), transparent 40%);
+    linear-gradient(135deg, var(--forjados-gold), var(--forjados-gold-dark)) !important;
+  color: #0f0f10 !important;
+  box-shadow: 0 12px 28px rgba(199, 154, 74, 0.18) !important;
 }
 
-.hero > *,
-.admin-header > *,
-.forjados-quote-card > *,
-.forjados-identity-panel > * {
-  position: relative;
-  z-index: 1;
+.sidebar-menu button:hover:not(.active) {
+  background: rgba(199, 154, 74, 0.08) !important;
+  color: #ffffff !important;
 }
 
-.forjados-quote-card h3,
-.forjados-identity-panel h3 {
-  color: #ffffff;
-  letter-spacing: -0.03em;
+/* Botões principais */
+.primary-button {
+  background:
+    linear-gradient(135deg, var(--forjados-gold), var(--forjados-gold-dark)) !important;
+  color: #0f0f10 !important;
+  box-shadow: 0 12px 32px rgba(199, 154, 74, 0.18) !important;
+}
+
+.primary-button:hover:not(:disabled) {
+  box-shadow: 0 16px 42px rgba(199, 154, 74, 0.25) !important;
+}
+
+/* Botões secundários */
+.secondary-button {
+  background: rgba(255, 255, 255, 0.035) !important;
+  border-color: rgba(199, 154, 74, 0.18) !important;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: rgba(199, 154, 74, 0.08) !important;
+  border-color: rgba(199, 154, 74, 0.32) !important;
+}
+
+/* Inputs */
+input,
+select,
+textarea {
+  background: rgba(0, 0, 0, 0.34) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(199, 154, 74, 0.72) !important;
+  box-shadow: 0 0 0 4px rgba(199, 154, 74, 0.10) !important;
+}
+
+/* Frases do movimento */
+.forjados-phrase-grid {
+  gap: 12px !important;
 }
 
 .forjados-phrase-item {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background:
+    linear-gradient(135deg, rgba(199, 154, 74, 0.115), rgba(255, 255, 255, 0.035)) !important;
+  border: 1px solid rgba(199, 154, 74, 0.20) !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045) !important;
 }
 
+/* Status: mantém alertas funcionais sem deixar vermelho decorativo pesado */
+.receipt-status.pending,
+.redemption-status.pending,
+.ride-status.full {
+  background: rgba(250, 204, 21, 0.10) !important;
+  border-color: rgba(250, 204, 21, 0.22) !important;
+}
+
+.receipt-status.approved,
+.redemption-status.delivered,
+.ride-status.available {
+  background: rgba(34, 197, 94, 0.10) !important;
+  border-color: rgba(34, 197, 94, 0.22) !important;
+}
+
+.receipt-status.rejected,
+.redemption-status.cancelled,
+.ride-status.cancelled,
+.ride-status.not_completed {
+  background: rgba(183, 28, 28, 0.10) !important;
+  color: #ff8a8a !important;
+  border-color: rgba(183, 28, 28, 0.22) !important;
+}
+
+/* PC: mantém layout amplo e elegante */
+@media (min-width: 801px) {
+  .main-content,
+  .content {
+    background:
+      radial-gradient(circle at 4% 0%, rgba(183, 28, 28, 0.10), transparent 26%),
+      radial-gradient(circle at 88% 8%, rgba(199, 154, 74, 0.07), transparent 30%),
+      #0f0f10 !important;
+  }
+
+  .hero {
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)),
+      radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.10), transparent 34%),
+      radial-gradient(circle at 100% 0%, rgba(199, 154, 74, 0.08), transparent 38%) !important;
+  }
+
+  .cards .card:hover,
+  .quick-card:hover,
+  .public-panel-card:hover,
+  .points-product-card:hover,
+  .shirt-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(199, 154, 74, 0.26) !important;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.30) !important;
+  }
+}
+
+/* Mobile: mantém cara de app, sem blocos vermelhos pesados */
 @media (max-width: 800px) {
   html,
   body,
@@ -4314,8 +4515,8 @@ body {
 
   body {
     background:
-      radial-gradient(circle at 15% -5%, rgba(183, 28, 28, 0.34), transparent 34%),
-      radial-gradient(circle at 90% 7%, rgba(199, 154, 74, 0.12), transparent 28%),
+      radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.12), transparent 30%),
+      radial-gradient(circle at 100% 10%, rgba(199, 154, 74, 0.09), transparent 32%),
       linear-gradient(180deg, #080808 0%, #111112 48%, #080808 100%) !important;
   }
 
@@ -4323,6 +4524,7 @@ body {
     padding: calc(76px + env(safe-area-inset-top)) 12px calc(104px + env(safe-area-inset-bottom)) !important;
   }
 
+  /* Topo mobile */
   .mobile-app-topbar {
     position: fixed !important;
     top: 0 !important;
@@ -4332,9 +4534,9 @@ body {
     min-height: calc(68px + env(safe-area-inset-top)) !important;
     padding: calc(10px + env(safe-area-inset-top)) 12px 10px !important;
     background:
-      linear-gradient(135deg, rgba(15, 15, 16, 0.98), rgba(28, 12, 12, 0.96)),
-      #0f0f10 !important;
-    border-bottom: 1px solid rgba(199, 154, 74, 0.20) !important;
+      linear-gradient(135deg, rgba(15, 15, 16, 0.98), rgba(14, 14, 15, 0.96)),
+      radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.10), transparent 42%) !important;
+    border-bottom: 1px solid rgba(199, 154, 74, 0.18) !important;
     box-shadow: 0 14px 46px rgba(0, 0, 0, 0.35) !important;
   }
 
@@ -4351,16 +4553,14 @@ body {
     flex: 0 0 46px;
     border-radius: 15px;
     object-fit: cover;
-    border: 1px solid rgba(199, 154, 74, 0.38);
+    border: 1px solid rgba(199, 154, 74, 0.36);
     background: #000;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
   }
 
   .mobile-app-topbar strong {
     color: #ffffff !important;
-    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
     font-size: 15px !important;
-    font-style: normal !important;
     font-weight: 1000 !important;
     letter-spacing: 0.04em !important;
   }
@@ -4381,8 +4581,8 @@ body {
   .mobile-notification-button {
     min-height: 42px !important;
     padding: 0 12px !important;
-    border-color: rgba(199, 154, 74, 0.32) !important;
-    background: rgba(199, 154, 74, 0.11) !important;
+    border-color: rgba(199, 154, 74, 0.28) !important;
+    background: rgba(199, 154, 74, 0.10) !important;
   }
 
   .mobile-notification-button {
@@ -4390,7 +4590,9 @@ body {
     padding: 0 !important;
   }
 
-  .mobile-bottom-nav {
+  /* Barra inferior */
+  .mobile-bottom-nav,
+  .bottom-nav {
     left: 10px !important;
     right: 10px !important;
     bottom: calc(10px + env(safe-area-inset-bottom)) !important;
@@ -4398,30 +4600,35 @@ body {
     padding: 8px !important;
     border-radius: 28px !important;
     background:
-      linear-gradient(180deg, rgba(31, 31, 32, 0.97), rgba(12, 12, 13, 0.97)) !important;
-    border: 1px solid rgba(199, 154, 74, 0.20) !important;
+      linear-gradient(180deg, rgba(24, 24, 26, 0.97), rgba(10, 10, 11, 0.98)) !important;
+    border: 1px solid rgba(199, 154, 74, 0.18) !important;
     box-shadow: 0 20px 56px rgba(0, 0, 0, 0.52) !important;
   }
 
-  .mobile-bottom-nav button {
+  .mobile-bottom-nav button,
+  .bottom-nav button {
     min-height: 54px !important;
     border-radius: 20px !important;
     font-size: 9px !important;
     letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.64) !important;
   }
 
-  .mobile-bottom-nav button svg {
+  .mobile-bottom-nav button svg,
+  .bottom-nav button svg {
     width: 20px !important;
     height: 20px !important;
   }
 
-  .mobile-bottom-nav button.active {
+  .mobile-bottom-nav button.active,
+  .bottom-nav button.active {
     background:
-      linear-gradient(135deg, #d1a34f, #b98531) !important;
+      linear-gradient(135deg, var(--forjados-gold), var(--forjados-gold-dark)) !important;
     color: #0f0f10 !important;
     box-shadow: 0 10px 28px rgba(199, 154, 74, 0.22) !important;
   }
 
+  /* Hero mobile */
   .hero {
     display: grid !important;
     grid-template-columns: 1fr !important;
@@ -4429,8 +4636,9 @@ body {
     min-height: 210px;
     padding: 22px !important;
     background:
-      radial-gradient(circle at 14% 0%, rgba(183, 28, 28, 0.32), transparent 48%),
-      linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.03)) !important;
+      linear-gradient(135deg, rgba(255, 255, 255, 0.070), rgba(255, 255, 255, 0.030)),
+      radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.10), transparent 38%),
+      radial-gradient(circle at 100% 0%, rgba(199, 154, 74, 0.08), transparent 42%) !important;
     border-color: rgba(199, 154, 74, 0.18) !important;
   }
 
@@ -4442,9 +4650,9 @@ body {
     width: 168px;
     height: 168px;
     border-radius: 999px;
-    background: url('/logo-forjados.png') center / cover no-repeat;
+    background: url("/logo-forjados.png") center / cover no-repeat !important;
     opacity: 0.10;
-    filter: saturate(1.2);
+    filter: saturate(1.05);
     pointer-events: none;
   }
 
@@ -4466,24 +4674,12 @@ body {
     gap: 12px;
     padding: 16px !important;
     border-radius: 18px !important;
-    background: rgba(199, 154, 74, 0.13) !important;
+    background: rgba(199, 154, 74, 0.12) !important;
   }
 
   .points-card strong {
     margin: 0 !important;
     font-size: 24px !important;
-  }
-
-  .forjados-quote-card,
-  .forjados-identity-panel {
-    padding: 20px !important;
-    border-color: rgba(199, 154, 74, 0.16) !important;
-  }
-
-  .forjados-quote-card h3,
-  .forjados-identity-panel h3 {
-    font-size: clamp(22px, 7vw, 30px) !important;
-    line-height: 1.05;
   }
 
   .cards {
@@ -4500,6 +4696,18 @@ body {
   .cards .card p,
   .cards .card h3 {
     margin: 0;
+  }
+
+  .forjados-quote-card,
+  .forjados-identity-panel {
+    padding: 20px !important;
+    border-color: rgba(199, 154, 74, 0.16) !important;
+  }
+
+  .forjados-quote-card h3,
+  .forjados-identity-panel h3 {
+    font-size: clamp(22px, 7vw, 30px) !important;
+    line-height: 1.05;
   }
 
   .forjados-phrase-grid {
@@ -4529,8 +4737,6 @@ body {
   .admin-header {
     align-items: stretch !important;
     gap: 14px !important;
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03)) !important;
   }
 
   .admin-header .secondary-button,
@@ -4545,8 +4751,6 @@ body {
   .mobile-more-section {
     padding: 14px !important;
     border-radius: 24px !important;
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)) !important;
     border-color: rgba(199, 154, 74, 0.14) !important;
   }
 
@@ -4605,6 +4809,7 @@ body {
   }
 }
 
+/* Telas muito pequenas */
 @media (max-width: 380px) {
   .mobile-app-topbar button:last-child {
     font-size: 0;
@@ -4622,397 +4827,16 @@ body {
     flex-basis: 42px;
   }
 
-  .mobile-bottom-nav {
+  .mobile-bottom-nav,
+  .bottom-nav {
     left: 7px !important;
     right: 7px !important;
-    padding: 6px !important;
+    padding: 7px !important;
   }
 
-  .mobile-bottom-nav button span {
-    font-size: 8px;
-  }
-}
-
-
-/* =========================
-   AJUSTE VISUAL - SEM DETALHE VERMELHO FORTE
-   Mantém a identidade premium do site: preto, ouro, fumaça e vidro.
-========================= */
-@media (max-width: 768px) {
-  body,
-  .layout,
-  .main-content,
-  .auth-page,
-  .page-center {
-    background:
-      radial-gradient(circle at top left, rgba(199, 154, 74, 0.08), transparent 32%),
-      radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.035), transparent 30%),
-      #0f0f10 !important;
-  }
-
-  .hero,
-  .mobile-app-header,
-  .forjados-quote-card,
-  .public-panel-highlight-card,
-  .inscription-message-card {
-    background:
-      linear-gradient(135deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025)),
-      radial-gradient(circle at top left, rgba(199, 154, 74, 0.10), transparent 38%) !important;
-    border-color: rgba(199, 154, 74, 0.20) !important;
-  }
-
-  .bottom-nav,
-  .mobile-bottom-nav {
-    background:
-      linear-gradient(180deg, rgba(18, 18, 20, 0.96), rgba(12, 12, 13, 0.98)) !important;
-    border-top-color: rgba(199, 154, 74, 0.16) !important;
-    box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45) !important;
-  }
-
-  .mobile-more-page,
-  .mobile-more-header,
-  .mobile-more-section {
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.024)) !important;
-    border-color: rgba(255,255,255,0.10) !important;
-  }
-}
-
-/* =========================
-   AJUSTE VISUAL - REMOVER DETALHE VERMELHO
-   Visual mais próximo do site: preto, ouro, fumaça e vidro.
-========================= */
-
-@media (max-width: 768px) {
-  body,
-  .layout,
-  .main-content,
-  .auth-page,
-  .page-center {
-    background:
-      radial-gradient(circle at top left, rgba(199, 154, 74, 0.08), transparent 32%),
-      radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.035), transparent 30%),
-      #0f0f10 !important;
-  }
-
-  .hero,
-  .mobile-app-header,
-  .forjados-quote-card,
-  .public-panel-highlight-card,
-  .inscription-message-card,
-  .forjados-identity-panel {
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)),
-      radial-gradient(circle at top left, rgba(199, 154, 74, 0.10), transparent 38%) !important;
-    border-color: rgba(199, 154, 74, 0.20) !important;
-  }
-
-  .bottom-nav,
-  .mobile-bottom-nav {
-    background:
-      linear-gradient(180deg, rgba(18, 18, 20, 0.96), rgba(12, 12, 13, 0.98)) !important;
-    border-top-color: rgba(199, 154, 74, 0.16) !important;
-    box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45) !important;
-  }
-
-  .mobile-more-page,
-  .mobile-more-header,
-  .mobile-more-section {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.024)) !important;
-    border-color: rgba(255, 255, 255, 0.10) !important;
-  }
-
-  .forjados-phrase-item {
-    background:
-      linear-gradient(135deg, rgba(199, 154, 74, 0.12), rgba(255, 255, 255, 0.035)) !important;
-    border-color: rgba(199, 154, 74, 0.22) !important;
-  }
-}
-
-/* Remove brilhos vermelhos fortes que possam ter ficado no app */
-.hero::before,
-.hero::after,
-.forjados-identity-panel::before,
-.forjados-identity-panel::after,
-.forjados-quote-card::before,
-.forjados-quote-card::after {
-  background:
-    radial-gradient(circle, rgba(199, 154, 74, 0.10), transparent 60%) !important;
-}
-
-/* =========================================================
-   FORJADOS - AJUSTE VISUAL GERAL
-   Remove detalhes vermelhos fortes no PC e no mobile.
-   Mantém visual premium: preto abissal, ouro, vidro e fumaça.
-========================================================= */
-
-/* Fundo geral do app */
-body,
-.layout,
-.main-content,
-.auth-page,
-.page-center {
-  background:
-    radial-gradient(circle at top left, rgba(199, 154, 74, 0.08), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.035), transparent 30%),
-    #0f0f10 !important;
-}
-
-/* Cards principais, hero e áreas de destaque */
-.hero,
-.card,
-.panel,
-.auth-card,
-.forjados-quote-card,
-.public-panel-highlight-card,
-.inscription-message-card,
-.forjados-identity-panel,
-.mobile-app-header,
-.mobile-more-page,
-.mobile-more-header,
-.mobile-more-section {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)),
-    radial-gradient(circle at top left, rgba(199, 154, 74, 0.08), transparent 40%) !important;
-  border-color: rgba(199, 154, 74, 0.18) !important;
-}
-
-/* Remove fundos vermelhos em áreas decorativas */
-.hero::before,
-.hero::after,
-.card::before,
-.card::after,
-.panel::before,
-.panel::after,
-.forjados-identity-panel::before,
-.forjados-identity-panel::after,
-.forjados-quote-card::before,
-.forjados-quote-card::after,
-.public-panel-highlight-card::before,
-.public-panel-highlight-card::after,
-.inscription-message-card::before,
-.inscription-message-card::after {
-  background:
-    radial-gradient(circle, rgba(199, 154, 74, 0.10), transparent 60%) !important;
-}
-
-/* Sidebar no PC */
-.sidebar {
-  background:
-    linear-gradient(180deg, rgba(24, 24, 26, 0.98), rgba(14, 14, 15, 0.98)) !important;
-  border-right-color: rgba(199, 154, 74, 0.14) !important;
-}
-
-/* Logo e área superior */
-.logo h1,
-.brand h1,
-.panel h1 {
-  color: #c79a4a !important;
-}
-
-/* Botões ativos no menu lateral */
-.sidebar-menu button.active,
-.sidebar-menu button:hover {
-  background:
-    linear-gradient(135deg, rgba(199, 154, 74, 0.95), rgba(177, 129, 56, 0.95)) !important;
-  color: #0f0f10 !important;
-  box-shadow: 0 10px 30px rgba(199, 154, 74, 0.18) !important;
-}
-
-/* Botões normais do menu lateral */
-.sidebar-menu button {
-  border-color: transparent !important;
-}
-
-/* Botões principais */
-.primary-button {
-  background:
-    linear-gradient(135deg, #c79a4a, #b98735) !important;
-  color: #0f0f10 !important;
-  box-shadow: 0 12px 35px rgba(199, 154, 74, 0.18) !important;
-}
-
-.primary-button:hover:not(:disabled) {
-  box-shadow: 0 16px 45px rgba(199, 154, 74, 0.25) !important;
-}
-
-/* Botões secundários */
-.secondary-button {
-  background: rgba(255, 255, 255, 0.035) !important;
-  border-color: rgba(199, 154, 74, 0.18) !important;
-}
-
-.secondary-button:hover:not(:disabled) {
-  border-color: rgba(199, 154, 74, 0.35) !important;
-  background: rgba(199, 154, 74, 0.08) !important;
-}
-
-/* Frases do movimento */
-.forjados-phrase-grid {
-  gap: 12px !important;
-}
-
-.forjados-phrase-item {
-  background:
-    linear-gradient(135deg, rgba(199, 154, 74, 0.12), rgba(255, 255, 255, 0.035)) !important;
-  border: 1px solid rgba(199, 154, 74, 0.22) !important;
-  color: #ffffff !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Cards de resumo e comando */
-.quick-card,
-.admin-home-panel,
-.access-requests-panel,
-.public-panel-card,
-.treasury-card,
-.receipt-item,
-.ride-card,
-.shirt-card,
-.points-product-card,
-.notification-card,
-.audit-card {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.025)) !important;
-  border-color: rgba(199, 154, 74, 0.16) !important;
-}
-
-/* Status e badges sem vermelho exagerado */
-.receipt-status.pending,
-.redemption-status.pending,
-.ride-status.full {
-  background: rgba(250, 204, 21, 0.10) !important;
-  border-color: rgba(250, 204, 21, 0.22) !important;
-}
-
-.receipt-status.approved,
-.redemption-status.delivered,
-.ride-status.available {
-  background: rgba(34, 197, 94, 0.10) !important;
-  border-color: rgba(34, 197, 94, 0.22) !important;
-}
-
-.receipt-status.rejected,
-.redemption-status.cancelled,
-.ride-status.cancelled,
-.ride-status.not_completed {
-  background: rgba(255, 255, 255, 0.045) !important;
-  color: #ff8a8a !important;
-  border-color: rgba(255, 138, 138, 0.20) !important;
-}
-
-/* Inputs e selects */
-input,
-select,
-textarea {
-  background: rgba(0, 0, 0, 0.34) !important;
-  border-color: rgba(255, 255, 255, 0.10) !important;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: rgba(199, 154, 74, 0.72) !important;
-  box-shadow: 0 0 0 4px rgba(199, 154, 74, 0.10) !important;
-}
-
-/* Barra inferior mobile */
-.bottom-nav,
-.mobile-bottom-nav {
-  background:
-    linear-gradient(180deg, rgba(18, 18, 20, 0.96), rgba(12, 12, 13, 0.98)) !important;
-  border-top-color: rgba(199, 154, 74, 0.16) !important;
-  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45) !important;
-}
-
-/* Botões da barra inferior */
-.bottom-nav button,
-.mobile-bottom-nav button {
-  color: rgba(255, 255, 255, 0.64) !important;
-}
-
-.bottom-nav button.active,
-.mobile-bottom-nav button.active {
-  color: #c79a4a !important;
-  background: rgba(199, 154, 74, 0.10) !important;
-}
-
-/* Topo mobile */
-.mobile-app-header {
-  background:
-    linear-gradient(180deg, rgba(18, 18, 20, 0.96), rgba(12, 12, 13, 0.94)) !important;
-  border-bottom-color: rgba(199, 154, 74, 0.14) !important;
-}
-
-/* Ajustes específicos no PC */
-@media (min-width: 769px) {
-  .main-content {
-    background:
-      radial-gradient(circle at 18% 8%, rgba(199, 154, 74, 0.09), transparent 28%),
-      radial-gradient(circle at 88% 82%, rgba(255, 255, 255, 0.035), transparent 32%),
-      #0f0f10 !important;
-  }
-
-  .hero {
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.026)),
-      radial-gradient(circle at top left, rgba(199, 154, 74, 0.10), transparent 35%) !important;
-  }
-
-  .forjados-identity-panel {
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.050), rgba(255, 255, 255, 0.024)),
-      radial-gradient(circle at top right, rgba(199, 154, 74, 0.08), transparent 35%) !important;
-  }
-
-  .cards .card:hover,
-  .quick-card:hover,
-  .public-panel-card:hover,
-  .points-product-card:hover,
-  .shirt-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(199, 154, 74, 0.28) !important;
-    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28) !important;
-  }
-}
-
-/* Ajustes específicos no celular */
-@media (max-width: 768px) {
-  body,
-  .layout,
-  .main-content,
-  .auth-page,
-  .page-center {
-    background:
-      radial-gradient(circle at top left, rgba(199, 154, 74, 0.08), transparent 32%),
-      radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.035), transparent 30%),
-      #0f0f10 !important;
-  }
-
-  .hero,
-  .mobile-app-header,
-  .forjados-quote-card,
-  .public-panel-highlight-card,
-  .inscription-message-card,
-  .forjados-identity-panel {
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)),
-      radial-gradient(circle at top left, rgba(199, 154, 74, 0.10), transparent 38%) !important;
-    border-color: rgba(199, 154, 74, 0.20) !important;
-  }
-
-  .mobile-more-page,
-  .mobile-more-header,
-  .mobile-more-section {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.024)) !important;
-    border-color: rgba(255, 255, 255, 0.10) !important;
-  }
-
-  .forjados-phrase-item {
-    background:
-      linear-gradient(135deg, rgba(199, 154, 74, 0.12), rgba(255, 255, 255, 0.035)) !important;
-    border-color: rgba(199, 154, 74, 0.22) !important;
+  .mobile-bottom-nav button,
+  .bottom-nav button {
+    font-size: 8px !important;
+    min-height: 50px !important;
   }
 }
