@@ -21,17 +21,22 @@ const EMPTY_SUMMARY: AdminDashboardSummary = {
   approved_members: 0,
 };
 
+type SupabaseResponse = {
+  data?: Record<string, unknown> | Record<string, unknown>[] | null;
+  error?: Error | null;
+};
+
 export async function getAdminDashboardSummary(): Promise<AdminDashboardSummary> {
   try {
-    const { data, error } = await withTimeout(
+    const response = (await withTimeout(
       Promise.resolve(supabase.rpc('admin_get_dashboard_summary')),
       10000,
       'Não foi possível carregar o resumo do painel.'
-    );
+    )) as SupabaseResponse;
 
-    if (error) throw error;
+    if (response.error) throw response.error;
 
-    const row = Array.isArray(data) ? data[0] : data;
+    const row = Array.isArray(response.data) ? response.data[0] : response.data;
 
     return {
       pending_access_requests: Number(row?.pending_access_requests || 0),

@@ -70,7 +70,7 @@ export async function getMyProfile(currentUser?: User | null): Promise<UserProfi
 
   const { data: createdProfile, error: insertError } = await supabase
     .from('profiles')
-    .insert(fullProfile)
+    .insert(fullProfile as Record<string, unknown>)
     .select('*')
     .single();
 
@@ -93,7 +93,7 @@ export async function getMyProfile(currentUser?: User | null): Promise<UserProfi
 
   const { data: minimalCreatedProfile, error: minimalInsertError } = await supabase
     .from('profiles')
-    .insert(minimalProfile)
+    .insert(minimalProfile as Record<string, unknown>)
     .select('*')
     .single();
 
@@ -152,7 +152,7 @@ export async function updateMyRegistration(params: {
       ...params,
       full_name: params.display_name,
       updated_at: new Date().toISOString(),
-    })
+    } as Record<string, unknown>)
     .eq('id', userData.user.id);
 
   if (error) throw error;
@@ -182,7 +182,7 @@ export async function updateProfileStatus(params: {
 
   const { error } = await supabase
     .from('profiles')
-    .update(payload)
+    .update(payload as Record<string, unknown>)
     .eq('id', params.userId);
 
   if (error) throw error;
@@ -281,7 +281,7 @@ export async function updateMyBasicProfile(params: {
       continuous_medicine: params.continuous_medicine,
       emergency_contact: params.emergency_contact,
       updated_at: new Date().toISOString(),
-    })
+    } as Record<string, unknown>)
     .eq('id', userData.user.id);
 
   if (error) throw error;

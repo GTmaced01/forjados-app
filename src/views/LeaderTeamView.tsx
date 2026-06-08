@@ -40,9 +40,9 @@ export function LeaderTeamView() {
     <div className="leader-team-page">
       <div className="admin-header">
         <div>
-          <p className="eyebrow">Liderança</p>
+          <p className="eyebrow">Cuidado pastoral</p>
           <h2>Meus Liderados</h2>
-          <p className="muted">Veja os membros aprovados da sua equipe principal e dos setores vinculados.</p>
+          <p className="muted">Acompanhe os membros da sua equipe com cuidado, honra e responsabilidade.</p>
         </div>
         <button className="secondary-button" type="button" onClick={loadData}><RefreshCw size={16} />Atualizar</button>
       </div>
@@ -52,7 +52,7 @@ export function LeaderTeamView() {
       <section className="panel wide">
         <div className="section-header">
           <div>
-            <h3>Equipe vinculada</h3>
+            <h3>Equipe sob cuidado</h3>
             <p className="muted">Equipe principal: {profile?.primary_team || 'Não definida'} · Setores: {profile?.sectors?.join(', ') || 'Nenhum setor definido'}</p>
           </div>
           <div className="search-box small-search"><Search size={18} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar liderado..." /></div>
@@ -61,7 +61,7 @@ export function LeaderTeamView() {
         {loading ? (
           <p className="muted">Carregando liderados...</p>
         ) : filteredMembers.length === 0 ? (
-          <div className="empty-access-requests"><h4>Nenhum liderado encontrado</h4><p className="muted">Confira se os membros já foram aprovados e se estão na sua equipe principal ou nos seus setores.</p></div>
+          <div className="empty-access-requests"><h4>Nenhum liderado encontrado</h4><p className="muted">Confira se os membros já foram aprovados e se estão vinculados à sua equipe principal.</p></div>
         ) : (
           <div className="leader-team-list">
             {filteredMembers.map((member) => (

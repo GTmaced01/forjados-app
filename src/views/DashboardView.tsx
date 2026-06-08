@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Bell,
   CheckCircle,
   Home,
   Menu,
@@ -13,7 +14,14 @@ import {
 } from "lucide-react";
 import { signOut } from "../services/auth";
 import { useAuth } from "../components/AuthProvider";
-import { STATUS_LABELS, ROLE_LABELS } from "../constants";
+import {
+  FORJADOS_DNA_PHRASES,
+  FORJADOS_MAIN_MESSAGE,
+  FORJADOS_PILLARS,
+  MODULE_DNA,
+  STATUS_LABELS,
+  ROLE_LABELS,
+} from "../constants";
 import { AdminPanelView } from "./AdminPanelView";
 import { ProfileView } from "./ProfileView";
 import { InscriptionView } from "./InscriptionView";
@@ -30,11 +38,14 @@ import { LeaderTeamView } from "./LeaderTeamView";
 import { PublicPanelView } from "./PublicPanelView";
 import { ManagePublicPanelView } from "./ManagePublicPanelView";
 import { LegalDocumentsView } from "./LegalDocumentsView";
+import { NotificationsView } from "./NotificationsView";
+import { AuditLogView } from "./AuditLogView";
 import {
   listPendingAccessRequests,
   updateAccessRequestStatus,
 } from "../services/accessRequests";
 import { getErrorMessage } from "../services/safeAsync";
+import { countUnreadNotifications } from "../services/notifications";
 import {
   getAdminDashboardSummary,
   type AdminDashboardSummary,
@@ -47,6 +58,7 @@ type Tab =
   | "inscription"
   | "public-panel"
   | "points"
+  | "notifications"
   | "points-store"
   | "leader-team"
   | "rides"
@@ -58,8 +70,10 @@ type Tab =
   | "service-scale"
   | "treasury"
   | "admin"
+  | "audit-log"
   | "privacy"
   | "terms"
+  | "rules"
   | "more";
 
 export function DashboardView() {
@@ -78,6 +92,7 @@ export function DashboardView() {
   const [dashboardSummary, setDashboardSummary] =
     useState<AdminDashboardSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const canManageShirts = isAdmin || isDirector;
   const canManagePoints = isAdmin || isDirector || isLeader;
@@ -86,6 +101,7 @@ export function DashboardView() {
   const canManageServiceScale = isAdmin || isDirector;
   const canManageTreasury = isAdmin || isTreasury;
   const canSeeAdminPanel = isAdmin;
+  const canSeeAuditLog = isAdmin || isDirector;
   const canSeeAccessRequests = isAdmin || isDirector;
   const canSeeLeaderTeam = isLeader || isDirector || isAdmin;
 
@@ -96,7 +112,8 @@ export function DashboardView() {
     canManagePublicPanel ||
     canManageServiceScale ||
     canManageTreasury ||
-    canSeeAdminPanel;
+    canSeeAdminPanel ||
+    canSeeAuditLog;
 
   async function loadPendingRequests() {
     if (!canSeeAccessRequests) return;
@@ -143,6 +160,25 @@ export function DashboardView() {
   }, [canSeeAccessRequests]);
 
   useEffect(() => {
+    let active = true;
+
+    countUnreadNotifications().then((count) => {
+      if (active) setUnreadNotifications(count);
+    });
+
+    const interval = window.setInterval(() => {
+      countUnreadNotifications().then((count) => {
+        if (active) setUnreadNotifications(count);
+      });
+    }, 60000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [profile?.id]);
+
+  useEffect(() => {
     localStorage.setItem("forjados-active-tab", tab);
   }, [tab]);
 
@@ -153,11 +189,13 @@ export function DashboardView() {
       tab === "inscription" ||
       tab === "public-panel" ||
       tab === "points" ||
+      tab === "notifications" ||
       tab === "points-store" ||
       tab === "rides" ||
       tab === "shirts" ||
       tab === "privacy" ||
       tab === "terms" ||
+      tab === "rules" ||
       tab === "more" ||
       (tab === "leader-team" && canSeeLeaderTeam) ||
       (tab === "manage-points" && canManagePoints) ||
@@ -166,7 +204,8 @@ export function DashboardView() {
       (tab === "manage-public-panel" && canManagePublicPanel) ||
       (tab === "service-scale" && canManageServiceScale) ||
       (tab === "treasury" && canManageTreasury) ||
-      (tab === "admin" && canSeeAdminPanel);
+      (tab === "admin" && canSeeAdminPanel) ||
+      (tab === "audit-log" && canSeeAuditLog);
 
     if (!canAccessTab) {
       setTab("home");
@@ -182,6 +221,7 @@ export function DashboardView() {
     canManageServiceScale,
     canManageTreasury,
     canSeeAdminPanel,
+    canSeeAuditLog,
   ]);
 
   if (!profile) return null;
@@ -238,7 +278,7 @@ export function DashboardView() {
       <>
         <header className="hero">
           <div>
-            <p className="eyebrow">Bem-vindo</p>
+            <p className="eyebrow">{MODULE_DNA.home.eyebrow}</p>
             <h2>Saudações, {currentProfile.display_name}</h2>
             <p className="muted">
               Cargo: {ROLE_LABELS[currentProfile.role]} · Status:{" "}
@@ -247,10 +287,18 @@ export function DashboardView() {
           </div>
 
           <div className="points-card">
-            <span>Saldo de honra</span>
+            <span>Honra de honra</span>
             <strong>{currentProfile.points} pts</strong>
           </div>
         </header>
+
+        <section className="card forjados-quote-card">
+          <p className="eyebrow">Mensagem central</p>
+          <h3>{FORJADOS_MAIN_MESSAGE}</h3>
+          <p className="muted">
+            O FORJADOS não é sobre pessoas fortes. É sobre pessoas que foram quebradas e encontraram cura em Deus.
+          </p>
+        </section>
 
         <section className="cards">
           <div className="card">
@@ -271,14 +319,43 @@ export function DashboardView() {
           </div>
         </section>
 
+        <section className="forjados-dna-grid">
+          {FORJADOS_PILLARS.map((pillar) => (
+            <article key={pillar.title} className="card">
+              <p className="eyebrow">DNA FORJADOS</p>
+              <h3>{pillar.title}</h3>
+              <p className="muted">{pillar.description}</p>
+            </article>
+          ))}
+        </section>
+
+        <section className="panel wide forjados-identity-panel">
+          <div className="section-header">
+            <div>
+              <p className="eyebrow">Frases que definem o movimento</p>
+              <h3>Forjados pelo fogo. Guiados pelo Espírito.</h3>
+              <p className="muted">
+                Uma pessoa forjada não é prisioneira do passado. Ela se torna testemunho da graça de Deus.
+              </p>
+            </div>
+          </div>
+          <div className="forjados-phrase-grid">
+            {FORJADOS_DNA_PHRASES.map((phrase) => (
+              <div key={phrase} className="forjados-phrase-item">
+                {phrase}
+              </div>
+            ))}
+          </div>
+        </section>
+
         {canSeeAccessRequests && (
           <section className="admin-home-panel">
             <div className="section-header">
               <div>
-                <p className="eyebrow">Centro de comando</p>
-                <h3>Resumo rápido</h3>
+                <p className="eyebrow">Direção</p>
+                <h3>Centro de cuidado</h3>
                 <p className="muted">
-                  Atalhos e pendências principais para admin e diretoria.
+                  Pendências, atalhos e decisões para cuidar da equipe com clareza.
                 </p>
               </div>
               <button
@@ -341,7 +418,7 @@ export function DashboardView() {
                 <strong>
                   {dashboardSummary?.pending_points_redemptions || 0}
                 </strong>
-                <small>Loja de pontos</small>
+                <small>Loja de honra</small>
               </button>
             </div>
 
@@ -352,7 +429,7 @@ export function DashboardView() {
                   className="secondary-button"
                   onClick={() => selectTab("manage-public-panel")}
                 >
-                  Criar aviso
+                  Publicar direção
                 </button>
               )}
               {canManagePoints && (
@@ -361,7 +438,7 @@ export function DashboardView() {
                   className="secondary-button"
                   onClick={() => selectTab("manage-points")}
                 >
-                  Lançar pontos
+                  Lançar honra
                 </button>
               )}
               {canManageServiceScale && (
@@ -370,7 +447,16 @@ export function DashboardView() {
                   className="secondary-button"
                   onClick={() => selectTab("service-scale")}
                 >
-                  Ver escala
+                  Ver serviço
+                </button>
+              )}
+              {canSeeAuditLog && (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => selectTab("audit-log")}
+                >
+                  Histórico
                 </button>
               )}
               {canSeeAdminPanel && (
@@ -390,11 +476,10 @@ export function DashboardView() {
           <section className="panel wide access-requests-panel">
             <div className="section-header">
               <div>
-                <p className="eyebrow">Moderação</p>
+                <p className="eyebrow">Entrada na jornada</p>
                 <h3>Solicitações de acesso</h3>
                 <p className="muted">
-                  Novos membros que solicitaram entrada no aplicativo aparecem
-                  aqui.
+                  Pessoas que pediram acesso ao aplicativo aparecem aqui para análise.
                 </p>
               </div>
               <button
@@ -483,9 +568,10 @@ export function DashboardView() {
 
   function renderMore() {
     const memberItems: Array<{ label: string; tab: Tab; visible?: boolean }> = [
-      { label: "Meu Perfil", tab: "profile" },
-      { label: "Minha Inscrição", tab: "inscription" },
-      { label: "Loja de Pontos", tab: "points-store" },
+      { label: "Minha Identidade", tab: "profile" },
+      { label: "Minha Jornada", tab: "inscription" },
+      { label: `Notificações${unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}`, tab: "notifications" },
+      { label: "Loja de Honra", tab: "points-store" },
       {
         label: "Meus Liderados",
         tab: "leader-team",
@@ -494,6 +580,7 @@ export function DashboardView() {
       { label: "Caronas", tab: "rides" },
       { label: "Privacidade", tab: "privacy" },
       { label: "Termo de Responsabilidade", tab: "terms" },
+      { label: "Regras do Retiro", tab: "rules" },
     ];
 
     const managementItems: Array<{
@@ -502,7 +589,7 @@ export function DashboardView() {
       visible?: boolean;
     }> = [
       {
-        label: "Lançar Pontos",
+        label: "Lançar Honra",
         tab: "manage-points",
         visible: canManagePoints,
       },
@@ -512,12 +599,12 @@ export function DashboardView() {
         visible: canManageShirts,
       },
       {
-        label: "Gerenciar Loja de Pontos",
+        label: "Gerenciar Loja de Honra",
         tab: "manage-points-store",
         visible: canManagePointsStore,
       },
       {
-        label: "Gerenciar Painel Público",
+        label: "Gerenciar Mural",
         tab: "manage-public-panel",
         visible: canManagePublicPanel,
       },
@@ -527,6 +614,7 @@ export function DashboardView() {
         visible: canManageServiceScale,
       },
       { label: "Tesouraria", tab: "treasury", visible: canManageTreasury },
+      { label: "Memorial do Sistema", tab: "audit-log", visible: canSeeAuditLog },
       { label: "Painel Admin", tab: "admin", visible: canSeeAdminPanel },
     ];
 
@@ -534,16 +622,16 @@ export function DashboardView() {
       <section className="mobile-more-page">
         <div className="admin-header mobile-more-header">
           <div>
-            <p className="eyebrow">Navegação</p>
+            <p className="eyebrow">Mapa da jornada</p>
             <h2>Mais opções</h2>
             <p className="muted">
-              Acesse ferramentas, perfil e áreas de gerenciamento.
+              Acesse sua identidade, jornada, serviço e ferramentas de liderança.
             </p>
           </div>
         </div>
 
         <div className="mobile-more-section">
-          <h3>Área do membro</h3>
+          <h3>Jornada pessoal</h3>
           <div className="mobile-more-grid">
             {memberItems
               .filter((item) => item.visible !== false)
@@ -561,7 +649,7 @@ export function DashboardView() {
 
         {canSeeManagement && (
           <div className="mobile-more-section">
-            <h3>Gerenciamento</h3>
+            <h3>Direção e gerenciamento</h3>
             <div className="mobile-more-grid">
               {managementItems
                 .filter((item) => item.visible !== false)
@@ -591,6 +679,7 @@ export function DashboardView() {
 
   function renderContent() {
     if (tab === "admin" && canSeeAdminPanel) return <AdminPanelView />;
+    if (tab === "audit-log" && canSeeAuditLog) return <AuditLogView />;
     if (tab === "treasury" && canManageTreasury) return <TreasuryView />;
     if (tab === "manage-points" && canManagePoints) return <ManagePointsView />;
     if (tab === "manage-shirts" && canManageShirts) return <ManageShirtsView />;
@@ -602,6 +691,7 @@ export function DashboardView() {
       return <ServiceScaleView />;
     if (tab === "leader-team" && canSeeLeaderTeam) return <LeaderTeamView />;
     if (tab === "public-panel") return <PublicPanelView />;
+    if (tab === "notifications") return <NotificationsView />;
     if (tab === "profile") return <ProfileView />;
     if (tab === "inscription") return <InscriptionView />;
     if (tab === "points") return <PointsView />;
@@ -610,6 +700,7 @@ export function DashboardView() {
     if (tab === "shirts") return <ShirtsView />;
     if (tab === "privacy") return <LegalDocumentsView initialTab="privacy" />;
     if (tab === "terms") return <LegalDocumentsView initialTab="terms" />;
+    if (tab === "rules") return <LegalDocumentsView initialTab="rules" />;
     if (tab === "more") return renderMore();
 
     return renderHome();
@@ -650,28 +741,28 @@ export function DashboardView() {
               className={tab === "public-panel" ? "active" : ""}
               onClick={() => selectTab("public-panel")}
             >
-              Painel Público
+              Mural da Forja
             </button>
             <button
               type="button"
               className={tab === "profile" ? "active" : ""}
               onClick={() => selectTab("profile")}
             >
-              Meu Perfil
+              Minha Identidade
             </button>
             <button
               type="button"
               className={tab === "inscription" ? "active" : ""}
               onClick={() => selectTab("inscription")}
             >
-              Minha Inscrição
+              Minha Jornada
             </button>
             <button
               type="button"
               className={tab === "points" ? "active" : ""}
               onClick={() => selectTab("points")}
             >
-              Pontos
+              Honra
             </button>
             <button
               type="button"
@@ -685,7 +776,7 @@ export function DashboardView() {
               className={tab === "points-store" ? "active" : ""}
               onClick={() => selectTab("points-store")}
             >
-              Loja de Pontos
+              Loja de Honra
             </button>
             {canSeeLeaderTeam && (
               <button
@@ -717,6 +808,13 @@ export function DashboardView() {
             >
               Termo
             </button>
+            <button
+              type="button"
+              className={tab === "rules" ? "active" : ""}
+              onClick={() => selectTab("rules")}
+            >
+              Regras do Retiro
+            </button>
           </div>
 
           {canSeeManagement && (
@@ -728,7 +826,7 @@ export function DashboardView() {
                   className={tab === "manage-points" ? "active" : ""}
                   onClick={() => selectTab("manage-points")}
                 >
-                  Lançar Pontos
+                  Lançar Honra
                 </button>
               )}
               {canManageShirts && (
@@ -746,7 +844,7 @@ export function DashboardView() {
                   className={tab === "manage-points-store" ? "active" : ""}
                   onClick={() => selectTab("manage-points-store")}
                 >
-                  Gerenciar Loja de Pontos
+                  Gerenciar Loja de Honra
                 </button>
               )}
               {canManagePublicPanel && (
@@ -755,7 +853,7 @@ export function DashboardView() {
                   className={tab === "manage-public-panel" ? "active" : ""}
                   onClick={() => selectTab("manage-public-panel")}
                 >
-                  Gerenciar Painel Público
+                  Gerenciar Mural da Forja
                 </button>
               )}
               {canManageServiceScale && (
@@ -774,6 +872,15 @@ export function DashboardView() {
                   onClick={() => selectTab("treasury")}
                 >
                   Tesouraria
+                </button>
+              )}
+              {canSeeAuditLog && (
+                <button
+                  type="button"
+                  className={tab === "audit-log" ? "active" : ""}
+                  onClick={() => selectTab("audit-log")}
+                >
+                  Memorial do Sistema
                 </button>
               )}
               {canSeeAdminPanel && (
@@ -800,10 +907,21 @@ export function DashboardView() {
             <strong>FORJADOS</strong>
             <span>{currentProfile.primary_team || currentProfile.role}</span>
           </div>
-          <button type="button" onClick={() => selectTab("more")}>
-            <Menu size={18} />
-            Menu
-          </button>
+          <div className="mobile-topbar-actions">
+            <button
+              type="button"
+              className="mobile-notification-button"
+              onClick={() => selectTab("notifications")}
+              aria-label="Abrir notificações"
+            >
+              <Bell size={18} />
+              {unreadNotifications > 0 && <span>{unreadNotifications > 9 ? '9+' : unreadNotifications}</span>}
+            </button>
+            <button type="button" onClick={() => selectTab("more")}>
+              <Menu size={18} />
+              Menu
+            </button>
+          </div>
         </div>
         {renderContent()}
       </main>
@@ -839,7 +957,7 @@ export function DashboardView() {
           onClick={() => selectTab("points")}
         >
           <Star size={19} />
-          <span>Pontos</span>
+          <span>Honra</span>
         </button>
         <button
           type="button"

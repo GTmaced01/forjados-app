@@ -168,7 +168,7 @@ export function TreasuryView() {
     <div className="treasury-page">
       <div className="admin-header">
         <div>
-          <p className="eyebrow">Controle financeiro</p>
+          <p className="eyebrow">Mordomia e transparência</p>
           <h2>Tesouraria</h2>
           <p className="muted">
             Analise os comprovantes de inscrição enviados pelos membros.

@@ -182,8 +182,8 @@ export function AdminPanelView() {
     <div className="admin-page">
       <div className="admin-header">
         <div>
-          <p className="eyebrow">Comando da Legião</p>
-          <h2>Painel Administrativo</h2>
+          <p className="eyebrow">Direção e cuidado</p>
+          <h2>Painel de Direção</h2>
           <p className="muted">
             Gerencie membros, cargos, setores e status das inscrições.
           </p>

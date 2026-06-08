@@ -253,7 +253,7 @@ export function ManageShirtsView() {
       <div className="admin-header">
         <div>
           <p className="eyebrow">Fardas de um Forjado</p>
-          <h2>Gerenciar Camisas</h2>
+          <h2>Gerenciar Fardas</h2>
           <p className="muted">
             Cadastre camisas, edite estoque e acompanhe pedidos.
           </p>
@@ -272,7 +272,7 @@ export function ManageShirtsView() {
           <section className="panel wide manage-shirt-form-panel">
             <div className="form-title-row">
               <div>
-                <h3>{editingId ? 'Editar camisa' : 'Cadastrar camisa'}</h3>
+                <h3>{editingId ? 'Editar farda' : 'Cadastrar farda'}</h3>
                 <p className="muted">
                   Use URL de imagem por enquanto. Depois adicionaremos upload direto.
                 </p>
@@ -374,7 +374,7 @@ export function ManageShirtsView() {
                   ? 'Salvando...'
                   : editingId
                   ? 'Salvar alterações'
-                  : 'Cadastrar camisa'}
+                  : 'Cadastrar farda'}
               </button>
             </form>
           </section>
@@ -382,8 +382,8 @@ export function ManageShirtsView() {
           <section className="panel wide">
             <div className="section-header">
               <div>
-                <h3>Camisas cadastradas</h3>
-                <p className="muted">Edite modelos, preço, imagem e estoque.</p>
+                <h3>Fardas cadastradas</h3>
+                <p className="muted">Edite modelos, preço, imagem e estoque das camisas.</p>
               </div>
 
               <div className="search-box small-search">
@@ -397,9 +397,9 @@ export function ManageShirtsView() {
             </div>
 
             {loading ? (
-              <p className="muted">Carregando camisas...</p>
+              <p className="muted">Carregando fardas...</p>
             ) : filteredShirts.length === 0 ? (
-              <p className="muted">Nenhuma camisa encontrada.</p>
+              <p className="muted">Nenhuma farda encontrada.</p>
             ) : (
               <div className="manage-shirt-list">
                 {filteredShirts.map((shirt) => (
@@ -484,9 +484,9 @@ export function ManageShirtsView() {
           <section className="panel wide">
             <div className="section-header">
               <div>
-                <h3>Pedidos de camisas</h3>
+                <h3>Pedidos de fardas</h3>
                 <p className="muted">
-                  Acompanhe pagamentos e entregas dos pedidos.
+                  Acompanhe pagamentos e entregas das camisas do movimento.
                 </p>
               </div>
 

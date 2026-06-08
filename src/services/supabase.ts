@@ -7,7 +7,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase não configurado. Confira o arquivo .env.');
 }
 
-export const supabase = createClient(
-  supabaseUrl || '',
-  supabaseAnonKey || ''
-);
+const supabaseClient = createClient(supabaseUrl || '', supabaseAnonKey || '');
+
+// Mantemos o client com tipagem leve para evitar travamentos do TypeScript em builders complexos do Supabase.
+// As funções de serviço continuam tipando os retornos manualmente com os tipos do app.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const supabase: any = supabaseClient;

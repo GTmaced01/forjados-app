@@ -41,7 +41,7 @@ export function ManagePointsView() {
           canViewRanking ? listPointsRanking() : Promise.resolve([]),
         ]),
         10000,
-        'Não foi possível carregar a gestão de pontos.'
+        'Não foi possível carregar a gestão de honra.'
       );
 
       setTransactions(transactionsData);
@@ -49,7 +49,7 @@ export function ManagePointsView() {
       setRankingProfiles(rankingData);
     } catch (err) {
       console.error(err);
-      setError(getErrorMessage(err, 'Erro ao carregar pontos.'));
+      setError(getErrorMessage(err, 'Erro ao carregar honra.'));
     } finally {
       setLoading(false);
     }
@@ -79,7 +79,7 @@ export function ManagePointsView() {
 
     try {
       if (!isAdmin && !isDirector && !isLeader) {
-        throw new Error('Você não tem permissão para lançar pontos.');
+        throw new Error('Você não tem permissão para lançar honra.');
       }
       if (!selectedUserId) throw new Error('Selecione um membro.');
       const numericAmount = Number(amount);
@@ -87,13 +87,13 @@ export function ManagePointsView() {
       if (!reason.trim() || reason.trim().length < 3) throw new Error('Informe o motivo da pontuação.');
 
       await grantPointsManual({ userId: selectedUserId, amount: numericAmount, reason: reason.trim() });
-      setSuccess('Pontos lançados com sucesso.');
+      setSuccess('Honra registrada com sucesso.');
       setAmount('50');
       setReason('');
       await Promise.all([loadData(), reloadProfile()]);
     } catch (err) {
       console.error(err);
-      setError(getErrorMessage(err, 'Erro ao lançar pontos.'));
+      setError(getErrorMessage(err, 'Erro ao lançar honra.'));
     } finally {
       setSaving(false);
     }
@@ -104,8 +104,8 @@ export function ManagePointsView() {
       <div className="admin-header">
         <div>
           <p className="eyebrow">Gerenciamento</p>
-          <h2>Lançar Pontos</h2>
-          <p className="muted">Adicione ou remova pontos dos membros com motivo registrado.</p>
+          <h2>Lançar Honra</h2>
+          <p className="muted">Registre honra por serviço, presença, entrega e atitudes alinhadas ao propósito.</p>
         </div>
         <button className="secondary-button" type="button" onClick={loadData}>
           <RefreshCw size={16} />
@@ -119,7 +119,7 @@ export function ManagePointsView() {
       <div className="points-desktop-grid">
         <div className="points-column">
           <section className="panel wide grant-points-panel">
-            <h3>Lançar pontos</h3>
+            <h3>Registrar honra</h3>
             <form className="grant-points-form" onSubmit={handleGrant}>
               <div>
                 <label>Buscar membro</label>
@@ -152,7 +152,7 @@ export function ManagePointsView() {
                 <div>
                   <label>Quantidade</label>
                   <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Ex: 50 ou -20" />
-                  <p className="field-hint">Use negativo para remover pontos, ex: -20.</p>
+                  <p className="field-hint">Use negativo para remover honra, ex: -20.</p>
                 </div>
                 <div>
                   <label>Motivo</label>
@@ -160,7 +160,7 @@ export function ManagePointsView() {
                 </div>
               </div>
 
-              <button className="primary-button" disabled={saving}>{saving ? 'Lançando...' : 'Lançar pontos'}</button>
+              <button className="primary-button" disabled={saving}>{saving ? 'Registrando...' : 'Lançar honra'}</button>
             </form>
           </section>
 
@@ -168,8 +168,8 @@ export function ManagePointsView() {
             <section className="panel wide points-ranking-panel">
               <div className="section-header">
                 <div>
-                  <h3>Ranking de membros</h3>
-                  <p className="muted">Saldo atual de pontos de todos os membros.</p>
+                  <h3>Ranking de honra</h3>
+                  <p className="muted">Acompanhe a honra acumulada pelos membros.</p>
                 </div>
                 <div className="search-box small-search">
                   <Search size={18} />
@@ -196,11 +196,11 @@ export function ManagePointsView() {
 
         <div className="points-column">
           <section className="panel wide">
-            <h3>Histórico geral</h3>
+            <h3>Memorial geral de honra</h3>
             {loading ? (
               <p className="muted">Carregando histórico...</p>
             ) : transactions.length === 0 ? (
-              <p className="muted">Nenhuma movimentação encontrada.</p>
+              <p className="muted">Nenhum registro encontrado.</p>
             ) : (
               <div className="points-history">
                 {transactions.slice(0, 80).map((item) => (

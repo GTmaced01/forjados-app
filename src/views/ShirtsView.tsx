@@ -232,11 +232,11 @@ const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null);
 
       <section className="shirts-layout">
         <div className="shirts-list">
-          <h3>Modelos disponíveis</h3>
+          <h3>Fardas disponíveis</h3>
           {loading ? (
             <div className="panel center">
               <div className="loader"></div>
-              <p className="muted">Carregando camisas...</p>
+              <p className="muted">Carregando fardas...</p>
             </div>
           ) : shirts.length === 0 ? (
             <div className="panel center">
@@ -298,7 +298,7 @@ const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null);
           <h3>Carrinho</h3>
 
           {cart.length === 0 ? (
-            <p className="muted">Seu carrinho está vazio.</p>
+            <p className="muted">Seu carrinho está vazio. Escolha uma camisa para carregar essa identidade.</p>
           ) : (
             <div className="cart-list">
               {cart.map((item) => (
@@ -358,7 +358,7 @@ const [uploadingOrderId, setUploadingOrderId] = useState<string | null>(null);
       </section>
 
       <section className="panel wide">
-        <h3>Meus pedidos</h3>
+        <h3>Meus pedidos de camisa</h3>
 
         {orders.length === 0 ? (
           <p className="muted">Você ainda não fez nenhum pedido.</p>

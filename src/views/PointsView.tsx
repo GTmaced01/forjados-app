@@ -19,12 +19,12 @@ export function PointsView() {
       const data = await withTimeout(
         listMyPointTransactions(),
         10000,
-        'Não foi possível carregar seu histórico de pontos.'
+        'Não foi possível carregar seu histórico de honra.'
       );
       setTransactions(data);
     } catch (err) {
       console.error(err);
-      setError(getErrorMessage(err, 'Erro ao carregar pontos.'));
+      setError(getErrorMessage(err, 'Erro ao carregar honra.'));
     } finally {
       setLoading(false);
     }
@@ -43,9 +43,9 @@ export function PointsView() {
     <div className="points-page">
       <div className="admin-header">
         <div>
-          <p className="eyebrow">Honra e recompensa</p>
-          <h2>Pontos</h2>
-          <p className="muted">Acompanhe seu saldo e histórico de pontuações.</p>
+          <p className="eyebrow">Honra e serviço</p>
+          <h2>Honra</h2>
+          <p className="muted">Acompanhe pontos de honra recebidos por serviço, entrega e participação.</p>
         </div>
         <button className="secondary-button" type="button" onClick={loadData}>
           <RefreshCw size={16} />
@@ -58,22 +58,22 @@ export function PointsView() {
       <section className="points-summary">
         <div className="points-balance-card">
           <div>
-            <p className="eyebrow">Seu saldo</p>
+            <p className="eyebrow">Pontos de honra</p>
             <h3>{profile.points} pts</h3>
-            <p className="muted">Use seus pontos na loja de recompensas.</p>
+            <p className="muted">Use sua honra na Loja de Honra.</p>
           </div>
           <Award size={54} />
         </div>
-        <div className="card"><h3>Total recebido</h3><strong>{totalReceived} pts</strong></div>
-        <div className="card"><h3>Total usado/removido</h3><strong>{totalUsed} pts</strong></div>
+        <div className="card"><h3>Honra recebida</h3><strong>{totalReceived} pts</strong></div>
+        <div className="card"><h3>Honra usada/removida</h3><strong>{totalUsed} pts</strong></div>
       </section>
 
       <section className="panel wide">
-        <h3>Meu histórico</h3>
+        <h3>Memorial de honra</h3>
         {loading ? (
           <p className="muted">Carregando histórico...</p>
         ) : transactions.length === 0 ? (
-          <p className="muted">Você ainda não possui movimentações de pontos.</p>
+          <p className="muted">Você ainda não possui registros de honra.</p>
         ) : (
           <div className="points-history">
             {transactions.map((item) => (
@@ -84,7 +84,7 @@ export function PointsView() {
                 <div>
                   <h4>{item.reason}</h4>
                   <p className="muted">{formatPointSource(item.source_type)} · {new Date(item.created_at).toLocaleString('pt-BR')}</p>
-                  {item.granted_by_name && <p className="muted">Lançado por: {item.granted_by_name}</p>}
+                  {item.granted_by_name && <p className="muted">Registrado por: {item.granted_by_name}</p>}
                 </div>
                 <strong className={item.amount >= 0 ? 'points-positive' : 'points-negative'}>{item.amount > 0 ? '+' : ''}{item.amount} pts</strong>
               </div>

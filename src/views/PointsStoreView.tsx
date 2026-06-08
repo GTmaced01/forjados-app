@@ -33,14 +33,14 @@ export function PointsStoreView() {
           listMyPointsRedemptions(),
         ]),
         10000,
-        'Não foi possível carregar a loja de pontos. Tente novamente.'
+        'Não foi possível carregar a loja de honra. Tente novamente.'
       );
 
       setProducts(productsData);
       setRedemptions(redemptionsData);
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : 'Erro ao carregar loja de pontos.');
+      setError(err instanceof Error ? err.message : 'Erro ao carregar loja de honra.');
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,7 @@ export function PointsStoreView() {
 
   async function handleRedeem(product: PointsStoreProduct) {
     const confirmed = window.confirm(
-      `Deseja resgatar "${product.name}" por ${product.points_cost} pontos?`
+      `Deseja resgatar "${product.name}" por ${product.points_cost} pontos de honra?`
     );
 
     if (!confirmed) return;
@@ -83,10 +83,10 @@ export function PointsStoreView() {
     <div className="points-store-page">
       <div className="admin-header">
         <div>
-          <p className="eyebrow">Loja de recompensas</p>
-          <h2>Loja de Pontos</h2>
+          <p className="eyebrow">Recompensas de honra</p>
+          <h2>Loja de Honra</h2>
           <p className="muted">
-            Troque seus pontos por recompensas cadastradas pela equipe.
+            Use seus pontos de honra para resgatar recompensas cadastradas pela equipe.
           </p>
         </div>
 
@@ -101,7 +101,7 @@ export function PointsStoreView() {
 
       <section className="points-store-balance">
         <div>
-          <p className="eyebrow">Seu saldo disponível</p>
+          <p className="eyebrow">Honra disponível</p>
           <h3>{profile.points} pts</h3>
           <p className="muted">
             Escolha uma recompensa e acompanhe seus resgates.
@@ -112,12 +112,12 @@ export function PointsStoreView() {
       </section>
 
       <section className="panel wide">
-        <h3>Produtos disponíveis</h3>
+        <h3>Recompensas disponíveis</h3>
 
         {loading ? (
-          <p className="muted">Carregando produtos...</p>
+          <p className="muted">Carregando recompensas...</p>
         ) : availableProducts.length === 0 ? (
-          <p className="muted">Nenhum produto disponível no momento.</p>
+          <p className="muted">Nenhuma recompensa disponível no momento.</p>
         ) : (
           <div className="points-products-grid">
             {availableProducts.map((product) => {
@@ -154,7 +154,7 @@ export function PointsStoreView() {
                         ? 'Resgatando...'
                         : canRedeem
                         ? 'Resgatar'
-                        : 'Pontos insuficientes'}
+                        : 'Honra insuficiente'}
                     </button>
                   </div>
                 </div>
@@ -165,7 +165,7 @@ export function PointsStoreView() {
       </section>
 
       <section className="panel wide">
-        <h3>Meus resgates</h3>
+        <h3>Meus resgates de honra</h3>
 
         {redemptions.length === 0 ? (
           <p className="muted">Você ainda não fez nenhum resgate.</p>

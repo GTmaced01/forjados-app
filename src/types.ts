@@ -281,3 +281,26 @@ export interface PublicPanelItem {
   created_at: string;
   updated_at: string;
 }
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  title: string;
+  message?: string;
+  type?: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  actor_id?: string | null;
+  actor_name?: string | null;
+  actor_email?: string | null;
+  action: string;
+  entity_type?: string | null;
+  entity_id?: string | null;
+  description?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+}

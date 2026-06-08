@@ -300,7 +300,7 @@ export function ServiceScaleView() {
     <div className="service-scale-page">
       <header className="admin-header">
         <div>
-          <p className="eyebrow">Gerenciamento</p>
+          <p className="eyebrow">Serviço com propósito</p>
           <h2>Escala de Serviço</h2>
           <p className="muted">
             Cadastre pessoas, marque quem fará trilha e gere automaticamente os turnos do alojamento.
@@ -321,7 +321,7 @@ export function ServiceScaleView() {
 
       <section className="grid two service-scale-main-grid">
         <div className="card">
-          <h3>Cadastrar pessoa</h3>
+          <h3>Cadastrar servo na escala</h3>
           <p className="muted">Quem estiver marcado como trilha não entra na escala automaticamente.</p>
 
           <form className="form" onSubmit={handleCreatePerson}>
@@ -393,13 +393,13 @@ export function ServiceScaleView() {
             </div>
 
             <button type="submit" className="primary-button" disabled={savingPerson}>
-              {savingPerson ? 'Cadastrando...' : 'Cadastrar pessoa'}
+              {savingPerson ? 'Cadastrando...' : 'Cadastrar servo na escala'}
             </button>
           </form>
         </div>
 
         <div className="card">
-          <h3>Configuração da escala</h3>
+          <h3>Configuração do serviço</h3>
           <p className="muted">Exemplo: dia 1 às 18:00 até dia 3 às 18:00, com serviço de 90 minutos.</p>
 
           <div className="form">
@@ -500,7 +500,7 @@ export function ServiceScaleView() {
       <section className="card">
         <div className="section-title-row">
           <div>
-            <h3>Pessoas cadastradas</h3>
+            <h3>Servos cadastrados</h3>
             <p className="muted">Use os botões para tirar alguém da escala ou marcar como trilha.</p>
           </div>
         </div>
@@ -569,7 +569,7 @@ export function ServiceScaleView() {
         <section className="card print-area">
           <div className="section-title-row">
             <div>
-              <h3>Prévia da escala gerada</h3>
+              <h3>Prévia da escala de serviço</h3>
               <p className="muted">Revise antes de salvar/publicar.</p>
             </div>
             <button type="button" className="secondary-button" onClick={() => window.print()}>Imprimir</button>
@@ -591,7 +591,7 @@ export function ServiceScaleView() {
       <section className="card">
         <div className="section-title-row">
           <div>
-            <h3>Escalas salvas</h3>
+            <h3>Escalas publicadas</h3>
             <p className="muted">Aqui ficam as escalas já publicadas no Supabase.</p>
           </div>
           {selectedSchedule && (

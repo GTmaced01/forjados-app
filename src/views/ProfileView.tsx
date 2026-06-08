@@ -105,7 +105,7 @@ export function ProfileView() {
       <div className="admin-header">
         <div>
           <p className="eyebrow">Identidade do Forjado</p>
-          <h2>Meu Perfil</h2>
+          <h2>Minha Identidade</h2>
           <p className="muted">
             Consulte e atualize suas informações pessoais e de equipe.
           </p>
@@ -184,7 +184,7 @@ export function ProfileView() {
         </section>
 
         <section>
-          <h3>Equipe e função</h3>
+          <h3>Equipe, chamado e função</h3>
 
           <div className="grid two">
             <div>
@@ -258,7 +258,7 @@ export function ProfileView() {
         </section>
 
         <section>
-          <h3>Saúde e emergência</h3>
+          <h3>Cuidado, saúde e emergência</h3>
 
           <div className="grid two">
             <div>

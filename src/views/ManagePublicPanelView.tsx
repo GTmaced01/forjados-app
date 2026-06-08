@@ -133,8 +133,8 @@ export function ManagePublicPanelView() {
       <div className="admin-header">
         <div>
           <p className="eyebrow">Comunicação</p>
-          <h2>Gerenciar Painel Público</h2>
-          <p className="muted">Publique avisos, informações e escalas para todos os membros.</p>
+          <h2>Gerenciar Mural da Forja</h2>
+          <p className="muted">Publique direções, avisos, escalas e comunicados para conduzir a equipe.</p>
         </div>
         <button className="secondary-button" type="button" onClick={loadData}><RefreshCw size={16} />Atualizar</button>
       </div>
@@ -145,7 +145,7 @@ export function ManagePublicPanelView() {
       <div className="manage-points-store-grid">
         <div className="manage-points-store-column">
           <section className="panel wide">
-            <div className="form-title-row"><h3>{editingId ? 'Editar aviso' : 'Novo aviso'}</h3>{editingId && <button className="secondary-button" type="button" onClick={resetForm}>Novo aviso</button>}</div>
+            <div className="form-title-row"><h3>{editingId ? 'Editar direção' : 'Nova direção'}</h3>{editingId && <button className="secondary-button" type="button" onClick={resetForm}>Nova direção</button>}</div>
             <form className="manage-product-form" onSubmit={handleSubmit}>
               <div className="grid two">
                 <div><label>Título</label><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
@@ -171,8 +171,8 @@ export function ManagePublicPanelView() {
 
         <div className="manage-points-store-column">
           <section className="panel wide">
-            <div className="section-header"><h3>Avisos cadastrados</h3><div className="search-box small-search"><Search size={18}/><input placeholder="Buscar aviso..." value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>
-            {loading ? <p className="muted">Carregando avisos...</p> : filteredItems.length === 0 ? <p className="muted">Nenhum aviso encontrado.</p> : (
+            <div className="section-header"><h3>Direções cadastradas</h3><div className="search-box small-search"><Search size={18}/><input placeholder="Buscar direção..." value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>
+            {loading ? <p className="muted">Carregando direções...</p> : filteredItems.length === 0 ? <p className="muted">Nenhuma direção encontrada.</p> : (
               <div className="manage-products-list">
                 {filteredItems.map((item) => (
                   <div className="manage-product-card" key={item.id}>

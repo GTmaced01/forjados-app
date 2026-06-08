@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     start();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event: string, session: { user?: User } | null) => {
       if (!mountedRef.current) return;
 
       if (!session?.user) {

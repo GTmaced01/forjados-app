@@ -156,7 +156,7 @@ export function RidesView() {
   
       setSuccess(
         completed
-          ? `Carona concluída. ${passengerCount * 50} pontos lançados.`
+          ? `Carona concluída. ${passengerCount * 50} pontos de honra lançados.`
           : 'Carona marcada como não concluída.'
       );
   
@@ -240,7 +240,7 @@ export function RidesView() {
     <div className="rides-page">
       <div className="admin-header">
         <div>
-          <p className="eyebrow">Sistema de caronas</p>
+          <p className="eyebrow">Caminho compartilhado</p>
           <h2>Caronas</h2>
           <p className="muted">
             Crie caronas, participe de caronas disponíveis e acompanhe passageiros.
@@ -269,7 +269,7 @@ export function RidesView() {
 
       {showForm && (
         <section className="panel wide ride-form-panel">
-          <h3>Criar nova carona</h3>
+          <h3>Oferecer carona</h3>
 
           <form className="ride-form" onSubmit={handleCreateRide}>
             <div className="grid two">
@@ -368,7 +368,7 @@ export function RidesView() {
         </div>
       ) : filteredRides.length === 0 ? (
         <div className="panel center">
-          <p className="muted">Nenhuma carona encontrada.</p>
+          <p className="muted">Nenhuma carona encontrada. Seja o primeiro a abrir caminho para alguém.</p>
         </div>
       ) : (
         <section className="rides-list">
@@ -557,7 +557,7 @@ const suggestedPassengerCount = String(ride.passengers?.length || 0);
 
 {ride.status === 'completed' && (
   <span className="payment-approved-label">
-    Carona concluída · {ride.confirmed_passenger_count || 0} passageiro(s) · Pontos lançados
+    Carona concluída · {ride.confirmed_passenger_count || 0} passageiro(s) · Honra lançada
   </span>
 )}
 

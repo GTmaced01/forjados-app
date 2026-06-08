@@ -3775,3 +3775,192 @@ textarea:focus-visible {
     padding-right: 10px !important;
   }
 }
+
+/* =========================
+   NOTIFICAÇÕES E AUDITORIA
+========================= */
+
+.notifications-page,
+.audit-page {
+  display: grid;
+  gap: 22px;
+  width: 100%;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.notifications-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.notification-big-icon,
+.audit-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: var(--gold-soft);
+  color: var(--gold);
+  border: 1px solid var(--gold-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.notifications-list,
+.audit-list {
+  display: grid;
+  gap: 14px;
+}
+
+.notification-card,
+.audit-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+}
+
+.notification-card.unread {
+  border-color: var(--gold-border);
+  background: rgba(199, 154, 74, 0.075);
+}
+
+.notification-card h4,
+.audit-card h4 {
+  margin: 0 0 6px;
+}
+
+.notification-card p,
+.audit-card p {
+  margin: 4px 0;
+}
+
+.notification-status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.notification-card.unread .notification-status-dot {
+  background: var(--gold);
+  box-shadow: 0 0 0 5px rgba(199, 154, 74, 0.12);
+}
+
+.audit-toolbar {
+  padding: 18px !important;
+}
+
+.audit-entity {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.mobile-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-notification-button {
+  position: relative;
+  width: 42px !important;
+  min-width: 42px !important;
+  height: 42px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+}
+
+.mobile-notification-button span {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+@media (max-width: 800px) {
+  .header-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .notifications-summary {
+    display: grid;
+  }
+
+  .notification-card,
+  .audit-card {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .notification-card .secondary-button,
+  .audit-card .secondary-button {
+    width: 100%;
+  }
+
+  .mobile-app-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(16px);
+  }
+}
+
+/* Melhorias gerais de toque e rolagem mobile */
+@media (max-width: 800px) {
+  .content {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .mobile-bottom-nav {
+    padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .approve-button,
+  .reject-button {
+    touch-action: manipulation;
+  }
+}

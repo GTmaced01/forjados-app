@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { signOut } from '../services/auth';
 import { useAuth } from '../components/AuthProvider';
+import { FORJADOS_MAIN_MESSAGE } from '../constants';
 
 export function WaitingView() {
   const { profile } = useAuth();
@@ -12,7 +13,7 @@ export function WaitingView() {
 
   async function handleLogout() {
     setLeaving(true);
-  
+
     try {
       await Promise.race([
         signOut(),
@@ -29,20 +30,14 @@ export function WaitingView() {
     <div className="page-center">
       <div className="panel center">
         <h1>FORJADOS</h1>
-
-        <h2>{rejected ? 'Inscrição recusada' : 'Inscrição em análise'}</h2>
-
+        <h2>{rejected ? 'Cadastro não aprovado' : 'Cadastro em análise'}</h2>
         <p className="muted">
           {rejected
-            ? 'Sua ficha não foi aceita neste momento. Fale com a diretoria para mais informações.'
-            : 'Sua ficha foi recebida e está aguardando aprovação da diretoria.'}
+            ? 'Sua ficha não foi aprovada neste momento. Fale com a diretoria para entender os próximos passos.'
+            : 'Sua ficha foi recebida. Em breve a diretoria irá analisar seus dados e liberar seu acesso.'}
         </p>
-
-        <button
-          className="secondary-button"
-          onClick={handleLogout}
-          disabled={leaving}
-        >
+        <p className="muted waiting-quote">{FORJADOS_MAIN_MESSAGE}</p>
+        <button className="secondary-button" onClick={handleLogout} disabled={leaving}>
           {leaving ? 'Saindo...' : 'Sair da conta'}
         </button>
       </div>

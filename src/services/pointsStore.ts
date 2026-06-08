@@ -4,7 +4,8 @@ import type { PointsRedemption, PointsStoreProduct } from '../types';
 
 const TIMEOUT = 10000;
 
-async function safeRequest<T>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function safeRequest<T = any>(
   request: PromiseLike<T>,
   errorMessage: string
 ): Promise<T> {
