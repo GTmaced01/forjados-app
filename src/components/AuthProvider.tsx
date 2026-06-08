@@ -29,6 +29,35 @@ const AuthContext = createContext<AuthContextValue>({
   isTreasury: false,
 });
 
+
+const PROFILE_CACHE_PREFIX = 'forjados_profile_cache_v1_';
+
+function getProfileCacheKey(userId: string) {
+  return `${PROFILE_CACHE_PREFIX}${userId}`;
+}
+
+function readCachedProfile(userId: string): UserProfile | null {
+  try {
+    const raw = localStorage.getItem(getProfileCacheKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { profile?: UserProfile };
+    return parsed.profile || null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedProfile(profileData: UserProfile) {
+  try {
+    localStorage.setItem(
+      getProfileCacheKey(profileData.id),
+      JSON.stringify({ savedAt: new Date().toISOString(), profile: profileData })
+    );
+  } catch (error) {
+    console.warn('Não foi possível salvar perfil offline:', error);
+  }
+}
+
 function getMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message) return error.message;
   if (typeof error === 'string') return error;
@@ -71,11 +100,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setProfile(profileData);
       profileRef.current = profileData;
+      writeCachedProfile(profileData);
       setAuthError('');
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
 
       if (!mountedRef.current) return;
+
+      const cachedProfile = readCachedProfile(currentUser.id);
+
+      if (cachedProfile) {
+        setProfile(cachedProfile);
+        profileRef.current = cachedProfile;
+        setAuthError('Você está offline. Mostrando o último perfil salvo neste dispositivo.');
+        return;
+      }
 
       setProfile(null);
       profileRef.current = null;
@@ -120,15 +159,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setProfile(profileData);
       profileRef.current = profileData;
+      writeCachedProfile(profileData);
       setAuthError('');
     } catch (error) {
       console.error('Erro ao recarregar perfil:', error);
 
       if (!mountedRef.current) return;
 
+      const currentUser = user;
+      const cachedProfile = currentUser ? readCachedProfile(currentUser.id) : null;
+
+      if (cachedProfile) {
+        setProfile(cachedProfile);
+        profileRef.current = cachedProfile;
+        setAuthError('Você está offline. Mostrando o último perfil salvo neste dispositivo.');
+        return;
+      }
+
       setAuthError(getMessage(error, 'Não foi possível recarregar seu perfil.'));
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     mountedRef.current = true;

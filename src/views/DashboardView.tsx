@@ -17,7 +17,6 @@ import { useAuth } from "../components/AuthProvider";
 import {
   FORJADOS_DNA_PHRASES,
   FORJADOS_MAIN_MESSAGE,
-  FORJADOS_PILLARS,
   MODULE_DNA,
   STATUS_LABELS,
   ROLE_LABELS,
@@ -287,7 +286,7 @@ export function DashboardView() {
           </div>
 
           <div className="points-card">
-            <span>Honra de honra</span>
+            <span>Saldo de honra</span>
             <strong>{currentProfile.points} pts</strong>
           </div>
         </header>
@@ -317,16 +316,6 @@ export function DashboardView() {
             <h3>Setores</h3>
             <p>{currentProfile.sectors?.join(", ") || "Não informado"}</p>
           </div>
-        </section>
-
-        <section className="forjados-dna-grid">
-          {FORJADOS_PILLARS.map((pillar) => (
-            <article key={pillar.title} className="card">
-              <p className="eyebrow">DNA FORJADOS</p>
-              <h3>{pillar.title}</h3>
-              <p className="muted">{pillar.description}</p>
-            </article>
-          ))}
         </section>
 
         <section className="panel wide forjados-identity-panel">
@@ -578,9 +567,9 @@ export function DashboardView() {
         visible: canSeeLeaderTeam,
       },
       { label: "Caronas", tab: "rides" },
+      { label: "Regras do Retiro", tab: "rules" },
       { label: "Privacidade", tab: "privacy" },
       { label: "Termo de Responsabilidade", tab: "terms" },
-      { label: "Regras do Retiro", tab: "rules" },
     ];
 
     const managementItems: Array<{
@@ -796,6 +785,13 @@ export function DashboardView() {
             </button>
             <button
               type="button"
+              className={tab === "rules" ? "active" : ""}
+              onClick={() => selectTab("rules")}
+            >
+              Regras do Retiro
+            </button>
+            <button
+              type="button"
               className={tab === "privacy" ? "active" : ""}
               onClick={() => selectTab("privacy")}
             >
@@ -807,13 +803,6 @@ export function DashboardView() {
               onClick={() => selectTab("terms")}
             >
               Termo
-            </button>
-            <button
-              type="button"
-              className={tab === "rules" ? "active" : ""}
-              onClick={() => selectTab("rules")}
-            >
-              Regras do Retiro
             </button>
           </div>
 

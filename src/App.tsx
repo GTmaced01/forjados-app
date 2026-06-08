@@ -3,6 +3,7 @@ import { AuthView } from './views/AuthView';
 import { RegistrationView } from './views/RegistrationView';
 import { DashboardView } from './views/DashboardView';
 import { WaitingView } from './views/WaitingView';
+import { PwaStatus } from './components/PwaStatus';
 
 function AppContent() {
   const { user, profile, loading, authError, isAdmin, reloadProfile } = useAuth();
@@ -55,6 +56,7 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
+      <PwaStatus />
       <AppContent />
     </AuthProvider>
   );

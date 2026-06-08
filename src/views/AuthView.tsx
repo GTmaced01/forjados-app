@@ -112,9 +112,9 @@ export function AuthView() {
             </div>
 
             <div className="auth-legal-links">
+              <button type="button" onClick={() => setMode('rules')}>Regras do Retiro</button>
               <button type="button" onClick={() => setMode('privacy')}>Política de Privacidade</button>
               <button type="button" onClick={() => setMode('terms')}>Termo de Responsabilidade</button>
-              <button type="button" onClick={() => setMode('rules')}>Regras do Retiro</button>
             </div>
           </form>
         )}
@@ -151,9 +151,9 @@ export function AuthView() {
             </div>
 
             <div className="auth-legal-links">
+              <button type="button" onClick={() => setMode('rules')}>Regras do Retiro</button>
               <button type="button" onClick={() => setMode('privacy')}>Política de Privacidade</button>
               <button type="button" onClick={() => setMode('terms')}>Termo de Responsabilidade</button>
-              <button type="button" onClick={() => setMode('rules')}>Regras do Retiro</button>
             </div>
           </form>
         )}

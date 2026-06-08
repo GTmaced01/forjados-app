@@ -1,10 +1,21 @@
-const CACHE_NAME = 'forjados-shell-v1';
-const SHELL_ASSETS = ['/', '/manifest.webmanifest', '/favicon.svg'];
+const SW_VERSION = 'forjados-pwa-v3';
+const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
+const APP_SHELL_CACHE = `${SW_VERSION}-shell`;
+const APP_SHELL = [
+  '/',
+  '/offline.html',
+  '/manifest.webmanifest',
+  '/favicon.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/icon-512-maskable.png',
+  '/icons/apple-touch-icon.png'
+];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS))
+    caches.open(APP_SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL))
   );
 });
 
@@ -12,26 +23,76 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => ![APP_SHELL_CACHE, RUNTIME_CACHE].includes(key))
+            .map((key) => caches.delete(key))
+        )
+      )
       .then(() => self.clients.claim())
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+function isSupabaseRequest(url) {
+  return url.hostname.includes('supabase.co') || url.hostname.includes('supabase.in');
+}
+
+function shouldIgnore(event, url) {
+  if (event.request.method !== 'GET') return true;
+  if (!url.protocol.startsWith('http')) return true;
+  if (isSupabaseRequest(url)) return true;
+  return false;
+}
+
+async function networkFirst(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
+
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    return caches.match('/offline.html');
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  const cached = await cache.match(request);
+
+  const fetchPromise = fetch(request)
+    .then((response) => {
+      if (response && response.ok) {
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => cached);
+
+  return cached || fetchPromise;
+}
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+  if (shouldIgnore(event, url)) return;
 
-  if (event.request.method !== 'GET') return;
-  if (url.hostname.includes('supabase.co')) return;
+  if (event.request.mode === 'navigate') {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if (response.ok && url.origin === self.location.origin) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/')))
-  );
+  if (url.origin === self.location.origin) {
+    event.respondWith(staleWhileRevalidate(event.request));
+  }
 });
