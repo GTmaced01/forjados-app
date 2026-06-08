@@ -75,12 +75,48 @@ type Tab =
   | "rules"
   | "more";
 
+const VALID_TABS: Tab[] = [
+  "home",
+  "profile",
+  "inscription",
+  "public-panel",
+  "points",
+  "notifications",
+  "points-store",
+  "leader-team",
+  "rides",
+  "shirts",
+  "manage-points",
+  "manage-shirts",
+  "manage-points-store",
+  "manage-public-panel",
+  "service-scale",
+  "treasury",
+  "admin",
+  "audit-log",
+  "privacy",
+  "terms",
+  "rules",
+  "more",
+];
+
+function isValidTab(value: string | null): value is Tab {
+  return Boolean(value && VALID_TABS.includes(value as Tab));
+}
+
+function getInitialTab(): Tab {
+  const urlTab = new URLSearchParams(window.location.search).get("tab");
+  if (isValidTab(urlTab)) return urlTab;
+
+  const savedTab = localStorage.getItem("forjados-active-tab");
+  if (isValidTab(savedTab)) return savedTab;
+
+  return "home";
+}
+
 export function DashboardView() {
   const { profile, isAdmin, isTreasury, isDirector, isLeader } = useAuth();
-  const [tab, setTab] = useState<Tab>(() => {
-    const savedTab = localStorage.getItem("forjados-active-tab") as Tab | null;
-    return savedTab || "home";
-  });
+  const [tab, setTab] = useState<Tab>(getInitialTab);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [pendingRequests, setPendingRequests] = useState<UserProfile[]>([]);
@@ -231,6 +267,15 @@ export function DashboardView() {
     localStorage.setItem("forjados-active-tab", nextTab);
     setTab(nextTab);
     setMobileMenuOpen(false);
+
+    const url = new URL(window.location.href);
+    if (nextTab === "home") {
+      url.searchParams.delete("tab");
+    } else {
+      url.searchParams.set("tab", nextTab);
+    }
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -700,8 +745,11 @@ export function DashboardView() {
       <aside className={mobileMenuOpen ? "sidebar mobile-open" : "sidebar"}>
         <div className="sidebar-top">
           <div className="logo">
-            <h1>FORJADOS</h1>
-            <span>Equipe 2026</span>
+            <img src="/logo-forjados.png" alt="FORJADOS" className="sidebar-logo-mark" />
+            <div>
+              <h1>FORJADOS</h1>
+              <span>Equipe 2026</span>
+            </div>
           </div>
           <button
             type="button"
@@ -892,9 +940,12 @@ export function DashboardView() {
 
       <main className="content">
         <div className="mobile-app-topbar">
-          <div>
-            <strong>FORJADOS</strong>
-            <span>{currentProfile.primary_team || currentProfile.role}</span>
+          <div className="mobile-topbar-brand">
+            <img src="/logo-forjados.png" alt="FORJADOS" className="mobile-topbar-logo" />
+            <div>
+              <strong>FORJADOS</strong>
+              <span>{currentProfile.primary_team || currentProfile.role}</span>
+            </div>
           </div>
           <div className="mobile-topbar-actions">
             <button

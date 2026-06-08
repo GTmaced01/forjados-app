@@ -26,7 +26,7 @@
 A imagem do link usa:
 
 ```txt
-https://forjados-app.vercel.app/og-image.png?v=20260608-logo
+https://forjados-app.vercel.app/og-image.jpg?v=20260608-logo
 ```
 
 Se o WhatsApp continuar mostrando imagem antiga, envie o link assim:

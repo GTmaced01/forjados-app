@@ -1,4 +1,4 @@
-const SW_VERSION = 'forjados-pwa-v4-logo-final';
+const SW_VERSION = 'forjados-pwa-v5-mobile-app';
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 const APP_SHELL_CACHE = `${SW_VERSION}-shell`;
 
@@ -9,7 +9,7 @@ const APP_SHELL = [
   '/favicon.png',
   '/favicon.ico',
   '/logo-forjados.png',
-  '/og-image.png',
+  '/og-image.jpg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/icon-512-maskable.png',
