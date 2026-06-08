@@ -4201,3 +4201,27 @@ svg {
     width: 100%;
   }
 }
+
+.pwa-status-banner.install {
+  border-color: rgba(199, 154, 74, 0.42);
+}
+
+.pwa-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.pwa-status-banner button.ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 420px) {
+  .pwa-status-actions {
+    display: grid;
+    gap: 8px;
+  }
+}

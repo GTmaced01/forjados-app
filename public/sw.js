@@ -1,19 +1,19 @@
-const SW_VERSION = 'forjados-pwa-v4-logo';
+const SW_VERSION = 'forjados-pwa-v4-logo-final';
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 const APP_SHELL_CACHE = `${SW_VERSION}-shell`;
+
 const APP_SHELL = [
   '/',
   '/offline.html',
   '/manifest.webmanifest',
   '/favicon.png',
-  '/icons/icon-72.png',
-  '/icons/icon-96.png',
-  '/icons/icon-144.png',
+  '/favicon.ico',
+  '/logo-forjados.png',
+  '/og-image.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/icon-512-maskable.png',
-  '/icons/apple-touch-icon.png',
-  '/icons/play-store-icon-512.png'
+  '/icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -87,6 +87,22 @@ async function staleWhileRevalidate(request) {
   return cached || fetchPromise;
 }
 
+async function cacheFirst(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    return caches.match('/offline.html');
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (shouldIgnore(event, url)) return;
@@ -97,6 +113,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.origin === self.location.origin) {
+    if (event.request.destination === 'image') {
+      event.respondWith(cacheFirst(event.request));
+      return;
+    }
+
     event.respondWith(staleWhileRevalidate(event.request));
   }
 });
