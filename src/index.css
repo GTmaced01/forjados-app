@@ -4227,10 +4227,13 @@ svg {
 }
 
 /* =========================================================
-   FORJADOS - POLIMENTO VISUAL FINAL
-   Visual premium inspirado no site:
-   preto abissal, ouro forjado, vidro escuro e luz vermelha sutil.
-   Aplicado em PC e mobile.
+   FORJADOS - AJUSTE FINAL DE MOBILE, PC E ROLAGEM
+   Objetivo:
+   - Corrigir rolagem no mobile
+   - Voltar o app para o visual limpo anterior
+   - Remover detalhes vermelhos fortes
+   - Manter apenas uma luz vermelha sutil como no site
+   - Preservar preto, ouro, vidro escuro e sombra
 ========================================================= */
 
 :root {
@@ -4238,36 +4241,66 @@ svg {
   --forjados-bg-deep: #080808;
   --forjados-gold: #c79a4a;
   --forjados-gold-dark: #a9782f;
-  --forjados-red-glow: rgba(183, 28, 28, 0.14);
-  --forjados-red-glow-soft: rgba(183, 28, 28, 0.08);
+  --forjados-red-light: rgba(183, 28, 28, 0.10);
+  --forjados-red-light-soft: rgba(183, 28, 28, 0.055);
   --forjados-glass: rgba(255, 255, 255, 0.045);
   --forjados-glass-strong: rgba(255, 255, 255, 0.065);
   --forjados-border: rgba(255, 255, 255, 0.10);
   --forjados-gold-border: rgba(199, 154, 74, 0.20);
 }
 
-/* Fundo geral: escuro, elegante, com leve luz vermelha como no site */
+/* =========================================================
+   CORREÇÃO PRINCIPAL: ROLAGEM MOBILE
+========================================================= */
+
 html,
+body,
+#root {
+  min-height: 100%;
+  height: auto !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: auto !important;
+  touch-action: pan-y !important;
+}
+
 body {
+  margin: 0;
   background:
-    radial-gradient(circle at 8% 0%, var(--forjados-red-glow), transparent 28%),
-    radial-gradient(circle at 88% 12%, rgba(199, 154, 74, 0.08), transparent 30%),
+    radial-gradient(circle at 0% 0%, var(--forjados-red-light-soft), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(199, 154, 74, 0.08), transparent 32%),
     linear-gradient(180deg, var(--forjados-bg) 0%, var(--forjados-bg-deep) 100%) !important;
 }
 
-/* Área principal */
+/* Impede que algum container prenda a rolagem */
+.layout,
+.content,
+.main-content,
+.page-center,
+.auth-page {
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+  touch-action: pan-y !important;
+}
+
+/* =========================================================
+   VISUAL GERAL - PC E MOBILE
+========================================================= */
+
 .layout,
 .main-content,
 .content,
 .auth-page,
 .page-center {
   background:
-    radial-gradient(circle at 0% 0%, var(--forjados-red-glow-soft), transparent 26%),
-    radial-gradient(circle at 90% 10%, rgba(199, 154, 74, 0.06), transparent 28%),
-    var(--forjados-bg) !important;
+    radial-gradient(circle at 0% 0%, var(--forjados-red-light-soft), transparent 28%),
+    radial-gradient(circle at 92% 10%, rgba(199, 154, 74, 0.06), transparent 30%),
+    #0f0f10 !important;
 }
 
-/* Cards e painéis gerais */
+/* Cards e painéis */
 .card,
 .panel,
 .auth-card,
@@ -4292,12 +4325,12 @@ body {
 .mobile-more-section {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)),
-    radial-gradient(circle at top left, rgba(199, 154, 74, 0.055), transparent 42%) !important;
+    radial-gradient(circle at top left, rgba(199, 154, 74, 0.050), transparent 42%) !important;
   border-color: var(--forjados-border) !important;
-  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.26) !important;
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.24) !important;
 }
 
-/* Destaques principais com luz vermelha bem sutil */
+/* Áreas principais com uma luz vermelha sutil, sem mancha pesada */
 .hero,
 .forjados-quote-card,
 .forjados-identity-panel,
@@ -4318,8 +4351,8 @@ body {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.12), transparent 34%),
-    radial-gradient(circle at 100% 0%, rgba(199, 154, 74, 0.075), transparent 38%) !important;
+    radial-gradient(circle at 0% 0%, var(--forjados-red-light), transparent 36%),
+    radial-gradient(circle at 100% 0%, rgba(199, 154, 74, 0.070), transparent 40%) !important;
   opacity: 1;
 }
 
@@ -4332,7 +4365,7 @@ body {
   z-index: 1;
 }
 
-/* Remove bolhas ou manchas vermelhas fortes antigas */
+/* Remove efeitos antigos que podem criar camadas por cima da tela */
 .hero::after,
 .card::before,
 .card::after,
@@ -4345,9 +4378,13 @@ body {
 .public-panel-highlight-card::after,
 .inscription-message-card::after {
   background: none !important;
+  pointer-events: none !important;
 }
 
-/* Sidebar no PC */
+/* =========================================================
+   SIDEBAR - PC
+========================================================= */
+
 .sidebar {
   background:
     linear-gradient(180deg, rgba(20, 20, 22, 0.98), rgba(12, 12, 13, 0.98)) !important;
@@ -4355,7 +4392,6 @@ body {
   box-shadow: 18px 0 55px rgba(0, 0, 0, 0.25) !important;
 }
 
-/* Logo lateral */
 .logo {
   display: flex;
   align-items: center;
@@ -4379,7 +4415,6 @@ body {
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
 }
 
-/* Menu lateral */
 .sidebar-menu .nav-section-title {
   color: rgba(255, 255, 255, 0.52) !important;
 }
@@ -4400,7 +4435,10 @@ body {
   color: #ffffff !important;
 }
 
-/* Botões principais */
+/* =========================================================
+   BOTÕES, INPUTS E CAMPOS
+========================================================= */
+
 .primary-button {
   background:
     linear-gradient(135deg, var(--forjados-gold), var(--forjados-gold-dark)) !important;
@@ -4412,7 +4450,6 @@ body {
   box-shadow: 0 16px 42px rgba(199, 154, 74, 0.25) !important;
 }
 
-/* Botões secundários */
 .secondary-button {
   background: rgba(255, 255, 255, 0.035) !important;
   border-color: rgba(199, 154, 74, 0.18) !important;
@@ -4423,7 +4460,22 @@ body {
   border-color: rgba(199, 154, 74, 0.32) !important;
 }
 
-/* Inputs */
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+.primary-button,
+.secondary-button,
+.approve-button,
+.reject-button {
+  touch-action: manipulation;
+}
+
 input,
 select,
 textarea {
@@ -4438,7 +4490,10 @@ textarea:focus {
   box-shadow: 0 0 0 4px rgba(199, 154, 74, 0.10) !important;
 }
 
-/* Frases do movimento */
+/* =========================================================
+   FRASES DO MOVIMENTO
+========================================================= */
+
 .forjados-phrase-grid {
   gap: 12px !important;
 }
@@ -4451,7 +4506,10 @@ textarea:focus {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045) !important;
 }
 
-/* Status: mantém alertas funcionais sem deixar vermelho decorativo pesado */
+/* =========================================================
+   STATUS
+========================================================= */
+
 .receipt-status.pending,
 .redemption-status.pending,
 .ride-status.full {
@@ -4475,12 +4533,15 @@ textarea:focus {
   border-color: rgba(183, 28, 28, 0.22) !important;
 }
 
-/* PC: mantém layout amplo e elegante */
+/* =========================================================
+   PC
+========================================================= */
+
 @media (min-width: 801px) {
   .main-content,
   .content {
     background:
-      radial-gradient(circle at 4% 0%, rgba(183, 28, 28, 0.10), transparent 26%),
+      radial-gradient(circle at 4% 0%, rgba(183, 28, 28, 0.075), transparent 26%),
       radial-gradient(circle at 88% 8%, rgba(199, 154, 74, 0.07), transparent 30%),
       #0f0f10 !important;
   }
@@ -4488,7 +4549,7 @@ textarea:focus {
   .hero {
     background:
       linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)),
-      radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.10), transparent 34%),
+      radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.075), transparent 34%),
       radial-gradient(circle at 100% 0%, rgba(199, 154, 74, 0.08), transparent 38%) !important;
   }
 
@@ -4503,41 +4564,75 @@ textarea:focus {
   }
 }
 
-/* Mobile: mantém cara de app, sem blocos vermelhos pesados */
+/* =========================================================
+   MOBILE - CORREÇÃO DE ROLAGEM + CARA DE APP
+========================================================= */
+
 @media (max-width: 800px) {
   html,
   body,
   #root {
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden;
+    min-height: 100%;
+    height: auto !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-y !important;
   }
 
   body {
     background:
-      radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.12), transparent 30%),
+      radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.085), transparent 30%),
       radial-gradient(circle at 100% 10%, rgba(199, 154, 74, 0.09), transparent 32%),
       linear-gradient(180deg, #080808 0%, #111112 48%, #080808 100%) !important;
   }
 
+  .layout {
+    display: block !important;
+    min-height: 100dvh !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .sidebar {
+    display: none !important;
+  }
+
   .content {
+    display: block !important;
+    width: 100% !important;
+    min-height: calc(100dvh + 1px) !important;
+    height: auto !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+    touch-action: pan-y !important;
     padding: calc(76px + env(safe-area-inset-top)) 12px calc(104px + env(safe-area-inset-bottom)) !important;
   }
 
-  /* Topo mobile */
+  /* Topo mobile fixo, mas sem bloquear rolagem */
   .mobile-app-topbar {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
     z-index: 120 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     min-height: calc(68px + env(safe-area-inset-top)) !important;
     padding: calc(10px + env(safe-area-inset-top)) 12px 10px !important;
     background:
       linear-gradient(135deg, rgba(15, 15, 16, 0.98), rgba(14, 14, 15, 0.96)),
-      radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.10), transparent 42%) !important;
+      radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.075), transparent 42%) !important;
     border-bottom: 1px solid rgba(199, 154, 74, 0.18) !important;
     box-shadow: 0 14px 46px rgba(0, 0, 0, 0.35) !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    touch-action: manipulation;
   }
 
   .mobile-topbar-brand {
@@ -4570,10 +4665,14 @@ textarea:focus {
     color: rgba(199, 154, 74, 0.88) !important;
     font-size: 9px !important;
     letter-spacing: 0.16em !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .mobile-topbar-actions {
     flex: 0 0 auto;
+    display: flex;
     gap: 8px !important;
   }
 
@@ -4583,6 +4682,7 @@ textarea:focus {
     padding: 0 12px !important;
     border-color: rgba(199, 154, 74, 0.28) !important;
     background: rgba(199, 154, 74, 0.10) !important;
+    touch-action: manipulation;
   }
 
   .mobile-notification-button {
@@ -4590,12 +4690,17 @@ textarea:focus {
     padding: 0 !important;
   }
 
-  /* Barra inferior */
+  /* Barra inferior fixa, sem prender a tela */
   .mobile-bottom-nav,
   .bottom-nav {
+    position: fixed !important;
     left: 10px !important;
     right: 10px !important;
     bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+    z-index: 130 !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
     min-height: 70px !important;
     padding: 8px !important;
     border-radius: 28px !important;
@@ -4603,6 +4708,9 @@ textarea:focus {
       linear-gradient(180deg, rgba(24, 24, 26, 0.97), rgba(10, 10, 11, 0.98)) !important;
     border: 1px solid rgba(199, 154, 74, 0.18) !important;
     box-shadow: 0 20px 56px rgba(0, 0, 0, 0.52) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    touch-action: manipulation;
   }
 
   .mobile-bottom-nav button,
@@ -4612,6 +4720,7 @@ textarea:focus {
     font-size: 9px !important;
     letter-spacing: 0.02em;
     color: rgba(255, 255, 255, 0.64) !important;
+    touch-action: manipulation;
   }
 
   .mobile-bottom-nav button svg,
@@ -4637,23 +4746,9 @@ textarea:focus {
     padding: 22px !important;
     background:
       linear-gradient(135deg, rgba(255, 255, 255, 0.070), rgba(255, 255, 255, 0.030)),
-      radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.10), transparent 38%),
+      radial-gradient(circle at 0% 0%, rgba(183, 28, 28, 0.075), transparent 38%),
       radial-gradient(circle at 100% 0%, rgba(199, 154, 74, 0.08), transparent 42%) !important;
     border-color: rgba(199, 154, 74, 0.18) !important;
-  }
-
-  .hero::after {
-    content: "";
-    position: absolute;
-    right: -42px;
-    top: -34px;
-    width: 168px;
-    height: 168px;
-    border-radius: 999px;
-    background: url("/logo-forjados.png") center / cover no-repeat !important;
-    opacity: 0.10;
-    filter: saturate(1.05);
-    pointer-events: none;
   }
 
   .hero h2 {
@@ -4714,12 +4809,14 @@ textarea:focus {
     display: flex !important;
     gap: 10px !important;
     overflow-x: auto;
+    overflow-y: hidden;
     overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
     padding-bottom: 6px;
     margin-right: -20px;
     padding-right: 20px;
     scrollbar-width: none;
+    touch-action: pan-x;
   }
 
   .forjados-phrase-grid::-webkit-scrollbar {
@@ -4809,7 +4906,7 @@ textarea:focus {
   }
 }
 
-/* Telas muito pequenas */
+/* Celulares muito pequenos */
 @media (max-width: 380px) {
   .mobile-app-topbar button:last-child {
     font-size: 0;
