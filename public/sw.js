@@ -1,15 +1,19 @@
-const SW_VERSION = 'forjados-pwa-v3';
+const SW_VERSION = 'forjados-pwa-v4-logo';
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 const APP_SHELL_CACHE = `${SW_VERSION}-shell`;
 const APP_SHELL = [
   '/',
   '/offline.html',
   '/manifest.webmanifest',
-  '/favicon.svg',
+  '/favicon.png',
+  '/icons/icon-72.png',
+  '/icons/icon-96.png',
+  '/icons/icon-144.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/icon-512-maskable.png',
-  '/icons/apple-touch-icon.png'
+  '/icons/apple-touch-icon.png',
+  '/icons/play-store-icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
