@@ -159,7 +159,7 @@ export async function updateMyRegistration(params: {
 }
 
 export async function listProfiles(): Promise<UserProfile[]> {
-  const { data, error } = await supabase.rpc('admin_list_profiles');
+  const { data, error } = await supabase.rpc('forjados_admin_list_profiles_v4');
 
   if (error) throw error;
 
@@ -201,7 +201,7 @@ export async function adminUpdateProfile(params: {
   neighborhood?: string;
   internal_notes?: string;
 }) {
-  const { error } = await supabase.rpc('admin_update_profile', {
+  const { error } = await supabase.rpc('forjados_admin_update_profile_v4', {
     p_user_id: params.userId,
     p_role: params.role ?? null,
     p_requested_role: params.requested_role ?? null,
@@ -219,7 +219,7 @@ export async function adminUpdateProfile(params: {
 }
 
 export async function approveProfile(userId: string, role?: UserRole) {
-  const { error } = await supabase.rpc('admin_approve_profile', {
+  const { error } = await supabase.rpc('forjados_admin_approve_profile_v4', {
     p_user_id: userId,
     p_role: role || null,
   });
@@ -228,7 +228,7 @@ export async function approveProfile(userId: string, role?: UserRole) {
 }
 
 export async function rejectProfile(userId: string) {
-  const { error } = await supabase.rpc('admin_reject_profile', {
+  const { error } = await supabase.rpc('forjados_admin_reject_profile_v4', {
     p_user_id: userId,
   });
 

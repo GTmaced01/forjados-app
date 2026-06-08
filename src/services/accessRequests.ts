@@ -20,7 +20,7 @@ function throwFriendlyError(error: unknown, fallback: string): never {
 export async function listPendingAccessRequests(): Promise<UserProfile[]> {
   try {
     const { data, error } = await safeRequest(
-      supabase.rpc('admin_list_pending_access_requests'),
+      supabase.rpc('forjados_admin_list_pending_access_requests_v4'),
       'Não foi possível carregar as solicitações de acesso.'
     );
 
@@ -38,11 +38,11 @@ export async function updateAccessRequestStatus(params: {
 }) {
   try {
     const request = params.status === 'approved'
-      ? supabase.rpc('admin_approve_profile', {
+      ? supabase.rpc('forjados_admin_approve_profile_v4', {
           p_user_id: params.userId,
           p_role: null,
         })
-      : supabase.rpc('admin_reject_profile', {
+      : supabase.rpc('forjados_admin_reject_profile_v4', {
           p_user_id: params.userId,
         });
 
