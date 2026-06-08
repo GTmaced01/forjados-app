@@ -2,6 +2,28 @@ import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import type { InscriptionStatus, UserProfile, UserRole } from '../types';
 
+function getSupabaseErrorMessage(error: unknown, fallback: string) {
+  if (!error) return fallback;
+
+  if (error instanceof Error && error.message) return error.message;
+
+  if (typeof error === 'object') {
+    const maybe = error as { message?: string; details?: string; hint?: string; code?: string };
+    const parts = [maybe.message, maybe.details, maybe.hint, maybe.code]
+      .filter(Boolean)
+      .map(String);
+
+    if (parts.length > 0) return parts.join(' | ');
+  }
+
+  return fallback;
+}
+
+function throwRpcError(error: unknown, fallback: string): never {
+  throw new Error(getSupabaseErrorMessage(error, fallback), { cause: error });
+}
+
+
 export async function getMyProfile(currentUser?: User | null): Promise<UserProfile | null> {
   let user = currentUser ?? null;
 
@@ -159,9 +181,9 @@ export async function updateMyRegistration(params: {
 }
 
 export async function listProfiles(): Promise<UserProfile[]> {
-  const { data, error } = await supabase.rpc('forjados_admin_list_profiles_v4');
+  const { data, error } = await supabase.rpc('forjados_admin_list_profiles_v5');
 
-  if (error) throw error;
+  if (error) throwRpcError(error, 'Erro ao carregar membros.');
 
   return (data || []) as UserProfile[];
 }
@@ -201,7 +223,7 @@ export async function adminUpdateProfile(params: {
   neighborhood?: string;
   internal_notes?: string;
 }) {
-  const { error } = await supabase.rpc('forjados_admin_update_profile_v4', {
+  const { error } = await supabase.rpc('forjados_admin_update_profile_v5', {
     p_user_id: params.userId,
     p_role: params.role ?? null,
     p_requested_role: params.requested_role ?? null,
@@ -215,24 +237,24 @@ export async function adminUpdateProfile(params: {
     p_internal_notes: params.internal_notes ?? null,
   });
 
-  if (error) throw error;
+  if (error) throwRpcError(error, 'Erro ao atualizar usuário.');
 }
 
 export async function approveProfile(userId: string, role?: UserRole) {
-  const { error } = await supabase.rpc('forjados_admin_approve_profile_v4', {
+  const { error } = await supabase.rpc('forjados_admin_approve_profile_v5', {
     p_user_id: userId,
     p_role: role || null,
   });
 
-  if (error) throw error;
+  if (error) throwRpcError(error, 'Erro ao aprovar usuário.');
 }
 
 export async function rejectProfile(userId: string) {
-  const { error } = await supabase.rpc('forjados_admin_reject_profile_v4', {
+  const { error } = await supabase.rpc('forjados_admin_reject_profile_v5', {
     p_user_id: userId,
   });
 
-  if (error) throw error;
+  if (error) throwRpcError(error, 'Erro ao recusar usuário.');
 }
 
 export async function updateMyBasicProfile(params: {

@@ -1,54 +1,22 @@
-# Correção aprovação/status - FORJADOS
+# Correção aprovação/status - FORJADOS V5
 
-## O que foi corrigido
-
-O app ainda estava chamando as RPCs antigas do Supabase:
-
-- `admin_approve_profile`
-- `admin_reject_profile`
-- `admin_update_profile`
-- `admin_list_profiles`
-- `admin_list_pending_access_requests`
-
-Essas funções antigas estavam conflitando com tipos de retorno e causando os erros:
-
-- Erro ao atualizar solicitação de acesso
-- Erro ao alterar status
-- cannot change return type of existing function
-
-Agora o app chama funções novas, com nomes diferentes:
-
-- `forjados_admin_approve_profile_v4`
-- `forjados_admin_reject_profile_v4`
-- `forjados_admin_update_profile_v4`
-- `forjados_admin_list_profiles_v4`
-- `forjados_admin_list_pending_access_requests_v4`
+Esta versão para de chamar as funções antigas `admin_*` e passa a usar funções novas `forjados_admin_*_v5`.
 
 ## Passo obrigatório no Supabase
 
-Depois de subir o código no GitHub e a Vercel publicar, rode no Supabase:
+Antes de testar no app, rode no SQL Editor do Supabase:
 
-```text
-supabase/patch-admin-rpc-v4.sql
+```sql
+-- arquivo: supabase/patch-admin-rpc-v5.sql
 ```
 
-Não precisa apagar funções antigas. O app não depende mais delas.
+Depois suba este código no GitHub e aguarde a Vercel publicar.
 
-## Testes que fiz no código
+## O que testar
 
-- `npm install` passou
-- `npm run build` passou
-- `npm run lint` passou
+- Início > Solicitações de acesso > Aprovar
+- Início > Solicitações de acesso > Recusar
+- Mais > Painel Admin > alterar status
+- Mais > Painel Admin > alterar cargo
 
-## Testes que você deve fazer no app publicado
-
-1. Entrar como admin/diretor.
-2. Ir em Início > Solicitações de acesso.
-3. Aprovar um usuário pendente.
-4. Recusar outro usuário pendente.
-5. Ir em Mais > Painel Admin.
-6. Alterar status de um usuário.
-7. Alterar cargo de um usuário.
-8. Testar rolagem no celular.
-
-Se ainda der erro, abra o console ou copie a mensagem completa do erro do Supabase. Agora o app deve mostrar o erro real vindo da RPC nova.
+Se ainda aparecer erro, agora o app deve mostrar a mensagem real do Supabase com mais detalhes.
