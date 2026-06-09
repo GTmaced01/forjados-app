@@ -536,7 +536,7 @@ export function DashboardView() {
               {canManagePublicPanel && (
                 <button
                   type="button"
-                  className={tab === "automated-messages" ? "active" : ""}
+                  className={`secondary-button ${tab === "automated-messages" ? "active" : ""}`.trim()}
                   onClick={() => selectTab("automated-messages")}
                 >
                   Mensagens Automáticas
@@ -545,7 +545,7 @@ export function DashboardView() {
               {canManagePublicPanel && (
                 <button
                   type="button"
-                  className={tab === "event-settings" ? "active" : ""}
+                  className={`secondary-button ${tab === "event-settings" ? "active" : ""}`.trim()}
                   onClick={() => selectTab("event-settings")}
                 >
                   Configurar FORJADOS
@@ -985,7 +985,7 @@ export function DashboardView() {
               {canManagePublicPanel && (
                 <button
                   type="button"
-                  className={tab === "automated-messages" ? "active" : ""}
+                  className={`secondary-button ${tab === "automated-messages" ? "active" : ""}`.trim()}
                   onClick={() => selectTab("automated-messages")}
                 >
                   Mensagens Automáticas
@@ -994,7 +994,7 @@ export function DashboardView() {
               {canManagePublicPanel && (
                 <button
                   type="button"
-                  className={tab === "event-settings" ? "active" : ""}
+                  className={`secondary-button ${tab === "event-settings" ? "active" : ""}`.trim()}
                   onClick={() => selectTab("event-settings")}
                 >
                   Configurar FORJADOS
