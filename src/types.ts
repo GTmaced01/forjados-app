@@ -342,9 +342,11 @@ export interface AutomatedMessage {
   target: AutomatedMessageTarget;
   target_team?: string | null;
   scheduled_at: string;
-  status: 'scheduled' | 'sent' | 'cancelled';
+  status: 'scheduled' | 'sent' | 'cancelled' | 'failed';
   created_by?: string | null;
   sent_at?: string | null;
+  sent_count?: number;
+  last_error?: string | null;
   created_at: string;
   updated_at: string;
 }

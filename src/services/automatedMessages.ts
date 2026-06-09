@@ -44,6 +44,21 @@ export async function cancelAutomatedMessage(messageId: string) {
 }
 
 export async function processDueAutomatedMessages() {
-  const { error } = await supabase.rpc('forjados_process_due_automated_messages');
+  const { data, error } = await supabase.rpc('forjados_process_due_automated_messages');
   if (error) throw error;
+  return data as { ok?: boolean; processed_messages?: number; created_notifications?: number } | null;
+}
+
+export async function getAutomatedMessagesCronStatus() {
+  const { data, error } = await supabase.rpc('forjados_automated_messages_cron_status');
+  if (error) throw error;
+  return data as {
+    mode?: string;
+    job_name?: string;
+    job_exists?: boolean;
+    active?: boolean;
+    job_id?: number | null;
+    frequency?: string;
+    checked_at?: string;
+  } | null;
 }
