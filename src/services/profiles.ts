@@ -257,6 +257,24 @@ export async function rejectProfile(userId: string) {
   if (error) throwRpcError(error, 'Erro ao recusar usuário.');
 }
 
+
+export async function adminDeleteProfile(userId: string) {
+  const { error } = await supabase.rpc('forjados_admin_delete_profile_v6', {
+    p_user_id: userId,
+  });
+
+  if (error) throwRpcError(error, 'Erro ao excluir usuário.');
+}
+
+export async function adminUpdateRetreatCount(params: { userId: string; count: number }) {
+  const { error } = await supabase.rpc('forjados_admin_update_retreat_count_v6', {
+    p_user_id: params.userId,
+    p_retreat_count: params.count,
+  });
+
+  if (error) throwRpcError(error, 'Erro ao atualizar quantidade de retiros.');
+}
+
 export async function updateMyBasicProfile(params: {
   display_name: string;
   phone: string;

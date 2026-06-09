@@ -16,6 +16,7 @@ export async function createRide(params: {
   driverName: string;
   driverPhotoUrl?: string;
   departureLocation: string;
+  departureMapUrl?: string;
   departureTime: string;
   totalSeats: number;
   vehicleType: string;
@@ -31,6 +32,7 @@ export async function createRide(params: {
     driver_name: params.driverName,
     driver_photo_url: params.driverPhotoUrl || '',
     departure_location: params.departureLocation,
+    departure_map_url: params.departureMapUrl || '',
     departure_time: params.departureTime,
     total_seats: params.totalSeats,
     available_seats: params.totalSeats,

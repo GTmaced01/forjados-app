@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle, ExternalLink, Search, XCircle } from 'lucide-react';
+import { CheckCircle, Download, ExternalLink, Search, XCircle } from 'lucide-react';
 import {
   formatReceiptStatus,
   listAllPaymentReceipts,
   updatePaymentReceiptStatus,
 } from '../services/payments';
-import type { PaymentReceipt } from '../types';
+import { exportTreasuryWorkbook } from '../services/exporters';
+import { formatOfferMethod, formatOfferStatus, listAllOffers, updateOfferStatus } from '../services/offers';
+import type { Offer, PaymentReceipt } from '../types';
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
 
@@ -33,6 +35,7 @@ export function TreasuryView() {
   const mountedRef = useRef(true);
 
   const [receipts, setReceipts] = useState<PaymentReceipt[]>(() => getCachedReceipts());
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -76,6 +79,8 @@ export function TreasuryView() {
 
       setReceipts(data);
       setCachedReceipts(data);
+      const offerData = await listAllOffers().catch(() => [] as Offer[]);
+      if (mountedRef.current) setOffers(offerData);
     } catch (err) {
       console.error('Erro ao carregar comprovantes:', err);
 
@@ -160,9 +165,29 @@ export function TreasuryView() {
     }
   }
 
+  async function handleUpdateOfferStatus(offer: Offer, status: 'approved' | 'rejected') {
+    setSavingId(offer.id);
+    setError('');
+    setSuccess('');
+
+    try {
+      await updateOfferStatus({ offerId: offer.id, status });
+      setSuccess(status === 'approved' ? 'Oferta aprovada.' : 'Oferta recusada.');
+      await loadReceipts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar oferta.');
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   const pendingCount = receipts.filter((item) => item.status === 'pending').length;
   const approvedCount = receipts.filter((item) => item.status === 'approved').length;
   const rejectedCount = receipts.filter((item) => item.status === 'rejected').length;
+  const totalInscriptionApproved = receipts.filter((item) => item.status === 'approved' && item.type === 'inscription').reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const totalOrdersApproved = receipts.filter((item) => item.status === 'approved' && item.type === 'order').reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const totalOffersApproved = offers.filter((item) => item.status === 'approved').reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const totalApproved = totalInscriptionApproved + totalOrdersApproved + totalOffersApproved;
 
   return (
     <div className="treasury-page">
@@ -175,14 +200,20 @@ export function TreasuryView() {
           </p>
         </div>
 
-        <button
-          className="secondary-button"
-          type="button"
-          onClick={loadReceipts}
-          disabled={loading}
-        >
-          {loading ? 'Atualizando...' : 'Atualizar'}
-        </button>
+        <div className="header-actions">
+          <button className="secondary-button" type="button" onClick={() => exportTreasuryWorkbook({ receipts, offers })}>
+            <Download size={16} />
+            Exportar planilha
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={loadReceipts}
+            disabled={loading}
+          >
+            {loading ? 'Atualizando...' : 'Atualizar'}
+          </button>
+        </div>
       </div>
 
       {error && <div className="alert error">{error}</div>}
@@ -205,8 +236,13 @@ export function TreasuryView() {
         </div>
 
         <div className="card">
-          <h3>Total</h3>
+          <h3>Total comprovantes</h3>
           <strong>{receipts.length}</strong>
+        </div>
+        <div className="card">
+          <h3>Total arrecadado</h3>
+          <strong>R$ {totalApproved.toFixed(2).replace('.', ',')}</strong>
+          <p className="muted">Inscrições: R$ {totalInscriptionApproved.toFixed(2).replace('.', ',')} · Camisas: R$ {totalOrdersApproved.toFixed(2).replace('.', ',')} · Ofertas: R$ {totalOffersApproved.toFixed(2).replace('.', ',')}</p>
         </div>
       </section>
 
@@ -355,6 +391,41 @@ export function TreasuryView() {
           </div>
         )}
       </div>
+
+      <section className="panel wide">
+        <h3>Ofertas recebidas</h3>
+        {offers.length === 0 ? (
+          <p className="muted">Nenhuma oferta registrada.</p>
+        ) : (
+          <div className="treasury-list">
+            {offers.map((offer) => {
+              const isSaving = savingId === offer.id;
+              return (
+                <div className="treasury-card" key={offer.id}>
+                  <div className="treasury-card-main">
+                    <div>
+                      <h3>{offer.user_name || 'Usuário sem nome'}</h3>
+                      <p className="muted">{offer.user_email || 'Sem e-mail'} · {offer.objective}</p>
+                    </div>
+                    <div className={`receipt-status ${offer.status}`}>{formatOfferStatus(offer.status)}</div>
+                  </div>
+                  <div className="treasury-info-grid">
+                    <div><label>Valor</label><p>R$ {Number(offer.amount).toFixed(2).replace('.', ',')}</p></div>
+                    <div><label>Forma</label><p>{formatOfferMethod(offer.method)}</p></div>
+                    <div><label>Data</label><p>{new Date(offer.created_at).toLocaleString('pt-BR')}</p></div>
+                    <div><label>Observações</label><p>{offer.notes || 'Sem observação'}</p></div>
+                  </div>
+                  <div className="treasury-actions">
+                    {offer.proof_url && <button type="button" className="secondary-button" onClick={() => handleOpenReceipt(offer.proof_url || '')}>Abrir comprovante</button>}
+                    {offer.status !== 'approved' && <button className="approve-button" disabled={isSaving} onClick={() => handleUpdateOfferStatus(offer, 'approved')}>Aprovar</button>}
+                    {offer.status !== 'rejected' && <button className="reject-button" disabled={isSaving} onClick={() => handleUpdateOfferStatus(offer, 'rejected')}>Recusar</button>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

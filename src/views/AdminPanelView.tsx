@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Search, Shield, UserX } from 'lucide-react';
+import { CheckCircle, Download, FileText, Search, Shield, Trash2, UserX } from 'lucide-react';
 import { PRIMARY_TEAMS, ROLE_LABELS, SECTORS, STATUS_LABELS } from '../constants';
 import {
+  adminDeleteProfile,
   adminUpdateProfile,
+  adminUpdateRetreatCount,
   approveProfile,
   listProfiles,
   rejectProfile,
 } from '../services/profiles';
+import { exportTeamWorkbook, printProfileFicha } from '../services/exporters';
 import type { InscriptionStatus, UserProfile, UserRole } from '../types';
 
 export function AdminPanelView() {
@@ -16,6 +19,7 @@ export function AdminPanelView() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | InscriptionStatus>('all');
   const [error, setError] = useState('');
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
 
   async function loadProfiles() {
     setLoading(true);
@@ -174,6 +178,48 @@ export function AdminPanelView() {
     }
   }
 
+  async function handleRetreatCountChange(profile: UserProfile, value: string) {
+    const count = Math.max(0, Number(value || 0));
+    setSavingId(profile.id);
+    setError('');
+
+    try {
+      await adminUpdateRetreatCount({ userId: profile.id, count });
+      await loadProfiles();
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar retiros.');
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function handleDeleteProfile(profile: UserProfile) {
+    if (profile.is_admin || profile.role === 'admin') {
+      setError('Por segurança, administradores não podem ser excluídos por aqui.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Excluir definitivamente o usuário ${profile.display_name}? Essa ação não deve ser usada sem conferência.`);
+    if (!confirmed) return;
+
+    const typed = window.prompt('Digite EXCLUIR para confirmar.');
+    if (typed !== 'EXCLUIR') return;
+
+    setSavingId(profile.id);
+    setError('');
+
+    try {
+      await adminDeleteProfile(profile.id);
+      await loadProfiles();
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Erro ao excluir usuário.');
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   const pendingCount = profiles.filter((p) => p.inscription_status === 'pending').length;
   const approvedCount = profiles.filter((p) => p.inscription_status === 'approved').length;
   const rejectedCount = profiles.filter((p) => p.inscription_status === 'rejected').length;
@@ -189,9 +235,15 @@ export function AdminPanelView() {
           </p>
         </div>
 
-        <button className="secondary-button" onClick={loadProfiles}>
-          Atualizar
-        </button>
+        <div className="header-actions">
+          <button className="secondary-button" onClick={() => exportTeamWorkbook(filteredProfiles)}>
+            <Download size={16} />
+            Exportar equipe
+          </button>
+          <button className="secondary-button" onClick={loadProfiles}>
+            Atualizar
+          </button>
+        </div>
       </div>
 
       {error && <div className="alert error">{error}</div>}
@@ -314,6 +366,17 @@ export function AdminPanelView() {
                   </div>
 
                   <div>
+                    <label>Retiros participados</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={profile.retreat_count_manual ?? profile.retreat_count ?? 0}
+                      disabled={isSaving}
+                      onChange={(e) => handleRetreatCountChange(profile, e.target.value)}
+                    />
+                  </div>
+
+                  <div>
                     <label>Equipe principal</label>
                     <select
                       value={profile.primary_team || ''}
@@ -367,6 +430,35 @@ export function AdminPanelView() {
                     Recusar
                   </button>
 
+                  <button
+                    className="secondary-button"
+                    disabled={isSaving}
+                    onClick={() => setSelectedProfile(profile)}
+                  >
+                    <FileText size={16} />
+                    Ficha completa
+                  </button>
+
+                  <button
+                    className="secondary-button"
+                    disabled={isSaving}
+                    onClick={() => printProfileFicha(profile)}
+                  >
+                    <Download size={16} />
+                    Exportar ficha
+                  </button>
+
+                  {!profile.is_admin && profile.role !== 'admin' && (
+                    <button
+                      className="reject-button"
+                      disabled={isSaving}
+                      onClick={() => handleDeleteProfile(profile)}
+                    >
+                      <Trash2 size={16} />
+                      Excluir
+                    </button>
+                  )}
+
                   {profile.is_admin && (
                     <span className="admin-mark">
                       <Shield size={16} />
@@ -383,6 +475,39 @@ export function AdminPanelView() {
               <p className="muted">Nenhum membro encontrado.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {selectedProfile && (
+        <div className="profile-modal-backdrop" onClick={() => setSelectedProfile(null)}>
+          <div className="profile-modal panel wide" onClick={(e) => e.stopPropagation()}>
+            <div className="section-header">
+              <div>
+                <p className="eyebrow">Ficha completa</p>
+                <h3>{selectedProfile.display_name}</h3>
+                <p className="muted">{selectedProfile.member_id || 'Sem ID'} · {selectedProfile.email}</p>
+              </div>
+              <button className="secondary-button" onClick={() => setSelectedProfile(null)}>Fechar</button>
+            </div>
+            {selectedProfile.photo_url && <img className="profile-modal-photo" src={selectedProfile.photo_url} alt={selectedProfile.display_name} />}
+            <div className="treasury-info-grid">
+              <div><label>Telefone</label><p>{selectedProfile.phone || 'Não informado'}</p></div>
+              <div><label>Nascimento</label><p>{selectedProfile.birth_date || 'Não informado'}</p></div>
+              <div><label>Cidade/Bairro</label><p>{selectedProfile.city || '-'} / {selectedProfile.neighborhood || '-'}</p></div>
+              <div><label>Cargo</label><p>{ROLE_LABELS[selectedProfile.role]}</p></div>
+              <div><label>Status</label><p>{STATUS_LABELS[selectedProfile.inscription_status]}</p></div>
+              <div><label>Equipe principal</label><p>{selectedProfile.primary_team || 'Não informado'}</p></div>
+              <div><label>Setores</label><p>{selectedProfile.sectors?.join(', ') || 'Não informado'}</p></div>
+              <div><label>Camisa</label><p>{selectedProfile.shirt_size || 'Não informado'}</p></div>
+              <div><label>Retiros</label><p>{selectedProfile.retreat_count_manual ?? selectedProfile.retreat_count ?? 0}</p></div>
+              <div><label>Restrição alimentar</label><p>{selectedProfile.food_restrictions || 'Não informado'}</p></div>
+              <div><label>Saúde</label><p>{selectedProfile.health_problems || 'Não informado'}</p></div>
+              <div><label>Medicação</label><p>{selectedProfile.continuous_medicine || 'Não informado'}</p></div>
+              <div><label>Emergência</label><p>{selectedProfile.emergency_contact?.name || '-'} · {selectedProfile.emergency_contact?.phone || '-'}</p></div>
+              <div><label>Criado em</label><p>{new Date(selectedProfile.created_at).toLocaleString('pt-BR')}</p></div>
+            </div>
+            <button className="primary-button" onClick={() => printProfileFicha(selectedProfile)}>Exportar/Imprimir ficha</button>
+          </div>
         </div>
       )}
     </div>

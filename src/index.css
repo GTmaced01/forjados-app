@@ -4937,3 +4937,148 @@ textarea:focus {
     min-height: 50px !important;
   }
 }
+
+/* =========================================================
+   FORJADOS - NOVOS MÓDULOS E COMPONENTES
+========================================================= */
+
+.grid-full {
+  grid-column: 1 / -1;
+}
+
+.countdown-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.countdown-card h3 {
+  margin: 0;
+  color: var(--gold);
+}
+
+.countdown-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(80px, 1fr));
+  gap: 10px;
+  min-width: min(360px, 100%);
+}
+
+.countdown-grid strong {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(199, 154, 74, 0.12);
+  border: 1px solid rgba(199, 154, 74, 0.24);
+  color: var(--gold);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.countdown-grid span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.profile-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.profile-modal {
+  width: min(920px, 100%);
+  max-height: min(86dvh, 760px);
+  overflow-y: auto;
+}
+
+.profile-modal-photo {
+  width: 130px;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 24px;
+  border: 1px solid rgba(199, 154, 74, 0.28);
+  margin-bottom: 18px;
+}
+
+.notification-popup {
+  position: fixed;
+  right: 18px;
+  bottom: 92px;
+  z-index: 260;
+  width: min(380px, calc(100vw - 36px));
+  padding: 16px;
+  border-radius: 22px;
+  background: rgba(18, 18, 20, 0.96);
+  border: 1px solid rgba(199, 154, 74, 0.24);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.notification-popup strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--gold);
+}
+
+.notification-popup p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.notification-popup div {
+  display: flex;
+  gap: 8px;
+}
+
+.logo[role="button"],
+.mobile-topbar-logo {
+  cursor: pointer;
+}
+
+@media (max-width: 800px) {
+  .countdown-card {
+    display: grid;
+    gap: 14px;
+  }
+
+  .countdown-grid {
+    grid-template-columns: repeat(3, 1fr);
+    min-width: 0;
+  }
+
+  .countdown-grid strong {
+    padding: 14px 8px;
+    font-size: 24px;
+  }
+
+  .notification-popup {
+    left: 14px;
+    right: 14px;
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    width: auto;
+  }
+
+  .profile-modal-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .profile-modal {
+    max-height: 82dvh;
+    border-radius: 28px 28px 18px 18px;
+  }
+}

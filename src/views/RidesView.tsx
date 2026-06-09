@@ -31,6 +31,7 @@ export function RidesView() {
 
   const [form, setForm] = useState({
     departureLocation: '',
+    departureMapUrl: '',
     departureTime: '',
     totalSeats: '1',
     vehicleType: '',
@@ -106,6 +107,7 @@ export function RidesView() {
         driverName: profile.display_name,
         driverPhotoUrl: '',
         departureLocation: form.departureLocation,
+        departureMapUrl: form.departureMapUrl,
         departureTime: form.departureTime,
         totalSeats,
         vehicleType: form.vehicleType,
@@ -114,6 +116,7 @@ export function RidesView() {
 
       setForm({
         departureLocation: '',
+        departureMapUrl: '',
         departureTime: '',
         totalSeats: '1',
         vehicleType: '',
@@ -285,6 +288,17 @@ export function RidesView() {
               </div>
 
               <div>
+                <label>Link do local de saída</label>
+                <input
+                  value={form.departureMapUrl}
+                  placeholder="Cole aqui o link do Google Maps ou Waze"
+                  onChange={(e) =>
+                    setForm({ ...form, departureMapUrl: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
                 <label>Horário de saída</label>
                 <input
                   type="datetime-local"
@@ -417,7 +431,13 @@ const suggestedPassengerCount = String(ride.passengers?.length || 0);
                     <label>Saída</label>
                     <p>
                       <MapPin size={14} />
-                      {ride.departure_location}
+                      {ride.departure_map_url ? (
+                        <a href={ride.departure_map_url} target="_blank" rel="noreferrer">
+                          {ride.departure_location}
+                        </a>
+                      ) : (
+                        ride.departure_location
+                      )}
                     </p>
                   </div>
 

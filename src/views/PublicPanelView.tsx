@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { FORJADOS_MAIN_MESSAGE, MODULE_DNA } from '../constants';
-import { formatPanelCategory, listPublishedPublicPanelItems } from '../services/publicPanel';
+import { formatPanelCategory, listPublishedPublicPanelItems, listRetreatBirthdays } from '../services/publicPanel';
 import { getErrorMessage } from '../services/safeAsync';
-import type { PublicPanelItem } from '../types';
+import type { PublicPanelItem, UserProfile } from '../types';
 
 export function PublicPanelView() {
   const [items, setItems] = useState<PublicPanelItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [offlineMode, setOfflineMode] = useState(false);
+  const [birthdays, setBirthdays] = useState<UserProfile[]>([]);
 
   async function loadData() {
     setLoading(true);
@@ -18,6 +19,7 @@ export function PublicPanelView() {
     try {
       const data = await listPublishedPublicPanelItems();
       setItems(data);
+      setBirthdays(await listRetreatBirthdays());
       setOfflineMode(!navigator.onLine);
     } catch (err) {
       console.error(err);
@@ -41,6 +43,20 @@ export function PublicPanelView() {
       </div>
 
       <div className="card public-panel-highlight-card"><h3>Centro da mensagem</h3><p>{FORJADOS_MAIN_MESSAGE}</p></div>
+
+      {birthdays.length > 0 && (
+        <section className="card public-panel-highlight-card">
+          <h3>🎉 Aniversariantes no FORJADOS</h3>
+          <p className="muted">Pessoas que fazem aniversário durante a data do retiro.</p>
+          <div className="badges">
+            {birthdays.map((person) => (
+              <span className="role-badge" key={person.id}>
+                {person.display_name} · {person.primary_team || person.role}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
 
       {offlineMode && <div className="alert success">Você está vendo informações salvas no dispositivo. Novos avisos aparecem quando houver internet.</div>}
       {error && <div className="alert error">{error}</div>}

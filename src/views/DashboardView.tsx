@@ -39,17 +39,22 @@ import { ManagePublicPanelView } from "./ManagePublicPanelView";
 import { LegalDocumentsView } from "./LegalDocumentsView";
 import { NotificationsView } from "./NotificationsView";
 import { AuditLogView } from "./AuditLogView";
+import { OfferView } from "./OfferView";
+import { AutomatedMessagesView } from "./AutomatedMessagesView";
+import { EventSettingsView } from "./EventSettingsView";
 import {
   listPendingAccessRequests,
   updateAccessRequestStatus,
 } from "../services/accessRequests";
 import { getErrorMessage } from "../services/safeAsync";
-import { countUnreadNotifications } from "../services/notifications";
+import { countUnreadNotifications, listMyNotifications, markNotificationAsRead } from "../services/notifications";
 import {
   getAdminDashboardSummary,
   type AdminDashboardSummary,
 } from "../services/adminDashboard";
-import type { UserProfile } from "../types";
+import { getActiveRetreatEvent, getCountdownParts } from "../services/eventSettings";
+import { processDueAutomatedMessages } from "../services/automatedMessages";
+import type { AppNotification, RetreatEventSettings, UserProfile } from "../types";
 
 type Tab =
   | "home"
@@ -59,6 +64,7 @@ type Tab =
   | "points"
   | "notifications"
   | "points-store"
+  | "offer"
   | "leader-team"
   | "rides"
   | "shirts"
@@ -70,6 +76,8 @@ type Tab =
   | "treasury"
   | "admin"
   | "audit-log"
+  | "automated-messages"
+  | "event-settings"
   | "privacy"
   | "terms"
   | "rules"
@@ -83,6 +91,7 @@ const VALID_TABS: Tab[] = [
   "points",
   "notifications",
   "points-store",
+  "offer",
   "leader-team",
   "rides",
   "shirts",
@@ -94,6 +103,8 @@ const VALID_TABS: Tab[] = [
   "treasury",
   "admin",
   "audit-log",
+  "automated-messages",
+  "event-settings",
   "privacy",
   "terms",
   "rules",
@@ -128,6 +139,10 @@ export function DashboardView() {
     useState<AdminDashboardSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [activeEvent, setActiveEvent] = useState<RetreatEventSettings | null>(null);
+  const [popupNotification, setPopupNotification] = useState<AppNotification | null>(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  const countdown = getCountdownParts(activeEvent?.start_date, nowTick);
 
   const canManageShirts = isAdmin || isDirector;
   const canManagePoints = isAdmin || isDirector || isLeader;
@@ -201,6 +216,14 @@ export function DashboardView() {
       if (active) setUnreadNotifications(count);
     });
 
+    listMyNotifications()
+      .then((items) => {
+        if (!active) return;
+        const firstUnread = items.find((item) => !item.is_read);
+        if (firstUnread) setPopupNotification(firstUnread);
+      })
+      .catch(() => undefined);
+
     const interval = window.setInterval(() => {
       countUnreadNotifications().then((count) => {
         if (active) setUnreadNotifications(count);
@@ -212,6 +235,23 @@ export function DashboardView() {
       window.clearInterval(interval);
     };
   }, [profile?.id]);
+
+  useEffect(() => {
+    getActiveRetreatEvent()
+      .then(setActiveEvent)
+      .catch((err) => console.warn("Evento ativo não carregou:", err));
+
+    processDueAutomatedMessages().catch((err) =>
+      console.warn("Mensagens automáticas não processadas:", err)
+    );
+
+    const interval = window.setInterval(() => setNowTick(Date.now()), 60000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    void nowTick;
+  }, [nowTick]);
 
   useEffect(() => {
     localStorage.setItem("forjados-active-tab", tab);
@@ -226,6 +266,7 @@ export function DashboardView() {
       tab === "points" ||
       tab === "notifications" ||
       tab === "points-store" ||
+      tab === "offer" ||
       tab === "rides" ||
       tab === "shirts" ||
       tab === "privacy" ||
@@ -240,7 +281,9 @@ export function DashboardView() {
       (tab === "service-scale" && canManageServiceScale) ||
       (tab === "treasury" && canManageTreasury) ||
       (tab === "admin" && canSeeAdminPanel) ||
-      (tab === "audit-log" && canSeeAuditLog);
+      (tab === "audit-log" && canSeeAuditLog) ||
+      (tab === "automated-messages" && canManagePublicPanel) ||
+      (tab === "event-settings" && canManagePublicPanel);
 
     if (!canAccessTab) {
       setTab("home");
@@ -343,6 +386,21 @@ export function DashboardView() {
             O FORJADOS não é sobre pessoas fortes. É sobre pessoas que foram quebradas e encontraram cura em Deus.
           </p>
         </section>
+
+        {activeEvent && countdown && (
+          <section className="card countdown-card">
+            <div>
+              <p className="eyebrow">Próximo FORJADOS</p>
+              <h3>{activeEvent.title}</h3>
+              <p className="muted">{activeEvent.location || 'Local a definir'}</p>
+            </div>
+            <div className="countdown-grid">
+              <strong>{countdown.days}<span>dias</span></strong>
+              <strong>{countdown.hours}<span>horas</span></strong>
+              <strong>{countdown.minutes}<span>min</span></strong>
+            </div>
+          </section>
+        )}
 
         <section className="cards">
           <div className="card">
@@ -473,6 +531,24 @@ export function DashboardView() {
                   onClick={() => selectTab("manage-points")}
                 >
                   Lançar honra
+                </button>
+              )}
+              {canManagePublicPanel && (
+                <button
+                  type="button"
+                  className={tab === "automated-messages" ? "active" : ""}
+                  onClick={() => selectTab("automated-messages")}
+                >
+                  Mensagens Automáticas
+                </button>
+              )}
+              {canManagePublicPanel && (
+                <button
+                  type="button"
+                  className={tab === "event-settings" ? "active" : ""}
+                  onClick={() => selectTab("event-settings")}
+                >
+                  Configurar FORJADOS
                 </button>
               )}
               {canManageServiceScale && (
@@ -606,6 +682,7 @@ export function DashboardView() {
       { label: "Minha Jornada", tab: "inscription" },
       { label: `Notificações${unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}`, tab: "notifications" },
       { label: "Loja de Honra", tab: "points-store" },
+      { label: "Fazer Oferta", tab: "offer" },
       {
         label: "Meus Liderados",
         tab: "leader-team",
@@ -648,6 +725,8 @@ export function DashboardView() {
         visible: canManageServiceScale,
       },
       { label: "Tesouraria", tab: "treasury", visible: canManageTreasury },
+      { label: "Mensagens Automáticas", tab: "automated-messages", visible: canManagePublicPanel },
+      { label: "Configurar FORJADOS", tab: "event-settings", visible: canManagePublicPanel },
       { label: "Memorial do Sistema", tab: "audit-log", visible: canSeeAuditLog },
       { label: "Painel Admin", tab: "admin", visible: canSeeAdminPanel },
     ];
@@ -714,6 +793,8 @@ export function DashboardView() {
   function renderContent() {
     if (tab === "admin" && canSeeAdminPanel) return <AdminPanelView />;
     if (tab === "audit-log" && canSeeAuditLog) return <AuditLogView />;
+    if (tab === "automated-messages" && canManagePublicPanel) return <AutomatedMessagesView />;
+    if (tab === "event-settings" && canManagePublicPanel) return <EventSettingsView />;
     if (tab === "treasury" && canManageTreasury) return <TreasuryView />;
     if (tab === "manage-points" && canManagePoints) return <ManagePointsView />;
     if (tab === "manage-shirts" && canManageShirts) return <ManageShirtsView />;
@@ -730,6 +811,7 @@ export function DashboardView() {
     if (tab === "inscription") return <InscriptionView />;
     if (tab === "points") return <PointsView />;
     if (tab === "points-store") return <PointsStoreView />;
+    if (tab === "offer") return <OfferView />;
     if (tab === "rides") return <RidesView />;
     if (tab === "shirts") return <ShirtsView />;
     if (tab === "privacy") return <LegalDocumentsView initialTab="privacy" />;
@@ -744,7 +826,7 @@ export function DashboardView() {
     <div className="layout">
       <aside className={mobileMenuOpen ? "sidebar mobile-open" : "sidebar"}>
         <div className="sidebar-top">
-          <div className="logo">
+          <div className="logo" role="button" tabIndex={0} onClick={() => selectTab("profile")} onKeyDown={(e) => e.key === "Enter" && selectTab("profile")}>
             <img src="/logo-forjados.png" alt="FORJADOS" className="sidebar-logo-mark" />
             <div>
               <h1>FORJADOS</h1>
@@ -814,6 +896,13 @@ export function DashboardView() {
               onClick={() => selectTab("points-store")}
             >
               Loja de Honra
+            </button>
+            <button
+              type="button"
+              className={tab === "offer" ? "active" : ""}
+              onClick={() => selectTab("offer")}
+            >
+              Fazer Oferta
             </button>
             {canSeeLeaderTeam && (
               <button
@@ -893,6 +982,24 @@ export function DashboardView() {
                   Gerenciar Mural da Forja
                 </button>
               )}
+              {canManagePublicPanel && (
+                <button
+                  type="button"
+                  className={tab === "automated-messages" ? "active" : ""}
+                  onClick={() => selectTab("automated-messages")}
+                >
+                  Mensagens Automáticas
+                </button>
+              )}
+              {canManagePublicPanel && (
+                <button
+                  type="button"
+                  className={tab === "event-settings" ? "active" : ""}
+                  onClick={() => selectTab("event-settings")}
+                >
+                  Configurar FORJADOS
+                </button>
+              )}
               {canManageServiceScale && (
                 <button
                   type="button"
@@ -941,7 +1048,7 @@ export function DashboardView() {
       <main className="content">
         <div className="mobile-app-topbar">
           <div className="mobile-topbar-brand">
-            <img src="/logo-forjados.png" alt="FORJADOS" className="mobile-topbar-logo" />
+            <img src="/logo-forjados.png" alt="FORJADOS" className="mobile-topbar-logo" onClick={() => selectTab("profile")} />
             <div>
               <strong>FORJADOS</strong>
               <span>{currentProfile.primary_team || currentProfile.role}</span>
@@ -965,6 +1072,29 @@ export function DashboardView() {
         </div>
         {renderContent()}
       </main>
+
+      {popupNotification && (
+        <div className="notification-popup">
+          <strong>{popupNotification.title}</strong>
+          {popupNotification.message && <p>{popupNotification.message}</p>}
+          <div>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => {
+                markNotificationAsRead(popupNotification.id).catch(() => undefined);
+                setPopupNotification(null);
+                selectTab("notifications");
+              }}
+            >
+              Ver
+            </button>
+            <button className="secondary-button" type="button" onClick={() => setPopupNotification(null)}>
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
 
       <nav className="mobile-bottom-nav" aria-label="Navegação principal">
         <button

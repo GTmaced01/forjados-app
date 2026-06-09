@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { withTimeout } from './safeAsync';
-import type { PublicPanelItem } from '../types';
+import type { PublicPanelItem, UserProfile } from '../types';
 
 const TIMEOUT = 10000;
 const CACHE_KEY = 'forjados_public_panel_items_v1';
@@ -136,4 +136,11 @@ export function formatPanelCategory(category: PublicPanelItem['category']) {
   if (category === 'info') return 'Informação';
   if (category === 'urgent') return 'Urgente';
   return category;
+}
+
+
+export async function listRetreatBirthdays(): Promise<UserProfile[]> {
+  const { data, error } = await supabase.rpc('forjados_list_retreat_birthdays_v1');
+  if (error) return [];
+  return (data || []) as UserProfile[];
 }

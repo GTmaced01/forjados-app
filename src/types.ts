@@ -18,6 +18,10 @@ export interface UserProfile {
   inscription_status: InscriptionStatus;
   is_admin: boolean;
   member_id?: string;
+  retreat_count?: number;
+  retreat_count_manual?: number | null;
+  photo_url?: string | null;
+  is_deleted?: boolean;
 
   sectors: string[];
   primary_team?: string | null;
@@ -135,6 +139,7 @@ export interface Ride {
   driver_name: string;
   driver_photo_url?: string;
   departure_location: string;
+  departure_map_url?: string | null;
   departure_time?: string;
   total_seats: number;
   available_seats: number;
@@ -163,6 +168,10 @@ export interface PointTransaction {
   id: string;
   user_id: string;
   member_id?: string;
+  retreat_count?: number;
+  retreat_count_manual?: number | null;
+  photo_url?: string | null;
+  is_deleted?: boolean;
   amount: number;
   reason: string;
   granted_by?: string | null;
@@ -302,5 +311,62 @@ export interface AuditLog {
   entity_id?: string | null;
   description?: string | null;
   metadata?: Record<string, unknown> | null;
+  created_at: string;
+}
+
+
+export type OfferStatus = 'pending' | 'approved' | 'rejected';
+export type OfferMethod = 'pix' | 'card' | 'cash' | 'other';
+export interface Offer {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_email?: string | null;
+  amount: number;
+  method: OfferMethod;
+  objective: string;
+  notes?: string | null;
+  proof_url?: string | null;
+  status: OfferStatus;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type AutomatedMessageTarget = 'all' | 'approved' | 'pending' | 'leaders' | 'team';
+export interface AutomatedMessage {
+  id: string;
+  title: string;
+  message: string;
+  target: AutomatedMessageTarget;
+  target_team?: string | null;
+  scheduled_at: string;
+  status: 'scheduled' | 'sent' | 'cancelled';
+  created_by?: string | null;
+  sent_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RetreatEventSettings {
+  id: string;
+  title: string;
+  start_date: string;
+  end_date?: string | null;
+  location?: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RetreatParticipation {
+  id: string;
+  user_id: string;
+  retreat_title: string;
+  confirmed_by_payment_id?: string | null;
+  confirmed_by?: string | null;
+  confirmed_at: string;
+  notes?: string | null;
   created_at: string;
 }

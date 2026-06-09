@@ -1,0 +1,49 @@
+import { supabase } from './supabase';
+import type { AutomatedMessage, AutomatedMessageTarget } from '../types';
+
+export async function listAutomatedMessages(): Promise<AutomatedMessage[]> {
+  const { data, error } = await supabase
+    .from('automated_messages')
+    .select('*')
+    .order('scheduled_at', { ascending: false });
+
+  if (error) throw error;
+  return (data || []) as AutomatedMessage[];
+}
+
+export async function createAutomatedMessage(params: {
+  title: string;
+  message: string;
+  target: AutomatedMessageTarget;
+  target_team?: string;
+  scheduled_at: string;
+}) {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError) throw userError;
+
+  const { error } = await supabase.from('automated_messages').insert({
+    title: params.title,
+    message: params.message,
+    target: params.target,
+    target_team: params.target_team || null,
+    scheduled_at: params.scheduled_at,
+    status: 'scheduled',
+    created_by: userData.user?.id || null,
+  });
+
+  if (error) throw error;
+}
+
+export async function cancelAutomatedMessage(messageId: string) {
+  const { error } = await supabase
+    .from('automated_messages')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('id', messageId);
+
+  if (error) throw error;
+}
+
+export async function processDueAutomatedMessages() {
+  const { error } = await supabase.rpc('forjados_process_due_automated_messages');
+  if (error) throw error;
+}
