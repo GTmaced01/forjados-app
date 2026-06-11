@@ -1,4 +1,4 @@
-const SW_VERSION = 'forjados-pwa-v5-mobile-app';
+const SW_VERSION = 'forjados-pwa-v6-push';
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 const APP_SHELL_CACHE = `${SW_VERSION}-shell`;
 
@@ -120,4 +120,68 @@ self.addEventListener('fetch', (event) => {
 
     event.respondWith(staleWhileRevalidate(event.request));
   }
+});
+
+
+self.addEventListener('push', (event) => {
+  let payload = {};
+
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (error) {
+    payload = {
+      title: 'FORJADOS',
+      message: event.data ? event.data.text() : 'Nova notificação do FORJADOS.',
+    };
+  }
+
+  const title = payload.title || 'FORJADOS';
+  const options = {
+    body: payload.message || payload.body || 'Você recebeu uma nova notificação.',
+    icon: payload.icon || '/icons/icon-192.png',
+    badge: payload.badge || '/icons/icon-192.png',
+    image: payload.image,
+    tag: payload.tag || payload.notification_id || 'forjados-notification',
+    renotify: true,
+    vibrate: [120, 60, 120],
+    data: {
+      url: payload.url || '/?tab=notifications',
+      notificationId: payload.notification_id || null,
+      type: payload.type || 'notification',
+    },
+    actions: [
+      {
+        action: 'open',
+        title: 'Abrir FORJADOS',
+      },
+    ],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const targetUrl = new URL(
+    event.notification.data?.url || '/?tab=notifications',
+    self.location.origin
+  ).href;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+
+      return undefined;
+    })
+  );
 });

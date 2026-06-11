@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, CheckCircle, RefreshCw } from 'lucide-react';
+import { Bell, CheckCircle, RefreshCw, Smartphone, XCircle } from 'lucide-react';
 import {
   listMyNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from '../services/notifications';
 import { getErrorMessage } from '../services/safeAsync';
+import {
+  formatPushStatus,
+  getPushSubscriptionStatus,
+  subscribeToPushNotifications,
+  unsubscribeFromPushNotifications,
+  type PushSubscriptionStatus,
+} from '../services/pushNotifications';
 import type { AppNotification } from '../types';
 
 export function NotificationsView() {
@@ -13,6 +20,17 @@ export function NotificationsView() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [pushStatus, setPushStatus] = useState<PushSubscriptionStatus | null>(null);
+  const [pushLoading, setPushLoading] = useState(false);
+
+  async function loadPushStatus() {
+    try {
+      const status = await getPushSubscriptionStatus();
+      setPushStatus(status);
+    } catch (err) {
+      console.warn('Status de push indisponível:', err);
+    }
+  }
 
   async function loadNotifications() {
     setLoading(true);
@@ -21,6 +39,7 @@ export function NotificationsView() {
     try {
       const data = await listMyNotifications();
       setNotifications(data);
+      await loadPushStatus();
     } catch (err) {
       console.error(err);
       setError(getErrorMessage(err, 'Erro ao carregar notificações.'));
@@ -72,6 +91,36 @@ export function NotificationsView() {
     }
   }
 
+  async function handleEnablePush() {
+    setPushLoading(true);
+    setError('');
+
+    try {
+      await subscribeToPushNotifications();
+      await loadPushStatus();
+    } catch (err) {
+      console.error(err);
+      setError(getErrorMessage(err, 'Erro ao ativar notificações push.'));
+    } finally {
+      setPushLoading(false);
+    }
+  }
+
+  async function handleDisablePush() {
+    setPushLoading(true);
+    setError('');
+
+    try {
+      await unsubscribeFromPushNotifications();
+      await loadPushStatus();
+    } catch (err) {
+      console.error(err);
+      setError(getErrorMessage(err, 'Erro ao desativar notificações push.'));
+    } finally {
+      setPushLoading(false);
+    }
+  }
+
   return (
     <div className="notifications-page">
       <div className="admin-header">
@@ -119,6 +168,45 @@ export function NotificationsView() {
           </p>
         </div>
       </section>
+
+      <section className="panel wide push-panel">
+        <div className="notification-big-icon">
+          <Smartphone size={26} />
+        </div>
+        <div className="push-panel-content">
+          <h3>Notificação push no celular</h3>
+          <p className="muted">
+            Receba avisos fora do app, inclusive com o celular bloqueado, quando houver internet.
+          </p>
+          <p className="muted push-status-text">
+            {pushStatus ? formatPushStatus(pushStatus) : 'Verificando compatibilidade...'}
+          </p>
+        </div>
+        <div className="push-panel-actions">
+          {pushStatus?.state === 'subscribed' ? (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleDisablePush}
+              disabled={pushLoading}
+            >
+              <XCircle size={16} />
+              Desativar
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="primary-button"
+              onClick={handleEnablePush}
+              disabled={pushLoading || pushStatus?.state === 'unsupported' || pushStatus?.state === 'missing-public-key' || pushStatus?.permission === 'denied'}
+            >
+              <Bell size={16} />
+              {pushLoading ? 'Ativando...' : 'Ativar push'}
+            </button>
+          )}
+        </div>
+      </section>
+
 
       <section className="panel wide">
         {loading ? (

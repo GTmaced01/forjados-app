@@ -75,7 +75,7 @@ export function AutomatedMessagesView() {
         <div>
           <p className="eyebrow">Comunicação automática</p>
           <h2>Mensagens Automáticas</h2>
-          <p className="muted">Programe notificações internas para membros, líderes ou equipes específicas. O envio agora é processado automaticamente pelo Supabase Cron, mesmo sem admin abrir o app.</p>
+          <p className="muted">Programe notificações internas para membros, líderes ou equipes específicas. O horário selecionado é salvo corretamente a partir do fuso do seu aparelho.</p>
         </div>
         <button className="secondary-button" onClick={load} disabled={loading}><RefreshCw size={16} />Atualizar</button>
       </div>
@@ -112,7 +112,7 @@ export function AutomatedMessagesView() {
             <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           </div>
           <div>
-            <label>Enviar em</label>
+            <label>Enviar em <span className="muted">(horário de Brasília/local)</span></label>
             <input type="datetime-local" value={form.scheduled_at} onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })} />
           </div>
           <div>

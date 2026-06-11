@@ -5089,3 +5089,52 @@ textarea:focus {
     border-radius: 28px 28px 18px 18px;
   }
 }
+
+
+/* =========================
+   PUSH NOTIFICATIONS
+========================= */
+
+.push-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.push-panel-content {
+  min-width: 0;
+}
+
+.push-panel-content h3 {
+  margin: 0 0 6px;
+}
+
+.push-status-text {
+  margin-top: 8px;
+  font-weight: 800;
+  color: rgba(199, 154, 74, 0.9) !important;
+}
+
+.push-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 800px) {
+  .push-panel {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .push-panel .notification-big-icon {
+    width: 52px;
+    height: 52px;
+  }
+
+  .push-panel-actions,
+  .push-panel-actions button {
+    width: 100%;
+  }
+}

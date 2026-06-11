@@ -21,12 +21,21 @@ export async function createAutomatedMessage(params: {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError) throw userError;
 
+  // O input datetime-local entrega o horário no fuso local do navegador, sem timezone.
+  // Enviar esse valor cru para uma coluna timestamptz faz o PostgreSQL tratar como UTC,
+  // causando diferença de 3 horas no Brasil. Convertemos para ISO UTC antes de salvar.
+  const scheduledAt = new Date(params.scheduled_at);
+
+  if (Number.isNaN(scheduledAt.getTime())) {
+    throw new Error('Data/hora inválida. Selecione novamente o horário da mensagem.');
+  }
+
   const { error } = await supabase.from('automated_messages').insert({
     title: params.title,
     message: params.message,
     target: params.target,
     target_team: params.target_team || null,
-    scheduled_at: params.scheduled_at,
+    scheduled_at: scheduledAt.toISOString(),
     status: 'scheduled',
     created_by: userData.user?.id || null,
   });
