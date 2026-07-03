@@ -181,18 +181,6 @@ export interface PointTransaction {
   created_at: string;
 }
 
-export interface PointsStoreProductImage {
-  id: string;
-  product_id: string;
-  image_url: string;
-  position_x: number;
-  position_y: number;
-  display_order: number;
-  is_primary: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface PointsStoreProduct {
   id: string;
   name: string;
@@ -201,7 +189,6 @@ export interface PointsStoreProduct {
   points_cost: number;
   stock: number;
   is_active: boolean;
-  images?: PointsStoreProductImage[];
   created_at: string;
   updated_at: string;
 }

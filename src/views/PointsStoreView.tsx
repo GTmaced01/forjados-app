@@ -1,35 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Eye, Gift, RefreshCw, ShoppingBag, X } from 'lucide-react';
+import { Gift, RefreshCw, ShoppingBag } from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
 import {
   formatRedemptionStatus,
-  getPrimaryProductImage,
-  getProductImages,
   listActivePointsProducts,
   listMyPointsRedemptions,
   redeemPointsProduct,
 } from '../services/pointsStore';
 import { withTimeout } from '../services/safeAsync';
-import type { PointsRedemption, PointsStoreProduct, PointsStoreProductImage } from '../types';
-
-function normalizePosition(value: number | null | undefined) {
-  if (typeof value !== 'number' || Number.isNaN(value)) return 50;
-  return Math.min(100, Math.max(0, Math.round(value)));
-}
-
-function imageStyle(image?: Pick<PointsStoreProductImage, 'position_x' | 'position_y'> | null) {
-  return {
-    objectPosition: `${normalizePosition(image?.position_x)}% ${normalizePosition(image?.position_y)}%`,
-  };
-}
+import type { PointsRedemption, PointsStoreProduct } from '../types';
 
 export function PointsStoreView() {
   const { profile, reloadProfile } = useAuth();
 
   const [products, setProducts] = useState<PointsStoreProduct[]>([]);
   const [redemptions, setRedemptions] = useState<PointsRedemption[]>([]);
-  const [selectedImageByProduct, setSelectedImageByProduct] = useState<Record<string, number>>({});
-  const [lightbox, setLightbox] = useState<{ product: PointsStoreProduct; index: number } | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
@@ -68,25 +53,6 @@ export function PointsStoreView() {
   const availableProducts = useMemo(() => {
     return products.filter((product) => product.stock > 0);
   }, [products]);
-
-  const lightboxImages = lightbox ? getProductImages(lightbox.product) : [];
-  const lightboxImage = lightboxImages[lightbox?.index || 0];
-
-  function selectProductImage(productId: string, index: number) {
-    setSelectedImageByProduct((current) => ({ ...current, [productId]: index }));
-  }
-
-  function openLightbox(product: PointsStoreProduct, index: number) {
-    if (getProductImages(product).length === 0) return;
-    setLightbox({ product, index });
-  }
-
-  function navigateLightbox(direction: 'prev' | 'next') {
-    if (!lightbox || lightboxImages.length === 0) return;
-    const delta = direction === 'next' ? 1 : -1;
-    const nextIndex = (lightbox.index + delta + lightboxImages.length) % lightboxImages.length;
-    setLightbox({ ...lightbox, index: nextIndex });
-  }
 
   async function handleRedeem(product: PointsStoreProduct) {
     const confirmed = window.confirm(
@@ -138,7 +104,7 @@ export function PointsStoreView() {
           <p className="eyebrow">Honra disponível</p>
           <h3>{profile.points} pts</h3>
           <p className="muted">
-            Escolha uma recompensa, veja as fotos ampliadas e acompanhe seus resgates.
+            Escolha uma recompensa e acompanhe seus resgates.
           </p>
         </div>
 
@@ -157,41 +123,16 @@ export function PointsStoreView() {
             {availableProducts.map((product) => {
               const canRedeem = profile.points >= product.points_cost;
               const isRedeeming = redeemingId === product.id;
-              const productImages = getProductImages(product);
-              const selectedIndex = selectedImageByProduct[product.id] || 0;
-              const selectedImage = productImages[selectedIndex] || getPrimaryProductImage(product);
 
               return (
                 <div className="points-product-card" key={product.id}>
-                  <button
-                    className="points-product-image image-open-button"
-                    type="button"
-                    onClick={() => openLightbox(product, selectedIndex)}
-                    aria-label={`Ampliar foto de ${product.name}`}
-                  >
-                    {selectedImage ? (
-                      <img src={selectedImage.image_url} alt={product.name} loading="lazy" decoding="async" style={imageStyle(selectedImage)} />
+                  <div className="points-product-image">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt={product.name} loading="lazy" decoding="async" />
                     ) : (
                       <Gift size={42} />
                     )}
-                    {selectedImage && <span className="open-photo-badge"><Eye size={14} /> Ver foto</span>}
-                  </button>
-
-                  {productImages.length > 1 && (
-                    <div className="product-gallery-thumbs" aria-label={`Fotos de ${product.name}`}>
-                      {productImages.map((image, index) => (
-                        <button
-                          className={`gallery-thumb ${index === selectedIndex ? 'selected' : ''}`}
-                          type="button"
-                          key={image.id}
-                          onClick={() => selectProductImage(product.id, index)}
-                          aria-label={`Ver foto ${index + 1} de ${product.name}`}
-                        >
-                          <img src={image.image_url} alt="" loading="lazy" decoding="async" style={imageStyle(image)} />
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  </div>
 
                   <div className="points-product-info">
                     <h4>{product.name}</h4>
@@ -249,35 +190,6 @@ export function PointsStoreView() {
           </div>
         )}
       </section>
-
-      {lightbox && lightboxImage && (
-        <div className="product-lightbox" role="dialog" aria-modal="true" aria-label={`Foto ampliada de ${lightbox.product.name}`} onClick={() => setLightbox(null)}>
-          <div className="product-lightbox-content" onClick={(event) => event.stopPropagation()}>
-            <button className="lightbox-close-button" type="button" onClick={() => setLightbox(null)} aria-label="Fechar visualização">
-              <X size={22} />
-            </button>
-
-            {lightboxImages.length > 1 && (
-              <button className="lightbox-nav prev" type="button" onClick={() => navigateLightbox('prev')} aria-label="Foto anterior">
-                <ChevronLeft size={28} />
-              </button>
-            )}
-
-            <img src={lightboxImage.image_url} alt={lightbox.product.name} style={imageStyle(lightboxImage)} />
-
-            {lightboxImages.length > 1 && (
-              <button className="lightbox-nav next" type="button" onClick={() => navigateLightbox('next')} aria-label="Próxima foto">
-                <ChevronRight size={28} />
-              </button>
-            )}
-
-            <div className="product-lightbox-caption">
-              <strong>{lightbox.product.name}</strong>
-              <span>{lightbox.index + 1} de {lightboxImages.length}</span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

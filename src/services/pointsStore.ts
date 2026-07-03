@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { withTimeout } from './safeAsync';
-import type { PointsRedemption, PointsStoreProduct, PointsStoreProductImage } from '../types';
+import type { PointsRedemption, PointsStoreProduct } from '../types';
 
 const TIMEOUT = 10000;
 
@@ -20,132 +20,12 @@ function throwFriendlyError(error: unknown, fallback: string): never {
   throw new Error(fallback);
 }
 
-const productSelect = `
-  *,
-  images:points_store_product_images(*)
-`;
-
-type ProductImagePayload = {
-  image_url: string;
-  position_x: number;
-  position_y: number;
-  display_order: number;
-  is_primary: boolean;
-};
-
-function normalizePosition(value: number | null | undefined, fallback = 50) {
-  if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
-  return Math.min(100, Math.max(0, Math.round(value)));
-}
-
-function normalizeProduct(product: PointsStoreProduct): PointsStoreProduct {
-  const rawImages = Array.isArray(product.images) ? product.images : [];
-  const images = rawImages
-    .filter((image) => Boolean(image.image_url))
-    .map((image, index) => ({
-      ...image,
-      position_x: normalizePosition(image.position_x),
-      position_y: normalizePosition(image.position_y),
-      display_order: Number.isFinite(image.display_order) ? image.display_order : index,
-      is_primary: Boolean(image.is_primary),
-    }))
-    .sort((a, b) => {
-      if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
-      return a.display_order - b.display_order;
-    });
-
-  if (images.length === 0 && product.image_url) {
-    images.push({
-      id: `${product.id}-legacy-image`,
-      product_id: product.id,
-      image_url: product.image_url,
-      position_x: 50,
-      position_y: 50,
-      display_order: 0,
-      is_primary: true,
-      created_at: product.created_at,
-      updated_at: product.updated_at,
-    });
-  }
-
-  return {
-    ...product,
-    image_url: images[0]?.image_url || product.image_url || '',
-    images,
-  };
-}
-
-function normalizeProducts(products: PointsStoreProduct[]) {
-  return products.map(normalizeProduct);
-}
-
-function normalizeImagesPayload(images: ProductImagePayload[]) {
-  const cleanImages = images
-    .filter((image) => image.image_url.trim())
-    .map((image, index) => ({
-      image_url: image.image_url.trim(),
-      position_x: normalizePosition(image.position_x),
-      position_y: normalizePosition(image.position_y),
-      display_order: index,
-      is_primary: Boolean(image.is_primary),
-    }));
-
-  if (cleanImages.length > 0 && !cleanImages.some((image) => image.is_primary)) {
-    cleanImages[0].is_primary = true;
-  }
-
-  if (cleanImages.length > 0) {
-    const primaryIndex = cleanImages.findIndex((image) => image.is_primary);
-    cleanImages.forEach((image, index) => {
-      image.is_primary = index === primaryIndex;
-    });
-  }
-
-  return cleanImages;
-}
-
-async function replaceProductImages(productId: string, images: ProductImagePayload[]) {
-  const cleanImages = normalizeImagesPayload(images);
-
-  const { error: deleteError } = await safeRequest(
-    supabase
-      .from('points_store_product_images')
-      .delete()
-      .eq('product_id', productId),
-    'Não foi possível atualizar as fotos do produto.'
-  );
-
-  if (deleteError) throw deleteError;
-
-  if (cleanImages.length === 0) return;
-
-  const { error: insertError } = await safeRequest(
-    supabase.from('points_store_product_images').insert(
-      cleanImages.map((image) => ({
-        product_id: productId,
-        ...image,
-      }))
-    ),
-    'Não foi possível salvar as fotos do produto.'
-  );
-
-  if (insertError) throw insertError;
-}
-
-export function getProductImages(product: PointsStoreProduct): PointsStoreProductImage[] {
-  return normalizeProduct(product).images || [];
-}
-
-export function getPrimaryProductImage(product: PointsStoreProduct): PointsStoreProductImage | null {
-  return getProductImages(product)[0] || null;
-}
-
 export async function listActivePointsProducts(): Promise<PointsStoreProduct[]> {
   try {
     const { data, error } = await safeRequest(
       supabase
         .from('points_store_products')
-        .select(productSelect)
+        .select('*')
         .eq('is_active', true)
         .order('points_cost', { ascending: true }),
       'Não foi possível carregar os produtos da loja de pontos.'
@@ -153,7 +33,7 @@ export async function listActivePointsProducts(): Promise<PointsStoreProduct[]> 
 
     if (error) throw error;
 
-    return normalizeProducts((data || []) as PointsStoreProduct[]);
+    return (data || []) as PointsStoreProduct[];
   } catch (error) {
     throwFriendlyError(error, 'Erro ao carregar produtos disponíveis.');
   }
@@ -164,14 +44,14 @@ export async function listAllPointsProducts(): Promise<PointsStoreProduct[]> {
     const { data, error } = await safeRequest(
       supabase
         .from('points_store_products')
-        .select(productSelect)
+        .select('*')
         .order('created_at', { ascending: false }),
       'Não foi possível carregar todos os produtos da loja de pontos.'
     );
 
     if (error) throw error;
 
-    return normalizeProducts((data || []) as PointsStoreProduct[]);
+    return (data || []) as PointsStoreProduct[];
   } catch (error) {
     throwFriendlyError(error, 'Erro ao carregar produtos da loja.');
   }
@@ -184,34 +64,21 @@ export async function createPointsProduct(params: {
   points_cost: number;
   stock: number;
   is_active: boolean;
-  images?: ProductImagePayload[];
 }) {
   try {
-    const cleanImages = normalizeImagesPayload(params.images || []);
-    const legacyImageUrl = cleanImages[0]?.image_url || params.image_url || '';
-
-    const { data, error } = await safeRequest(
-      supabase
-        .from('points_store_products')
-        .insert({
-          name: params.name,
-          description: params.description,
-          image_url: legacyImageUrl,
-          points_cost: params.points_cost,
-          stock: params.stock,
-          is_active: params.is_active,
-        })
-        .select('id')
-        .single(),
+    const { error } = await safeRequest(
+      supabase.from('points_store_products').insert({
+        name: params.name,
+        description: params.description,
+        image_url: params.image_url,
+        points_cost: params.points_cost,
+        stock: params.stock,
+        is_active: params.is_active,
+      }),
       'Não foi possível cadastrar o produto.'
     );
 
     if (error) throw error;
-    const productId = data?.id;
-    if (!productId) throw new Error('Produto cadastrado, mas não foi possível identificar o ID para salvar as fotos.');
-
-    await replaceProductImages(productId, cleanImages);
-    return productId;
   } catch (error) {
     throwFriendlyError(error, 'Erro ao cadastrar produto.');
   }
@@ -225,19 +92,15 @@ export async function updatePointsProduct(params: {
   points_cost: number;
   stock: number;
   is_active: boolean;
-  images?: ProductImagePayload[];
 }) {
   try {
-    const cleanImages = normalizeImagesPayload(params.images || []);
-    const legacyImageUrl = cleanImages[0]?.image_url || params.image_url || '';
-
     const { error } = await safeRequest(
       supabase
         .from('points_store_products')
         .update({
           name: params.name,
           description: params.description,
-          image_url: legacyImageUrl,
+          image_url: params.image_url,
           points_cost: params.points_cost,
           stock: params.stock,
           is_active: params.is_active,
@@ -248,7 +111,6 @@ export async function updatePointsProduct(params: {
     );
 
     if (error) throw error;
-    await replaceProductImages(params.id, cleanImages);
   } catch (error) {
     throwFriendlyError(error, 'Erro ao atualizar produto.');
   }
