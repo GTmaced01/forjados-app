@@ -20,7 +20,11 @@ function sanitizeFileName(name: string) {
     .replace(/^-|-$/g, '')
     .toLowerCase();
 
-  return `${base || 'arquivo'}-${Date.now()}.${extension}`;
+  const randomPart = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID().slice(0, 8)
+    : Math.random().toString(36).slice(2, 10);
+
+  return `${base || 'arquivo'}-${Date.now()}-${randomPart}.${extension}`;
 }
 
 export async function uploadPublicImage(params: {
