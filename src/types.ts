@@ -86,6 +86,18 @@ export type ShirtOrderStatus =
   | 'delivered'
   | 'cancelled';
 
+export interface ShirtImage {
+  id: string;
+  shirt_id: string;
+  image_url: string;
+  position_x: number;
+  position_y: number;
+  display_order: number;
+  is_primary: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Shirt {
   id: string;
   name: string;
@@ -94,6 +106,7 @@ export interface Shirt {
   image_url?: string;
   stock: Record<string, number>;
   is_active: boolean;
+  images?: ShirtImage[];
   created_at: string;
   updated_at: string;
 }

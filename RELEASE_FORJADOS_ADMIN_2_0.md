@@ -66,3 +66,37 @@ npm audit --audit-level=low
 ```
 
 Resultado: aprovado.
+
+---
+
+# FORJADOS ADMIN 2.0 — Loja de Camisas 2.0
+
+## Implementado nesta atualização
+
+- Menu renomeado de **Gerenciar Camisas** para **Gerenciar Loja de Camisas**.
+- Cadastro de camisa com várias fotos.
+- Upload múltiplo de imagens no mesmo cadastro.
+- Inclusão opcional de imagem por URL.
+- Definição da foto principal da camisa.
+- Ajuste de enquadramento horizontal e vertical por imagem.
+- Lista administrativa exibindo quantidade de fotos cadastradas.
+- Loja de Camisas do participante com miniaturas por camisa.
+- Clique na foto para visualização ampliada.
+- Modal com navegação entre fotos.
+- Compatibilidade com camisas antigas que usavam apenas `image_url`.
+
+## SQL necessário
+
+Rode no Supabase:
+
+```txt
+supabase/loja-camisas-2-0-shirt-images.sql
+```
+
+ou a migration equivalente:
+
+```txt
+supabase/migrations/20260703_loja_camisas_2_0_shirt_images.sql
+```
+
+Não rode os dois, pois são cópias do mesmo conteúdo.

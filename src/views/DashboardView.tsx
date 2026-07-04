@@ -705,7 +705,7 @@ export function DashboardView() {
         visible: canManagePoints,
       },
       {
-        label: "Gerenciar Camisas",
+        label: "Gerenciar Loja de Camisas",
         tab: "manage-shirts",
         visible: canManageShirts,
       },
@@ -961,7 +961,7 @@ export function DashboardView() {
                   className={tab === "manage-shirts" ? "active" : ""}
                   onClick={() => selectTab("manage-shirts")}
                 >
-                  Gerenciar Camisas
+                  Gerenciar Loja de Camisas
                 </button>
               )}
               {canManagePointsStore && (

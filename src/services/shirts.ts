@@ -1,16 +1,150 @@
 import { supabase } from './supabase';
-import type { CartItem, Shirt, ShirtOrder, ShirtOrderItem } from '../types';
+import { withTimeout } from './safeAsync';
+import type { CartItem, Shirt, ShirtImage, ShirtOrder, ShirtOrderItem } from '../types';
+
+const TIMEOUT = 10000;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function safeRequest<T = any>(
+  request: PromiseLike<T>,
+  errorMessage: string
+): Promise<T> {
+  return withTimeout(Promise.resolve(request), TIMEOUT, errorMessage);
+}
+
+const shirtSelect = `
+  *,
+  images:shirt_images(*)
+`;
+
+type ShirtImagePayload = {
+  image_url: string;
+  position_x: number;
+  position_y: number;
+  display_order: number;
+  is_primary: boolean;
+};
+
+function normalizePosition(value: number | null | undefined, fallback = 50) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
+function normalizeShirt(shirt: Shirt): Shirt {
+  const rawImages = Array.isArray(shirt.images) ? shirt.images : [];
+  const images = rawImages
+    .filter((image) => Boolean(image.image_url))
+    .map((image, index) => ({
+      ...image,
+      position_x: normalizePosition(image.position_x),
+      position_y: normalizePosition(image.position_y),
+      display_order: Number.isFinite(image.display_order) ? image.display_order : index,
+      is_primary: Boolean(image.is_primary),
+    }))
+    .sort((a, b) => {
+      if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
+      return a.display_order - b.display_order;
+    });
+
+  if (images.length === 0 && shirt.image_url) {
+    images.push({
+      id: `${shirt.id}-legacy-image`,
+      shirt_id: shirt.id,
+      image_url: shirt.image_url,
+      position_x: 50,
+      position_y: 50,
+      display_order: 0,
+      is_primary: true,
+      created_at: shirt.created_at,
+      updated_at: shirt.updated_at,
+    });
+  }
+
+  return {
+    ...shirt,
+    image_url: images[0]?.image_url || shirt.image_url || '',
+    images,
+  };
+}
+
+function normalizeShirts(shirts: Shirt[]) {
+  return shirts.map(normalizeShirt);
+}
+
+function normalizeImagesPayload(images: ShirtImagePayload[]) {
+  const cleanImages = images
+    .filter((image) => image.image_url.trim())
+    .map((image, index) => ({
+      image_url: image.image_url.trim(),
+      position_x: normalizePosition(image.position_x),
+      position_y: normalizePosition(image.position_y),
+      display_order: index,
+      is_primary: Boolean(image.is_primary),
+    }));
+
+  if (cleanImages.length > 0 && !cleanImages.some((image) => image.is_primary)) {
+    cleanImages[0].is_primary = true;
+  }
+
+  if (cleanImages.length > 0) {
+    const primaryIndex = cleanImages.findIndex((image) => image.is_primary);
+    cleanImages.forEach((image, index) => {
+      image.is_primary = index === primaryIndex;
+    });
+  }
+
+  return cleanImages;
+}
+
+async function replaceShirtImages(shirtId: string, images: ShirtImagePayload[]) {
+  const cleanImages = normalizeImagesPayload(images);
+
+  const { error: deleteError } = await safeRequest(
+    supabase
+      .from('shirt_images')
+      .delete()
+      .eq('shirt_id', shirtId),
+    'Não foi possível atualizar as fotos da camisa.'
+  );
+
+  if (deleteError) throw deleteError;
+
+  if (cleanImages.length === 0) return;
+
+  const { error: insertError } = await safeRequest(
+    supabase.from('shirt_images').insert(
+      cleanImages.map((image) => ({
+        shirt_id: shirtId,
+        ...image,
+      }))
+    ),
+    'Não foi possível salvar as fotos da camisa.'
+  );
+
+  if (insertError) throw insertError;
+}
+
+export function getShirtImages(shirt: Shirt): ShirtImage[] {
+  return normalizeShirt(shirt).images || [];
+}
+
+export function getPrimaryShirtImage(shirt: Shirt): ShirtImage | null {
+  return getShirtImages(shirt)[0] || null;
+}
 
 export async function listActiveShirts(): Promise<Shirt[]> {
-  const { data, error } = await supabase
-    .from('shirts')
-    .select('*')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
+  const { data, error } = await safeRequest(
+    supabase
+      .from('shirts')
+      .select(shirtSelect)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false }),
+    'Não foi possível carregar as camisas.'
+  );
 
   if (error) throw error;
 
-  return (data || []) as Shirt[];
+  return normalizeShirts((data || []) as Shirt[]);
 }
 
 export async function createShirtOrder(cart: CartItem[]): Promise<string> {
@@ -155,14 +289,17 @@ export async function uploadShirtOrderReceipt(params: {
 }
 
 export async function listAllShirts(): Promise<Shirt[]> {
-  const { data, error } = await supabase
-    .from('shirts')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { data, error } = await safeRequest(
+    supabase
+      .from('shirts')
+      .select(shirtSelect)
+      .order('created_at', { ascending: false }),
+    'Não foi possível carregar todas as camisas.'
+  );
 
   if (error) throw error;
 
-  return (data || []) as Shirt[];
+  return normalizeShirts((data || []) as Shirt[]);
 }
 
 export async function createShirt(params: {
@@ -172,17 +309,33 @@ export async function createShirt(params: {
   image_url: string;
   stock: Record<string, number>;
   is_active: boolean;
+  images?: ShirtImagePayload[];
 }) {
-  const { error } = await supabase.from('shirts').insert({
-    name: params.name,
-    description: params.description,
-    price: params.price,
-    image_url: params.image_url,
-    stock: params.stock,
-    is_active: params.is_active,
-  });
+  const cleanImages = normalizeImagesPayload(params.images || []);
+  const legacyImageUrl = cleanImages[0]?.image_url || params.image_url || '';
+
+  const { data, error } = await safeRequest(
+    supabase
+      .from('shirts')
+      .insert({
+        name: params.name,
+        description: params.description,
+        price: params.price,
+        image_url: legacyImageUrl,
+        stock: params.stock,
+        is_active: params.is_active,
+      })
+      .select('id')
+      .single(),
+    'Não foi possível cadastrar a camisa.'
+  );
 
   if (error) throw error;
+  const shirtId = data?.id;
+  if (!shirtId) throw new Error('Camisa cadastrada, mas não foi possível identificar o ID para salvar as fotos.');
+
+  await replaceShirtImages(shirtId, cleanImages);
+  return shirtId;
 }
 
 export async function updateShirt(params: {
@@ -193,21 +346,29 @@ export async function updateShirt(params: {
   image_url: string;
   stock: Record<string, number>;
   is_active: boolean;
+  images?: ShirtImagePayload[];
 }) {
-  const { error } = await supabase
-    .from('shirts')
-    .update({
-      name: params.name,
-      description: params.description,
-      price: params.price,
-      image_url: params.image_url,
-      stock: params.stock,
-      is_active: params.is_active,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', params.id);
+  const cleanImages = normalizeImagesPayload(params.images || []);
+  const legacyImageUrl = cleanImages[0]?.image_url || params.image_url || '';
+
+  const { error } = await safeRequest(
+    supabase
+      .from('shirts')
+      .update({
+        name: params.name,
+        description: params.description,
+        price: params.price,
+        image_url: legacyImageUrl,
+        stock: params.stock,
+        is_active: params.is_active,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', params.id),
+    'Não foi possível atualizar a camisa.'
+  );
 
   if (error) throw error;
+  await replaceShirtImages(params.id, cleanImages);
 }
 
 export async function listAllShirtOrders(): Promise<
@@ -237,6 +398,7 @@ export async function updateShirtOrderStatus(params: {
 
   if (error) throw error;
 }
+
 export async function deleteShirt(shirtId: string) {
   const { error } = await supabase.from('shirts').delete().eq('id', shirtId);
 

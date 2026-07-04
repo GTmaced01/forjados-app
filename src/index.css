@@ -5440,3 +5440,18 @@ textarea:focus {
     align-items: flex-start;
   }
 }
+
+/* =========================
+   LOJA DE CAMISAS 2.0 - AJUSTES DE GALERIA
+========================= */
+.manage-shirt-image {
+  position: relative;
+}
+
+.shirt-image.image-open-button {
+  border-radius: 0;
+}
+
+.shirt-image.image-open-button img {
+  object-fit: cover;
+}

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Edit, ImagePlus, Plus, Search, Trash2, XCircle } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { CheckCircle, Edit, ImagePlus, Plus, Search, Star, Trash2, X, XCircle } from 'lucide-react';
 import { SHIRT_SIZES } from '../constants';
 import {
   createShirt,
   deleteShirt,
   formatOrderStatus,
+  getPrimaryShirtImage,
   listAllShirtOrders,
   listAllShirts,
   updateShirt,
@@ -24,6 +25,16 @@ type EditingShirt = {
   is_active: boolean;
 };
 
+type ShirtImageDraft = {
+  localId: string;
+  url: string;
+  file?: File;
+  previewUrl?: string;
+  position_x: number;
+  position_y: number;
+  is_primary: boolean;
+};
+
 const emptyForm: EditingShirt = {
   name: '',
   description: '',
@@ -41,13 +52,29 @@ const emptyForm: EditingShirt = {
   is_active: true,
 };
 
+function createLocalId() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function normalizePosition(value: number) {
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
+function shirtImageStyle(image?: { position_x?: number; position_y?: number }) {
+  return {
+    objectPosition: `${normalizePosition(image?.position_x ?? 50)}% ${normalizePosition(image?.position_y ?? 50)}%`,
+  };
+}
+
 export function ManageShirtsView() {
   const [shirts, setShirts] = useState<Shirt[]>([]);
   const [orders, setOrders] = useState<Array<ShirtOrder & { items?: ShirtOrderItem[] }>>([]);
 
   const [form, setForm] = useState<EditingShirt>(emptyForm);
+  const [shirtImages, setShirtImages] = useState<ShirtImageDraft[]>([]);
+  const [imageUrlInput, setImageUrlInput] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [savingShirt, setSavingShirt] = useState(false);
@@ -59,6 +86,8 @@ export function ManageShirtsView() {
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const shirtImagesRef = useRef<ShirtImageDraft[]>([]);
 
   async function loadData() {
     setLoading(true);
@@ -88,6 +117,18 @@ export function ManageShirtsView() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    shirtImagesRef.current = shirtImages;
+  }, [shirtImages]);
+
+  useEffect(() => {
+    return () => {
+      shirtImagesRef.current.forEach((image) => {
+        if (image.previewUrl) URL.revokeObjectURL(image.previewUrl);
+      });
+    };
+  }, []);
+
   const filteredShirts = useMemo(() => {
     return shirts.filter((shirt) => {
       const text = `${shirt.name} ${shirt.description || ''}`.toLowerCase();
@@ -109,18 +150,34 @@ export function ManageShirtsView() {
     });
   }, [orders, searchOrder, orderStatusFilter]);
 
+  function clearDraftImages(images = shirtImages) {
+    images.forEach((image) => {
+      if (image.previewUrl) URL.revokeObjectURL(image.previewUrl);
+    });
+  }
+
   function resetForm() {
+    clearDraftImages();
     setForm(emptyForm);
+    setShirtImages([]);
+    setImageUrlInput('');
     setEditingId(null);
-    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   function startEdit(shirt: Shirt) {
+    clearDraftImages();
     const stockAsString: Record<string, string> = {};
 
     SHIRT_SIZES.forEach((size) => {
       stockAsString[size] = String(shirt.stock?.[size] ?? 0);
     });
+
+    const images = shirt.images && shirt.images.length > 0
+      ? shirt.images
+      : shirt.image_url
+      ? [{ image_url: shirt.image_url, position_x: 50, position_y: 50, is_primary: true }]
+      : [];
 
     setForm({
       id: shirt.id,
@@ -132,12 +189,129 @@ export function ManageShirtsView() {
       is_active: shirt.is_active,
     });
 
+    setShirtImages(images.map((image, index) => ({
+      localId: 'id' in image ? image.id : createLocalId(),
+      url: image.image_url,
+      position_x: normalizePosition(image.position_x ?? 50),
+      position_y: normalizePosition(image.position_y ?? 50),
+      is_primary: Boolean(image.is_primary) || index === 0,
+    })));
+    setImageUrlInput('');
     setEditingId(shirt.id);
-    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  async function handleSubmitShirt(e: React.FormEvent) {
+  function appendFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+
+    const newImages = Array.from(files)
+      .filter((file) => file.type.startsWith('image/'))
+      .map((file) => ({
+        localId: createLocalId(),
+        url: '',
+        file,
+        previewUrl: URL.createObjectURL(file),
+        position_x: 50,
+        position_y: 50,
+        is_primary: false,
+      }));
+
+    if (newImages.length === 0) {
+      setError('Selecione apenas arquivos de imagem válidos.');
+      return;
+    }
+
+    setShirtImages((current) => {
+      const next = [...current, ...newImages];
+      if (!next.some((image) => image.is_primary) && next.length > 0) {
+        next[0] = { ...next[0], is_primary: true };
+      }
+      return next;
+    });
+  }
+
+  function addImageByUrl() {
+    const url = imageUrlInput.trim();
+    if (!url) return;
+
+    setShirtImages((current) => ([
+      ...current,
+      {
+        localId: createLocalId(),
+        url,
+        position_x: 50,
+        position_y: 50,
+        is_primary: current.length === 0,
+      },
+    ]));
+    setImageUrlInput('');
+  }
+
+  function removeImage(localId: string) {
+    setShirtImages((current) => {
+      const removed = current.find((image) => image.localId === localId);
+      if (removed?.previewUrl) URL.revokeObjectURL(removed.previewUrl);
+
+      const next = current.filter((image) => image.localId !== localId);
+      if (next.length > 0 && !next.some((image) => image.is_primary)) {
+        next[0] = { ...next[0], is_primary: true };
+      }
+      return next;
+    });
+  }
+
+  function setPrimaryImage(localId: string) {
+    setShirtImages((current) => current.map((image) => ({
+      ...image,
+      is_primary: image.localId === localId,
+    })));
+  }
+
+  function updateImagePosition(localId: string, axis: 'x' | 'y', value: number) {
+    setShirtImages((current) => current.map((image) => {
+      if (image.localId !== localId) return image;
+      return {
+        ...image,
+        position_x: axis === 'x' ? normalizePosition(value) : image.position_x,
+        position_y: axis === 'y' ? normalizePosition(value) : image.position_y,
+      };
+    }));
+  }
+
+  async function resolveImagesForSave() {
+    const uploadedImages = [];
+
+    for (const [index, image] of shirtImages.entries()) {
+      let imageUrl = image.url;
+
+      if (image.file) {
+        imageUrl = await uploadPublicImage({
+          bucket: STORAGE_BUCKETS.shirts,
+          folder: 'camisas',
+          file: image.file,
+        });
+      }
+
+      if (imageUrl.trim()) {
+        uploadedImages.push({
+          image_url: imageUrl.trim(),
+          position_x: image.position_x,
+          position_y: image.position_y,
+          display_order: index,
+          is_primary: image.is_primary,
+        });
+      }
+    }
+
+    if (uploadedImages.length > 0 && !uploadedImages.some((image) => image.is_primary)) {
+      uploadedImages[0].is_primary = true;
+    }
+
+    return uploadedImages;
+  }
+
+  async function handleSubmitShirt(e: FormEvent) {
     e.preventDefault();
 
     setSavingShirt(true);
@@ -161,39 +335,34 @@ export function ManageShirtsView() {
         stock[size] = Number(form.stock[size] || 0);
       });
 
-      let imageUrl = form.image_url;
-
-      if (selectedFile) {
-        imageUrl = await uploadPublicImage({
-          bucket: STORAGE_BUCKETS.shirts,
-          folder: 'camisas',
-          file: selectedFile,
-        });
-      }
+      const images = await resolveImagesForSave();
+      const legacyImageUrl = images[0]?.image_url || '';
 
       if (editingId) {
         await updateShirt({
           id: editingId,
-          name: form.name,
-          description: form.description,
+          name: form.name.trim(),
+          description: form.description.trim(),
           price,
-          image_url: imageUrl,
+          image_url: legacyImageUrl,
           stock,
           is_active: form.is_active,
+          images,
         });
 
-        setSuccess('Camisa atualizada com sucesso.');
+        setSuccess('Camisa atualizada com fotos e enquadramento.');
       } else {
         await createShirt({
-          name: form.name,
-          description: form.description,
+          name: form.name.trim(),
+          description: form.description.trim(),
           price,
-          image_url: imageUrl,
+          image_url: legacyImageUrl,
           stock,
           is_active: form.is_active,
+          images,
         });
 
-        setSuccess('Camisa cadastrada com sucesso.');
+        setSuccess('Camisa cadastrada com múltiplas fotos.');
       }
 
       resetForm();
@@ -252,10 +421,10 @@ export function ManageShirtsView() {
     <div className="manage-shirts-page">
       <div className="admin-header">
         <div>
-          <p className="eyebrow">Fardas de um Forjado</p>
-          <h2>Gerenciar Fardas</h2>
+          <p className="eyebrow">Loja de Camisas 2.0</p>
+          <h2>Gerenciar Loja de Camisas</h2>
           <p className="muted">
-            Cadastre camisas, edite estoque e acompanhe pedidos.
+            Cadastre camisas com várias fotos, ajuste o enquadramento, edite estoque e acompanhe pedidos.
           </p>
         </div>
 
@@ -272,9 +441,9 @@ export function ManageShirtsView() {
           <section className="panel wide manage-shirt-form-panel">
             <div className="form-title-row">
               <div>
-                <h3>{editingId ? 'Editar farda' : 'Cadastrar farda'}</h3>
+                <h3>{editingId ? 'Editar camisa' : 'Cadastrar camisa'}</h3>
                 <p className="muted">
-                  Use URL de imagem por enquanto. Depois adicionaremos upload direto.
+                  Selecione uma ou várias fotos e ajuste a posição de cada imagem antes de salvar.
                 </p>
               </div>
 
@@ -315,24 +484,64 @@ export function ManageShirtsView() {
                 />
               </div>
 
-              <div>
-                <label>Imagem da camisa</label>
-                <div className="file-upload-box">
+              <div className="product-photo-uploader">
+                <label>Fotos da camisa</label>
+                <div className="file-upload-box product-photo-upload-box">
                   <input
+                    ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    multiple
+                    onChange={(e) => appendFiles(e.target.files)}
                   />
                   <ImagePlus size={18} />
-                  <span>
-                    {selectedFile
-                      ? selectedFile.name
-                      : form.image_url
-                      ? 'Imagem atual mantida'
-                      : 'Selecionar imagem'}
-                  </span>
+                  <span>Selecionar uma ou várias fotos</span>
+                </div>
+                <div className="product-url-row">
+                  <input
+                    value={imageUrlInput}
+                    placeholder="Ou cole uma URL de imagem"
+                    onChange={(e) => setImageUrlInput(e.target.value)}
+                  />
+                  <button className="secondary-button" type="button" onClick={addImageByUrl}>Adicionar URL</button>
                 </div>
               </div>
+
+              {shirtImages.length > 0 && (
+                <div className="product-photo-editor-grid">
+                  {shirtImages.map((image, index) => {
+                    const src = image.previewUrl || image.url;
+                    return (
+                      <div className="product-photo-editor-card" key={image.localId}>
+                        <div className="product-photo-preview">
+                          {src ? <img src={src} alt={`Prévia ${index + 1}`} style={shirtImageStyle(image)} /> : <ImagePlus size={32} />}
+                          {image.is_primary && <span className="primary-photo-badge"><Star size={12} /> Principal</span>}
+                        </div>
+
+                        <div className="photo-editor-actions">
+                          <button type="button" className="secondary-button" onClick={() => setPrimaryImage(image.localId)} disabled={image.is_primary}>
+                            <Star size={14} />Principal
+                          </button>
+                          <button type="button" className="reject-button" onClick={() => removeImage(image.localId)}>
+                            <X size={14} />Remover
+                          </button>
+                        </div>
+
+                        <div className="photo-position-controls">
+                          <label>
+                            Horizontal: {image.position_x}%
+                            <input type="range" min="0" max="100" value={image.position_x} onChange={(e) => updateImagePosition(image.localId, 'x', Number(e.target.value))} />
+                          </label>
+                          <label>
+                            Vertical: {image.position_y}%
+                            <input type="range" min="0" max="100" value={image.position_y} onChange={(e) => updateImagePosition(image.localId, 'y', Number(e.target.value))} />
+                          </label>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               <div>
                 <label>Estoque por tamanho</label>
@@ -374,7 +583,7 @@ export function ManageShirtsView() {
                   ? 'Salvando...'
                   : editingId
                   ? 'Salvar alterações'
-                  : 'Cadastrar farda'}
+                  : 'Cadastrar camisa'}
               </button>
             </form>
           </section>
@@ -382,8 +591,8 @@ export function ManageShirtsView() {
           <section className="panel wide">
             <div className="section-header">
               <div>
-                <h3>Fardas cadastradas</h3>
-                <p className="muted">Edite modelos, preço, imagem e estoque das camisas.</p>
+                <h3>Camisas cadastradas</h3>
+                <p className="muted">Edite modelos, preço, fotos, enquadramento e estoque das camisas.</p>
               </div>
 
               <div className="search-box small-search">
@@ -397,62 +606,67 @@ export function ManageShirtsView() {
             </div>
 
             {loading ? (
-              <p className="muted">Carregando fardas...</p>
+              <p className="muted">Carregando camisas...</p>
             ) : filteredShirts.length === 0 ? (
-              <p className="muted">Nenhuma farda encontrada.</p>
+              <p className="muted">Nenhuma camisa encontrada.</p>
             ) : (
               <div className="manage-shirt-list">
-                {filteredShirts.map((shirt) => (
-                  <div className="manage-shirt-card" key={shirt.id}>
-                    <div className="manage-shirt-image">
-                      {shirt.image_url ? (
-                        <img src={shirt.image_url} alt={shirt.name} loading="lazy" decoding="async" />
-                      ) : (
-                        <span>FORJADOS</span>
-                      )}
-                    </div>
-
-                    <div>
-                      <h4>{shirt.name}</h4>
-                      <p className="muted">{shirt.description || 'Sem descrição.'}</p>
-                      <strong>
-                        R$ {Number(shirt.price).toFixed(2).replace('.', ',')}
-                      </strong>
-
-                      <div className="mini-stock">
-                        {SHIRT_SIZES.map((size) => (
-                          <span key={size}>
-                            {size}: {shirt.stock?.[size] ?? 0}
-                          </span>
-                        ))}
+                {filteredShirts.map((shirt) => {
+                  const primaryImage = getPrimaryShirtImage(shirt);
+                  const imageCount = shirt.images?.length || 0;
+                  return (
+                    <div className="manage-shirt-card" key={shirt.id}>
+                      <div className="manage-shirt-image">
+                        {primaryImage ? (
+                          <img src={primaryImage.image_url} alt={shirt.name} loading="lazy" decoding="async" style={shirtImageStyle(primaryImage)} />
+                        ) : (
+                          <span>FORJADOS</span>
+                        )}
+                        {imageCount > 1 && <span className="photo-count-badge">{imageCount} fotos</span>}
                       </div>
 
-                      <p className={shirt.is_active ? 'active-text' : 'inactive-text'}>
-                        {shirt.is_active ? 'Ativa na loja' : 'Oculta na loja'}
-                      </p>
-                    </div>
+                      <div>
+                        <h4>{shirt.name}</h4>
+                        <p className="muted">{shirt.description || 'Sem descrição.'}</p>
+                        <strong>
+                          R$ {Number(shirt.price).toFixed(2).replace('.', ',')}
+                        </strong>
 
-                    <div className="manage-redemption-actions">
-                      <button
-                        type="button"
-                        className="secondary-button edit-shirt-button"
-                        onClick={() => startEdit(shirt)}
-                      >
-                        <Edit size={16} />
-                        Editar
-                      </button>
+                        <div className="mini-stock">
+                          {SHIRT_SIZES.map((size) => (
+                            <span key={size}>
+                              {size}: {shirt.stock?.[size] ?? 0}
+                            </span>
+                          ))}
+                        </div>
 
-                      <button
-                        type="button"
-                        className="reject-button edit-shirt-button"
-                        onClick={() => handleDeleteShirt(shirt)}
-                      >
-                        <Trash2 size={16} />
-                        Excluir
-                      </button>
+                        <p className={shirt.is_active ? 'active-text' : 'inactive-text'}>
+                          {shirt.is_active ? 'Ativa na loja' : 'Oculta na loja'}
+                        </p>
+                      </div>
+
+                      <div className="manage-redemption-actions">
+                        <button
+                          type="button"
+                          className="secondary-button edit-shirt-button"
+                          onClick={() => startEdit(shirt)}
+                        >
+                          <Edit size={16} />
+                          Editar
+                        </button>
+
+                        <button
+                          type="button"
+                          className="reject-button edit-shirt-button"
+                          onClick={() => handleDeleteShirt(shirt)}
+                        >
+                          <Trash2 size={16} />
+                          Excluir
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
@@ -484,7 +698,7 @@ export function ManageShirtsView() {
           <section className="panel wide">
             <div className="section-header">
               <div>
-                <h3>Pedidos de fardas</h3>
+                <h3>Pedidos de camisas</h3>
                 <p className="muted">
                   Acompanhe pagamentos e entregas das camisas do movimento.
                 </p>
