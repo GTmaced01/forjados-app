@@ -100,3 +100,43 @@ supabase/migrations/20260703_loja_camisas_2_0_shirt_images.sql
 ```
 
 Não rode os dois, pois são cópias do mesmo conteúdo.
+
+---
+
+## FORJADOS ADMIN 2.0 — Dashboard Inteligente v1
+
+### Implementado
+
+- Nova área visual **FORJADOS ADMIN 2.0** na tela inicial de admin/diretor.
+- Cards executivos com indicadores principais:
+  - participantes aprovados;
+  - pendências críticas;
+  - ofertas aprovadas;
+  - lojas ativas.
+- Fila de decisões com atalhos para:
+  - aprovar acessos;
+  - analisar comprovantes;
+  - pedidos da Loja de Camisas;
+  - resgates da Loja de Honra;
+  - ofertas pendentes.
+- Card do próximo retiro com contagem regressiva e atalho para configurar o FORJADOS.
+- Mapa operacional com barras de saúde para base ministerial, liderança, comunicação e operação.
+- Atalhos rápidos para módulos administrativos.
+- Novo SQL `admin-dashboard-2-0-summary.sql` com RPC `admin_get_dashboard_summary()` expandida.
+- Compatibilidade mantida com o dashboard antigo: caso o SQL ainda não tenha sido rodado, o app continua abrindo e exibe valores seguros.
+
+### SQL necessário
+
+Rodar no Supabase:
+
+```txt
+supabase/admin-dashboard-2-0-summary.sql
+```
+
+ou a migration equivalente:
+
+```txt
+supabase/migrations/20260704_admin_dashboard_2_0_summary.sql
+```
+
+Rodar apenas um dos dois, pois são cópias do mesmo conteúdo.

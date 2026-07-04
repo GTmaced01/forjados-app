@@ -1,14 +1,23 @@
 import { useEffect, useState } from "react";
 import {
+  Activity,
   Bell,
   CheckCircle,
+  ChevronRight,
+  ClipboardList,
+  CreditCard,
+  Gauge,
   Home,
   Menu,
   MoreHorizontal,
   Megaphone,
   RefreshCw,
+  ShieldCheck,
   Shirt,
   Star,
+  Store,
+  TrendingUp,
+  Users,
   X,
   XCircle,
 } from "lucide-react";
@@ -113,6 +122,22 @@ const VALID_TABS: Tab[] = [
 
 function isValidTab(value: string | null): value is Tab {
   return Boolean(value && VALID_TABS.includes(value as Tab));
+}
+
+function formatDashboardNumber(value: number) {
+  return new Intl.NumberFormat("pt-BR").format(Math.max(0, Math.round(value || 0)));
+}
+
+function formatDashboardCurrency(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(Number(value || 0));
+}
+
+function getPercent(part: number, total: number) {
+  if (!total || total <= 0) return 0;
+  return Math.min(100, Math.max(0, Math.round((part / total) * 100)));
 }
 
 function getInitialTab(): Tab {
@@ -360,6 +385,292 @@ export function DashboardView() {
     }
   }
 
+  function renderAdminDashboard() {
+    const summary = dashboardSummary;
+    const totalMembers =
+      summary?.total_members ||
+      (summary?.approved_members || 0) +
+        (summary?.pending_members || 0) +
+        (summary?.rejected_members || 0);
+    const approvedMembers = summary?.approved_members || 0;
+    const pendingAccess = pendingRequests.length || summary?.pending_access_requests || 0;
+    const pendingPayments = summary?.pending_payment_receipts || 0;
+    const pendingShirts = summary?.pending_shirt_orders || 0;
+    const pendingRedemptions = summary?.pending_points_redemptions || 0;
+    const pendingOffers = summary?.pending_offers || 0;
+    const pendingCare = pendingAccess + pendingPayments + pendingShirts + pendingRedemptions + pendingOffers;
+    const approvalPercent = getPercent(approvedMembers, totalMembers);
+    const ministryCore =
+      (summary?.leaders_count || 0) +
+      (summary?.directors_count || 0) +
+      (summary?.treasury_count || 0);
+    const commerceReady =
+      (summary?.active_shirts || 0) + (summary?.active_points_products || 0);
+    const communicationPower =
+      (summary?.active_public_panel_items || 0) +
+      (summary?.active_automated_messages || 0);
+
+    const kpiCards = [
+      {
+        label: "Participantes aprovados",
+        value: formatDashboardNumber(approvedMembers),
+        detail: `${approvalPercent}% da base analisada`,
+        icon: <Users size={20} />,
+        tab: "admin" as Tab,
+        disabled: !canSeeAdminPanel,
+      },
+      {
+        label: "Pendências críticas",
+        value: formatDashboardNumber(pendingCare),
+        detail: "Acessos, pagamentos, ofertas e lojas",
+        icon: <Activity size={20} />,
+        tab: "home" as Tab,
+      },
+      {
+        label: "Saldo de ofertas aprovadas",
+        value: formatDashboardCurrency(summary?.approved_offers_amount || 0),
+        detail: `${formatDashboardNumber(summary?.approved_offers || 0)} oferta(s) aprovadas`,
+        icon: <CreditCard size={20} />,
+        tab: "treasury" as Tab,
+        disabled: !canManageTreasury,
+      },
+      {
+        label: "Lojas ativas",
+        value: formatDashboardNumber(commerceReady),
+        detail: "Camisas e produtos de honra disponíveis",
+        icon: <Store size={20} />,
+        tab: "manage-shirts" as Tab,
+        disabled: !canManageShirts,
+      },
+    ];
+
+    const actionCards = [
+      {
+        label: "Aprovar acessos",
+        value: pendingAccess,
+        description: "Novas pessoas aguardando entrada no app.",
+        tab: "home" as Tab,
+        disabled: false,
+      },
+      {
+        label: "Analisar comprovantes",
+        value: pendingPayments,
+        description: "Pagamentos de inscrição/camisa para validar.",
+        tab: "treasury" as Tab,
+        disabled: !canManageTreasury,
+      },
+      {
+        label: "Pedidos de camisas",
+        value: pendingShirts,
+        description: "Pedidos aguardando produção, pagamento ou entrega.",
+        tab: "manage-shirts" as Tab,
+        disabled: !canManageShirts,
+      },
+      {
+        label: "Resgates de honra",
+        value: pendingRedemptions,
+        description: "Itens da Loja de Honra esperando conclusão.",
+        tab: "manage-points-store" as Tab,
+        disabled: !canManagePointsStore,
+      },
+      {
+        label: "Ofertas pendentes",
+        value: pendingOffers,
+        description: "Ofertas esperando conferência da tesouraria.",
+        tab: "treasury" as Tab,
+        disabled: !canManageTreasury,
+      },
+    ];
+
+    const healthRows = [
+      {
+        label: "Base ministerial",
+        value: approvedMembers,
+        max: Math.max(totalMembers, approvedMembers),
+        detail: `${formatDashboardNumber(totalMembers)} cadastro(s) no total`,
+      },
+      {
+        label: "Liderança ativa",
+        value: ministryCore,
+        max: Math.max(approvedMembers, ministryCore, 1),
+        detail: `${formatDashboardNumber(summary?.leaders_count || 0)} líder(es), ${formatDashboardNumber(summary?.directors_count || 0)} diretor(es)`,
+      },
+      {
+        label: "Comunicação pronta",
+        value: communicationPower,
+        max: Math.max(communicationPower + 2, 5),
+        detail: "Mural e mensagens automáticas configurados",
+      },
+      {
+        label: "Operação em movimento",
+        value: (summary?.open_rides || 0) + (summary?.published_service_schedules || 0),
+        max: Math.max((summary?.open_rides || 0) + (summary?.published_service_schedules || 0) + 2, 5),
+        detail: "Caronas abertas e escalas publicadas",
+      },
+    ];
+
+    return (
+      <section className="admin-v2-shell">
+        <div className="admin-v2-hero">
+          <div>
+            <p className="eyebrow">FORJADOS ADMIN 2.0</p>
+            <h3>Dashboard inteligente</h3>
+            <p className="muted">
+              Uma visão executiva do retiro para decidir rápido, cuidar melhor e manter a forja organizada.
+            </p>
+          </div>
+          <div className="admin-v2-hero-status">
+            <Gauge size={22} />
+            <span>Saúde operacional</span>
+            <strong>{pendingCare === 0 ? "Em ordem" : `${pendingCare} ponto(s) de atenção`}</strong>
+          </div>
+        </div>
+
+        <div className="admin-v2-kpi-grid">
+          {kpiCards.map((card) => (
+            <button
+              type="button"
+              key={card.label}
+              className="admin-v2-kpi-card"
+              onClick={() => selectTab(card.tab)}
+              disabled={card.disabled}
+            >
+              <span className="admin-v2-kpi-icon">{card.icon}</span>
+              <span>{card.label}</span>
+              <strong>{card.value}</strong>
+              <small>{card.detail}</small>
+            </button>
+          ))}
+        </div>
+
+        <div className="admin-v2-grid">
+          <div className="admin-v2-panel admin-v2-panel-large">
+            <div className="section-header compact-section-header">
+              <div>
+                <p className="eyebrow">Cuidado imediato</p>
+                <h3>Fila de decisões</h3>
+                <p className="muted">Prioridades que precisam de análise da direção.</p>
+              </div>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => {
+                  loadPendingRequests();
+                  loadDashboardSummary();
+                }}
+                disabled={loadingSummary || loadingRequests}
+              >
+                <RefreshCw size={16} />
+                Atualizar
+              </button>
+            </div>
+
+            <div className="admin-v2-action-list">
+              {actionCards.map((item) => (
+                <button
+                  type="button"
+                  key={item.label}
+                  className="admin-v2-action-item"
+                  onClick={() => selectTab(item.tab)}
+                  disabled={item.disabled}
+                >
+                  <span className={item.value > 0 ? "admin-v2-dot alert" : "admin-v2-dot"} />
+                  <div>
+                    <strong>{item.label}</strong>
+                    <small>{item.description}</small>
+                  </div>
+                  <b>{formatDashboardNumber(item.value)}</b>
+                  <ChevronRight size={18} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="admin-v2-panel">
+            <div className="section-header compact-section-header">
+              <div>
+                <p className="eyebrow">Próximo retiro</p>
+                <h3>{activeEvent?.title || "FORJADOS"}</h3>
+                <p className="muted">{activeEvent?.location || "Configure data e local no painel."}</p>
+              </div>
+            </div>
+            {countdown ? (
+              <div className="admin-v2-countdown-mini">
+                <strong>{countdown.days}<span>dias</span></strong>
+                <strong>{countdown.hours}<span>horas</span></strong>
+                <strong>{countdown.minutes}<span>min</span></strong>
+              </div>
+            ) : (
+              <div className="admin-v2-empty-state">
+                <ClipboardList size={22} />
+                <p>Sem contagem regressiva ativa.</p>
+              </div>
+            )}
+            {canManagePublicPanel && (
+              <button
+                type="button"
+                className="primary-button admin-v2-full-button"
+                onClick={() => selectTab("event-settings")}
+              >
+                Configurar FORJADOS
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="admin-v2-grid admin-v2-grid-secondary">
+          <div className="admin-v2-panel">
+            <div className="section-header compact-section-header">
+              <div>
+                <p className="eyebrow">Indicadores</p>
+                <h3>Mapa operacional</h3>
+              </div>
+              <TrendingUp size={20} />
+            </div>
+            <div className="admin-v2-health-list">
+              {healthRows.map((row) => {
+                const percent = getPercent(row.value, row.max);
+                return (
+                  <div className="admin-v2-health-row" key={row.label}>
+                    <div>
+                      <strong>{row.label}</strong>
+                      <small>{row.detail}</small>
+                    </div>
+                    <span>{formatDashboardNumber(row.value)}</span>
+                    <div className="admin-v2-progress" aria-label={`${row.label}: ${percent}%`}>
+                      <i style={{ width: `${percent}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="admin-v2-panel">
+            <div className="section-header compact-section-header">
+              <div>
+                <p className="eyebrow">Atalhos rápidos</p>
+                <h3>Administração</h3>
+              </div>
+              <ShieldCheck size={20} />
+            </div>
+            <div className="admin-v2-shortcuts">
+              {canManagePublicPanel && <button type="button" onClick={() => selectTab("manage-public-panel")}>Gerenciar Mural</button>}
+              {canManagePoints && <button type="button" onClick={() => selectTab("manage-points")}>Lançar Honra</button>}
+              {canManageShirts && <button type="button" onClick={() => selectTab("manage-shirts")}>Loja de Camisas</button>}
+              {canManagePointsStore && <button type="button" onClick={() => selectTab("manage-points-store")}>Loja de Honra</button>}
+              {canManageTreasury && <button type="button" onClick={() => selectTab("treasury")}>Tesouraria</button>}
+              {canManageServiceScale && <button type="button" onClick={() => selectTab("service-scale")}>Escalas</button>}
+              {canManagePublicPanel && <button type="button" onClick={() => selectTab("automated-messages")}>Mensagens</button>}
+              {canSeeAuditLog && <button type="button" onClick={() => selectTab("audit-log")}>Memorial</button>}
+              {canSeeAdminPanel && <button type="button" onClick={() => selectTab("admin")}>Painel Admin</button>}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   function renderHome() {
     return (
       <>
@@ -440,147 +751,7 @@ export function DashboardView() {
           </div>
         </section>
 
-        {canSeeAccessRequests && (
-          <section className="admin-home-panel">
-            <div className="section-header">
-              <div>
-                <p className="eyebrow">Direção</p>
-                <h3>Centro de cuidado</h3>
-                <p className="muted">
-                  Pendências, atalhos e decisões para cuidar da equipe com clareza.
-                </p>
-              </div>
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() => {
-                  loadPendingRequests();
-                  loadDashboardSummary();
-                }}
-                disabled={loadingSummary || loadingRequests}
-              >
-                <RefreshCw size={16} />
-                Atualizar resumo
-              </button>
-            </div>
-
-            <div className="admin-quick-grid">
-              <button
-                type="button"
-                className="quick-card"
-                onClick={() => selectTab("home")}
-              >
-                <span>Solicitações</span>
-                <strong>
-                  {pendingRequests.length ||
-                    dashboardSummary?.pending_access_requests ||
-                    0}
-                </strong>
-                <small>Pendentes</small>
-              </button>
-              <button
-                type="button"
-                className="quick-card"
-                onClick={() => selectTab("treasury")}
-                disabled={!canManageTreasury}
-              >
-                <span>Comprovantes</span>
-                <strong>
-                  {dashboardSummary?.pending_payment_receipts || 0}
-                </strong>
-                <small>Aguardando análise</small>
-              </button>
-              <button
-                type="button"
-                className="quick-card"
-                onClick={() => selectTab("manage-shirts")}
-                disabled={!canManageShirts}
-              >
-                <span>Camisas</span>
-                <strong>{dashboardSummary?.pending_shirt_orders || 0}</strong>
-                <small>Pedidos pendentes</small>
-              </button>
-              <button
-                type="button"
-                className="quick-card"
-                onClick={() => selectTab("manage-points-store")}
-                disabled={!canManagePointsStore}
-              >
-                <span>Resgates</span>
-                <strong>
-                  {dashboardSummary?.pending_points_redemptions || 0}
-                </strong>
-                <small>Loja de honra</small>
-              </button>
-            </div>
-
-            <div className="admin-action-row">
-              {canManagePublicPanel && (
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => selectTab("manage-public-panel")}
-                >
-                  Publicar direção
-                </button>
-              )}
-              {canManagePoints && (
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => selectTab("manage-points")}
-                >
-                  Lançar honra
-                </button>
-              )}
-              {canManagePublicPanel && (
-                <button
-                  type="button"
-                  className={`secondary-button ${tab === "automated-messages" ? "active" : ""}`.trim()}
-                  onClick={() => selectTab("automated-messages")}
-                >
-                  Mensagens Automáticas
-                </button>
-              )}
-              {canManagePublicPanel && (
-                <button
-                  type="button"
-                  className={`secondary-button ${tab === "event-settings" ? "active" : ""}`.trim()}
-                  onClick={() => selectTab("event-settings")}
-                >
-                  Configurar FORJADOS
-                </button>
-              )}
-              {canManageServiceScale && (
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => selectTab("service-scale")}
-                >
-                  Ver serviço
-                </button>
-              )}
-              {canSeeAuditLog && (
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => selectTab("audit-log")}
-                >
-                  Histórico
-                </button>
-              )}
-              {canSeeAdminPanel && (
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => selectTab("admin")}
-                >
-                  Painel Admin
-                </button>
-              )}
-            </div>
-          </section>
-        )}
+        {canSeeAccessRequests && renderAdminDashboard()}
 
         {canSeeAccessRequests && (
           <section className="panel wide access-requests-panel">
