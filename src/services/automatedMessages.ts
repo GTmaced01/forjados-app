@@ -52,10 +52,16 @@ export async function cancelAutomatedMessage(messageId: string) {
   if (error) throw error;
 }
 
+// Scheduled messages are processed exclusively by pg_cron. Keeping this function as a
+// compatibility no-op avoids a breaking Dashboard refactor while removing a privileged
+// database action from ordinary browser sessions.
 export async function processDueAutomatedMessages() {
-  const { data, error } = await supabase.rpc('forjados_process_due_automated_messages');
-  if (error) throw error;
-  return data as { ok?: boolean; processed_messages?: number; created_notifications?: number } | null;
+  return {
+    ok: true,
+    processed_messages: 0,
+    created_notifications: 0,
+    source: 'pg_cron',
+  };
 }
 
 export async function getAutomatedMessagesCronStatus() {
