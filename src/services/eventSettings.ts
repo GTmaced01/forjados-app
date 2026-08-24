@@ -19,20 +19,16 @@ export async function upsertActiveRetreatEvent(params: {
   start_date: string;
   end_date?: string;
   location?: string;
+  registration_fee: number;
+  registration_open: boolean;
 }) {
-  const { error: deactivateError } = await supabase
-    .from('retreat_events')
-    .update({ active: false, updated_at: new Date().toISOString() })
-    .eq('active', true);
-
-  if (deactivateError) throw deactivateError;
-
-  const { error } = await supabase.from('retreat_events').insert({
-    title: params.title,
-    start_date: params.start_date,
-    end_date: params.end_date || null,
-    location: params.location || '',
-    active: true,
+  const { error } = await supabase.rpc('forjados_upsert_active_retreat_event_v1', {
+    p_title: params.title,
+    p_start_date: params.start_date,
+    p_end_date: params.end_date || null,
+    p_location: params.location || '',
+    p_registration_fee: params.registration_fee,
+    p_registration_open: params.registration_open,
   });
 
   if (error) throw error;

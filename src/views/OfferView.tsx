@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { HeartHandshake, Upload } from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
 import { createOffer, formatOfferMethod, formatOfferStatus, listMyOffers } from '../services/offers';
+import { getPrivateDocumentUrl } from '../services/privateStorage';
 import type { Offer, OfferMethod } from '../types';
 
 export function OfferView() {
@@ -28,6 +29,20 @@ export function OfferView() {
   }
 
   useEffect(() => { loadOffers(); }, []);
+
+  async function handleOpenProof(offer: Offer) {
+    const proofWindow = window.open('about:blank', '_blank');
+    if (proofWindow) proofWindow.opener = null;
+
+    try {
+      const url = await getPrivateDocumentUrl(offer.proof_path, offer.proof_url);
+      if (proofWindow) proofWindow.location.replace(url);
+      else window.location.assign(url);
+    } catch (err) {
+      proofWindow?.close();
+      setError(err instanceof Error ? err.message : 'Não foi possível abrir o comprovante.');
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -125,7 +140,7 @@ export function OfferView() {
                   </div>
                   <div className={`receipt-status ${offer.status}`}>{formatOfferStatus(offer.status)}</div>
                 </div>
-                {offer.proof_url && <a className="secondary-button" href={offer.proof_url} target="_blank" rel="noreferrer"><Upload size={16} /> Abrir comprovante</a>}
+                {(offer.proof_path || offer.proof_url) && <button type="button" className="secondary-button" onClick={() => void handleOpenProof(offer)}><Upload size={16} /> Abrir comprovante</button>}
               </div>
             ))}
           </div>

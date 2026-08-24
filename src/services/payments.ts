@@ -1,7 +1,6 @@
 import { supabase } from './supabase';
+import { removePrivateDocument } from './privateStorage';
 import type { PaymentReceipt } from '../types';
-
-const INSCRIPTION_AMOUNT = 80;
 
 export async function listMyPaymentReceipts(): Promise<PaymentReceipt[]> {
   const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -51,24 +50,19 @@ export async function uploadInscriptionReceipt(params: {
 
   if (uploadError) throw uploadError;
 
-  const { data: publicData } = supabase.storage
-    .from('payment-receipts')
-    .getPublicUrl(filePath);
-
-  const { error: insertError } = await supabase.from('payment_receipts').insert({
-    user_id: user.id,
-    user_name: params.userName,
-    user_email: params.userEmail,
-    user_whatsapp: params.userWhatsapp || '',
-    amount: INSCRIPTION_AMOUNT,
-    file_url: publicData.publicUrl,
-    file_name: params.file.name,
-    file_type: params.file.type || 'arquivo',
-    status: 'pending',
-    type: 'inscription',
+  const { error: insertError } = await supabase.rpc('forjados_submit_inscription_receipt_v1', {
+    p_file_path: filePath,
+    p_file_name: params.file.name,
+    p_file_type: params.file.type || 'arquivo',
+    p_user_name: params.userName,
+    p_user_email: params.userEmail,
+    p_user_whatsapp: params.userWhatsapp || '',
   });
 
-  if (insertError) throw insertError;
+  if (insertError) {
+    await removePrivateDocument(filePath);
+    throw insertError;
+  }
 }
 
 export function formatReceiptStatus(status: PaymentReceipt['status']) {
@@ -93,21 +87,11 @@ export async function updatePaymentReceiptStatus(params: {
   status: 'approved' | 'rejected';
   observations?: string;
 }) {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-
-  if (userError) throw userError;
-  if (!userData.user) throw new Error('Usuário não autenticado.');
-
-  const { error } = await supabase
-    .from('payment_receipts')
-    .update({
-      status: params.status,
-      observations: params.observations || '',
-      reviewed_by: userData.user.id,
-      reviewed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', params.receiptId);
+  const { error } = await supabase.rpc('forjados_review_payment_receipt_v1', {
+    p_receipt_id: params.receiptId,
+    p_status: params.status,
+    p_observations: params.observations || '',
+  });
 
   if (error) throw error;
 }

@@ -7,34 +7,15 @@ import {
 } from '../services/payments';
 import { exportTreasuryWorkbook } from '../services/exporters';
 import { formatOfferMethod, formatOfferStatus, listAllOffers, updateOfferStatus } from '../services/offers';
+import { getPrivateDocumentUrl } from '../services/privateStorage';
 import type { Offer, PaymentReceipt } from '../types';
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
 
-const TREASURY_CACHE_KEY = 'forjados_treasury_receipts_cache';
-
-function getCachedReceipts(): PaymentReceipt[] {
-  try {
-    const cached = localStorage.getItem(TREASURY_CACHE_KEY);
-    if (!cached) return [];
-    return JSON.parse(cached) as PaymentReceipt[];
-  } catch {
-    return [];
-  }
-}
-
-function setCachedReceipts(receipts: PaymentReceipt[]) {
-  try {
-    localStorage.setItem(TREASURY_CACHE_KEY, JSON.stringify(receipts));
-  } catch {
-    // ignora erro de cache
-  }
-}
-
 export function TreasuryView() {
   const mountedRef = useRef(true);
 
-  const [receipts, setReceipts] = useState<PaymentReceipt[]>(() => getCachedReceipts());
+  const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -48,9 +29,18 @@ export function TreasuryView() {
     if (mountedRef.current) setLoading(value);
   }
 
-  function handleOpenReceipt(url: string) {
-    if (!url) return;
-    window.open(url, '_blank', 'noopener,noreferrer');
+  async function handleOpenReceipt(filePath?: string | null, legacyUrl?: string | null) {
+    const receiptWindow = window.open('about:blank', '_blank');
+    if (receiptWindow) receiptWindow.opener = null;
+
+    try {
+      const url = await getPrivateDocumentUrl(filePath, legacyUrl);
+      if (receiptWindow) receiptWindow.location.replace(url);
+      else window.location.assign(url);
+    } catch (err) {
+      receiptWindow?.close();
+      setError(err instanceof Error ? err.message : 'Não foi possível abrir o comprovante.');
+    }
   }
 
   async function loadReceipts() {
@@ -70,37 +60,25 @@ export function TreasuryView() {
         }, 8000);
       });
 
-      const data = await Promise.race([
-        listAllPaymentReceipts(),
-        timeoutPromise,
+      const [data, offerData] = await Promise.all([
+        Promise.race([
+          listAllPaymentReceipts(),
+          timeoutPromise,
+        ]),
+        listAllOffers().catch(() => [] as Offer[]),
       ]);
 
       if (!mountedRef.current) return;
 
       setReceipts(data);
-      setCachedReceipts(data);
-      const offerData = await listAllOffers().catch(() => [] as Offer[]);
       if (mountedRef.current) setOffers(offerData);
     } catch (err) {
       console.error('Erro ao carregar comprovantes:', err);
 
       if (!mountedRef.current) return;
 
-      const cached = getCachedReceipts();
-
-      if (cached.length > 0) {
-        setReceipts(cached);
-        setError(
-          'Não consegui atualizar agora, então mantive os últimos comprovantes carregados.'
-        );
-      } else {
-        setReceipts([]);
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'Erro ao carregar comprovantes.'
-        );
-      }
+      setReceipts([]);
+      setError(err instanceof Error ? err.message : 'Erro ao carregar comprovantes.');
     } finally {
       if (timeoutId) window.clearTimeout(timeoutId);
       safeSetLoading(false);
@@ -328,11 +306,11 @@ export function TreasuryView() {
               </div>
 
               <div className="treasury-actions">
-                {receipt.file_url && (
+                {(receipt.file_path || receipt.file_url) && (
                   <button
                     type="button"
                     className="secondary-button treasury-link"
-                    onClick={() => handleOpenReceipt(receipt.file_url)}
+                    onClick={() => void handleOpenReceipt(receipt.file_path, receipt.file_url)}
                   >
                     <ExternalLink size={16} />
                     Abrir comprovante
@@ -416,7 +394,7 @@ export function TreasuryView() {
                     <div><label>Observações</label><p>{offer.notes || 'Sem observação'}</p></div>
                   </div>
                   <div className="treasury-actions">
-                    {offer.proof_url && <button type="button" className="secondary-button" onClick={() => handleOpenReceipt(offer.proof_url || '')}>Abrir comprovante</button>}
+                    {(offer.proof_path || offer.proof_url) && <button type="button" className="secondary-button" onClick={() => void handleOpenReceipt(offer.proof_path, offer.proof_url)}>Abrir comprovante</button>}
                     {offer.status !== 'approved' && <button className="approve-button" disabled={isSaving} onClick={() => handleUpdateOfferStatus(offer, 'approved')}>Aprovar</button>}
                     {offer.status !== 'rejected' && <button className="reject-button" disabled={isSaving} onClick={() => handleUpdateOfferStatus(offer, 'rejected')}>Recusar</button>}
                   </div>

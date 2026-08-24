@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { withTimeout } from './safeAsync';
+import { removePrivateDocument } from './privateStorage';
 import type { CartItem, Shirt, ShirtImage, ShirtOrder, ShirtOrderItem } from '../types';
 
 const TIMEOUT = 10000;
@@ -157,38 +158,17 @@ export async function createShirtOrder(cart: CartItem[]): Promise<string> {
     throw new Error('Seu carrinho está vazio.');
   }
 
-  const totalPrice = cart.reduce((total, item) => {
-    return total + Number(item.shirt.price) * item.quantity;
-  }, 0);
+  const { data: orderId, error } = await supabase.rpc('forjados_create_shirt_order_v1', {
+    p_items: cart.map((item) => ({
+      shirt_id: item.shirt.id,
+      size: item.size,
+      quantity: item.quantity,
+    })),
+  });
 
-  const { data: order, error: orderError } = await supabase
-    .from('shirt_orders')
-    .insert({
-      user_id: userData.user.id,
-      total_price: totalPrice,
-      status: 'waiting_payment',
-    })
-    .select('*')
-    .single();
-
-  if (orderError) throw orderError;
-
-  const itemsPayload = cart.map((item) => ({
-    order_id: order.id,
-    shirt_id: item.shirt.id,
-    name: item.shirt.name,
-    size: item.size,
-    quantity: item.quantity,
-    price: item.shirt.price,
-  }));
-
-  const { error: itemsError } = await supabase
-    .from('shirt_order_items')
-    .insert(itemsPayload);
-
-  if (itemsError) throw itemsError;
-
-  return order.id;
+  if (error) throw error;
+  if (!orderId) throw new Error('Pedido criado sem identificador. Atualize a página antes de tentar novamente.');
+  return orderId as string;
 }
 
 export async function listMyShirtOrders(): Promise<
@@ -228,7 +208,6 @@ export async function uploadShirtOrderReceipt(params: {
   userName: string;
   userEmail: string;
   userWhatsapp?: string;
-  amount: number;
 }) {
   const { data: userData, error: userError } = await supabase.auth.getUser();
 
@@ -254,38 +233,20 @@ export async function uploadShirtOrderReceipt(params: {
 
   if (uploadError) throw uploadError;
 
-  const { data: publicData } = supabase.storage
-    .from('payment-receipts')
-    .getPublicUrl(filePath);
-
-  const fileUrl = publicData.publicUrl;
-
-  const { error: receiptError } = await supabase.from('payment_receipts').insert({
-    user_id: user.id,
-    user_name: params.userName,
-    user_email: params.userEmail,
-    user_whatsapp: params.userWhatsapp || '',
-    amount: params.amount,
-    file_url: fileUrl,
-    file_name: params.file.name,
-    file_type: params.file.type || 'arquivo',
-    status: 'pending',
-    type: 'order',
-    order_id: params.orderId,
+  const { error: receiptError } = await supabase.rpc('forjados_submit_shirt_order_receipt_v1', {
+    p_order_id: params.orderId,
+    p_file_path: filePath,
+    p_file_name: params.file.name,
+    p_file_type: params.file.type || 'arquivo',
+    p_user_name: params.userName,
+    p_user_email: params.userEmail,
+    p_user_whatsapp: params.userWhatsapp || '',
   });
 
-  if (receiptError) throw receiptError;
-
-  const { error: orderError } = await supabase
-    .from('shirt_orders')
-    .update({
-      status: 'receipt_sent',
-      proof_url: fileUrl,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', params.orderId);
-
-  if (orderError) throw orderError;
+  if (receiptError) {
+    await removePrivateDocument(filePath);
+    throw receiptError;
+  }
 }
 
 export async function listAllShirts(): Promise<Shirt[]> {
@@ -388,13 +349,10 @@ export async function updateShirtOrderStatus(params: {
   orderId: string;
   status: ShirtOrder['status'];
 }) {
-  const { error } = await supabase
-    .from('shirt_orders')
-    .update({
-      status: params.status,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', params.orderId);
+  const { error } = await supabase.rpc('forjados_review_shirt_order_v1', {
+    p_order_id: params.orderId,
+    p_status: params.status,
+  });
 
   if (error) throw error;
 }
