@@ -1,17 +1,44 @@
 import { supabase } from './supabase';
 import type { RetreatEventSettings } from '../types';
 
+interface EditionRow {
+  id: string;
+  title: string;
+  starts_at: string;
+  ends_at?: string | null;
+  location?: string | null;
+  registration_amount: number;
+  status: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export async function getActiveRetreatEvent(): Promise<RetreatEventSettings | null> {
   const { data, error } = await supabase
-    .from('retreat_events')
-    .select('*')
-    .eq('active', true)
-    .order('start_date', { ascending: true })
+    .from('forjados_editions')
+    .select('id,title,starts_at,ends_at,location,registration_amount,status,is_active,created_at,updated_at')
+    .eq('is_active', true)
+    .order('starts_at', { ascending: true })
     .limit(1)
     .maybeSingle();
 
   if (error) throw error;
-  return (data || null) as RetreatEventSettings | null;
+  if (!data) return null;
+
+  const edition = data as EditionRow;
+  return {
+    id: edition.id,
+    title: edition.title,
+    start_date: edition.starts_at,
+    end_date: edition.ends_at,
+    location: edition.location,
+    active: edition.is_active,
+    registration_fee: Number(edition.registration_amount),
+    registration_open: edition.status === 'open',
+    created_at: edition.created_at,
+    updated_at: edition.updated_at,
+  };
 }
 
 export async function upsertActiveRetreatEvent(params: {
@@ -19,20 +46,16 @@ export async function upsertActiveRetreatEvent(params: {
   start_date: string;
   end_date?: string;
   location?: string;
+  registration_fee: number;
+  registration_open: boolean;
 }) {
-  const { error: deactivateError } = await supabase
-    .from('retreat_events')
-    .update({ active: false, updated_at: new Date().toISOString() })
-    .eq('active', true);
-
-  if (deactivateError) throw deactivateError;
-
-  const { error } = await supabase.from('retreat_events').insert({
-    title: params.title,
-    start_date: params.start_date,
-    end_date: params.end_date || null,
-    location: params.location || '',
-    active: true,
+  const { error } = await supabase.rpc('forjados_upsert_active_edition_v1', {
+    p_title: params.title,
+    p_starts_at: params.start_date,
+    p_ends_at: params.end_date || null,
+    p_location: params.location || '',
+    p_registration_amount: params.registration_fee,
+    p_registration_open: params.registration_open,
   });
 
   if (error) throw error;

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { clearSensitiveLocalData } from './localData';
 import type { UserRole } from '../types';
 
 export function getAuthErrorMessage(error: unknown) {
@@ -13,7 +14,7 @@ export function getAuthErrorMessage(error: unknown) {
   }
 
   if (message.includes('Password should be at least')) {
-    return 'A senha deve ter pelo menos 6 caracteres.';
+    return 'A senha deve ter pelo menos 8 caracteres.';
   }
 
   if (message.includes('Email not confirmed')) {
@@ -50,6 +51,8 @@ export async function signUp(params: {
         display_name: displayName,
         full_name: displayName,
         requested_role: requestedRole,
+        terms_accepted_at: new Date().toISOString(),
+        terms_version: 'forjados-2.1r-2026-08-24',
       },
     },
   });
@@ -60,6 +63,8 @@ export async function signUp(params: {
 }
 
 export async function signOut() {
+  let signOutError: unknown;
+
   try {
     const { error } = await supabase.auth.signOut({
       scope: 'local',
@@ -67,14 +72,24 @@ export async function signOut() {
 
     if (error) throw error;
   } catch (error) {
-    console.error('Erro no signOut:', error);
+    signOutError = error;
+  } finally {
+    clearSensitiveLocalData();
   }
+
+  if (signOutError) throw signOutError;
 }
 
 export async function resetPassword(email: string) {
+  const appUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, '');
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin,
+    redirectTo: `${appUrl}/?password-recovery=1`,
   });
 
+  if (error) throw error;
+}
+
+export async function updatePassword(password: string) {
+  const { error } = await supabase.auth.updateUser({ password });
   if (error) throw error;
 }

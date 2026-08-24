@@ -1,3 +1,5 @@
+import { isNativeApp } from './platform';
+
 type ServiceWorkerWithSync = ServiceWorkerRegistration & {
   sync?: {
     register: (tag: string) => Promise<void>;
@@ -11,6 +13,7 @@ export function dispatchPwaUpdate(registration: ServiceWorkerRegistration) {
 }
 
 export function registerServiceWorker() {
+  if (isNativeApp()) return;
   if (!('serviceWorker' in navigator)) return;
 
   window.addEventListener('load', async () => {
@@ -66,6 +69,7 @@ export async function registerBackgroundSync(tag: string) {
 
 export function isRunningAsInstalledApp() {
   return (
+    isNativeApp() ||
     window.matchMedia('(display-mode: standalone)').matches ||
     ('standalone' in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
   );

@@ -10,15 +10,31 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 };
 
+const INSTALL_DISMISSED_KEY = 'forjados-install-dismissed:v1';
+
+function readInstallDismissed() {
+  try {
+    return localStorage.getItem(INSTALL_DISMISSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function saveInstallDismissed() {
+  try {
+    localStorage.setItem(INSTALL_DISMISSED_KEY, 'true');
+  } catch {
+    // O navegador pode bloquear armazenamento local no modo privado.
+  }
+}
+
 export function PwaStatus() {
   const [isOffline, setIsOffline] = useState(() => !navigator.onLine);
   const [waitingRegistration, setWaitingRegistration] =
     useState<ServiceWorkerRegistration | null>(null);
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
-  const [installDismissed, setInstallDismissed] = useState(() => {
-    return localStorage.getItem('forjados-install-dismissed') === 'true';
-  });
+  const [installDismissed, setInstallDismissed] = useState(readInstallDismissed);
 
   const showInstallButton =
     Boolean(installPrompt) && !installDismissed && !isRunningAsInstalledApp();
@@ -44,7 +60,7 @@ export function PwaStatus() {
 
     function handleAppInstalled() {
       setInstallPrompt(null);
-      localStorage.setItem('forjados-install-dismissed', 'true');
+      saveInstallDismissed();
       setInstallDismissed(true);
     }
 
@@ -71,13 +87,13 @@ export function PwaStatus() {
 
     if (choice.outcome === 'accepted') {
       setInstallPrompt(null);
-      localStorage.setItem('forjados-install-dismissed', 'true');
+      saveInstallDismissed();
       setInstallDismissed(true);
     }
   }
 
   function dismissInstall() {
-    localStorage.setItem('forjados-install-dismissed', 'true');
+    saveInstallDismissed();
     setInstallDismissed(true);
   }
 

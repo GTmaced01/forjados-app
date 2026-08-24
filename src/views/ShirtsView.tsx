@@ -12,6 +12,7 @@ import {
   uploadShirtOrderReceipt,
 } from '../services/shirts';
 import { withTimeout } from '../services/safeAsync';
+import { getPrivateDocumentUrl } from '../services/privateStorage';
 import type { CartItem, Shirt, ShirtImage, ShirtOrder, ShirtOrderItem } from '../types';
 
 function normalizePosition(value: number | null | undefined) {
@@ -223,7 +224,6 @@ export function ShirtsView() {
         userName: profile.display_name,
         userEmail: profile.email,
         userWhatsapp: profile.phone || '',
-        amount: Number(order.total_price),
       });
 
       setSelectedOrderFiles((prev) => ({
@@ -242,6 +242,20 @@ export function ShirtsView() {
       );
     } finally {
       setUploadingOrderId(null);
+    }
+  }
+
+  async function handleOpenOrderProof(order: ShirtOrder) {
+    const proofWindow = window.open('about:blank', '_blank');
+    if (proofWindow) proofWindow.opener = null;
+
+    try {
+      const url = await getPrivateDocumentUrl(order.proof_path, order.proof_url);
+      if (proofWindow) proofWindow.location.replace(url);
+      else window.location.assign(url);
+    } catch (err) {
+      proofWindow?.close();
+      setError(err instanceof Error ? err.message : 'Não foi possível abrir o comprovante.');
     }
   }
 
@@ -489,17 +503,16 @@ export function ShirtsView() {
                         {isUploading ? 'Enviando...' : 'Enviar comprovante'}
                       </button>
                     </div>
-                  ) : order.proof_url ? (
+                  ) : order.proof_path || order.proof_url ? (
                     <div className="order-receipt-box">
                       <p className="muted">Comprovante enviado.</p>
-                      <a
-                        href={order.proof_url}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => void handleOpenOrderProof(order)}
                         className="secondary-button order-proof-link"
                       >
                         Abrir comprovante
-                      </a>
+                      </button>
                     </div>
                   ) : null}
                 </div>

@@ -1,4 +1,4 @@
-const SW_VERSION = 'forjados-pwa-v6-push';
+const SW_VERSION = 'forjados-pwa-v7-2-1r';
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 const APP_SHELL_CACHE = `${SW_VERSION}-shell`;
 

@@ -1,106 +1,47 @@
-# React + TypeScript + Vite
+# FORJADOS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Plataforma para gestão completa de retiros cristãos: pessoas, edições, inscrições, finanças, comunicação, equipes, operação e auditoria.
 
-Currently, two official plugins are available:
+> “A forja não era para te destruir. Era para te transformar.”
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+- React 19, TypeScript e Vite;
+- Supabase (PostgreSQL, Auth, Storage, RPCs e Edge Functions);
+- PWA para navegadores e instalação pela tela inicial;
+- Capacitor 8 para Android e iOS;
+- Vercel e GitHub Actions.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Desenvolvimento
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cp .env.example .env
+npm ci
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Validações obrigatórias:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run lint
+npm run build
 ```
 
-## Módulo Escala de Serviço
+## Aplicativos móveis
 
-Foi adicionado o módulo **Gerenciamento > Escala de Serviço**.
+Os projetos nativos ficam em `android/` e `ios/`. Depois de alterar o frontend:
 
-### Antes de usar
-
-No Supabase, abra o **SQL Editor** e execute o arquivo:
-
-```txt
-supabase/service-scale.sql
+```bash
+npm run mobile:sync
+npm run mobile:android
+# macOS + Xcode:
+npm run mobile:ios
 ```
 
-Esse arquivo cria as tabelas:
+Consulte [docs/MOBILE_ANDROID_IOS.md](docs/MOBILE_ANDROID_IOS.md) antes de gerar uma versão para loja.
 
-- `service_scale_people`
-- `service_scale_schedules`
-- `service_scale_assignments`
+## Banco de dados
 
-### O que o módulo faz
+As migrations oficiais ficam exclusivamente em `supabase/migrations/`. Não execute scripts legados ou cópias duplicadas. A ordem de publicação do FORJADOS 2.1R está em [docs/FORJADOS_2_1R_RELEASE.md](docs/FORJADOS_2_1R_RELEASE.md).
 
-- Cadastra pessoas do evento.
-- Separa masculino e feminino.
-- Marca pessoa como ativa na escala.
-- Marca pessoa como trilha, removendo automaticamente da escala.
-- Configura início, fim, duração do serviço, quantidade de homens/mulheres e descanso mínimo.
-- Gera escala automática equilibrada.
-- Salva/publica a escala no Supabase.
-- Exporta CSV e imprime a escala.
-
-### Observação
-
-A tela aparece dentro de **Gerenciamento** para usuários `admin` e `director`.
+Nunca coloque tokens privados de gateway, `service_role`, VAPID privada ou qualquer secret em variáveis `VITE_*`.

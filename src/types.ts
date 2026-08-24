@@ -64,11 +64,14 @@ export interface PaymentReceipt {
   user_email: string;
   user_whatsapp?: string;
   amount: number;
-  file_url: string;
+  file_url?: string | null;
+  file_path?: string | null;
   file_name: string;
   file_type: string;
   status: PaymentReceiptStatus;
   type: 'inscription' | 'order';
+  edition_id?: string | null;
+  order_id?: string | null;
   observations?: string;
   reviewed_at?: string | null;
   reviewed_by?: string | null;
@@ -117,6 +120,7 @@ export interface ShirtOrder {
   total_price: number;
   status: ShirtOrderStatus;
   proof_url?: string;
+  proof_path?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -353,6 +357,7 @@ export interface Offer {
   objective: string;
   notes?: string | null;
   proof_url?: string | null;
+  proof_path?: string | null;
   status: OfferStatus;
   reviewed_by?: string | null;
   reviewed_at?: string | null;
@@ -384,6 +389,8 @@ export interface RetreatEventSettings {
   end_date?: string | null;
   location?: string | null;
   active: boolean;
+  registration_fee?: number;
+  registration_open?: boolean;
   created_at: string;
   updated_at: string;
 }

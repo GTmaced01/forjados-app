@@ -13,6 +13,7 @@ import {
 } from '../services/shirts';
 import { withTimeout } from '../services/safeAsync';
 import { STORAGE_BUCKETS, uploadPublicImage } from '../services/storage';
+import { getPrivateDocumentUrl } from '../services/privateStorage';
 import type { Shirt, ShirtOrder, ShirtOrderItem, ShirtOrderStatus } from '../types';
 
 type EditingShirt = {
@@ -412,6 +413,20 @@ export function ManageShirtsView() {
     }
   }
 
+  async function handleOpenOrderProof(order: ShirtOrder) {
+    const proofWindow = window.open('about:blank', '_blank');
+    if (proofWindow) proofWindow.opener = null;
+
+    try {
+      const url = await getPrivateDocumentUrl(order.proof_path, order.proof_url);
+      if (proofWindow) proofWindow.location.replace(url);
+      else window.location.assign(url);
+    } catch (err) {
+      proofWindow?.close();
+      setError(err instanceof Error ? err.message : 'Não foi possível abrir o comprovante.');
+    }
+  }
+
   const waitingPaymentCount = orders.filter((order) => order.status === 'waiting_payment').length;
   const receiptSentCount = orders.filter((order) => order.status === 'receipt_sent').length;
   const approvedCount = orders.filter((order) => order.status === 'payment_approved').length;
@@ -759,15 +774,14 @@ export function ManageShirtsView() {
                         ))}
                       </div>
 
-                      {order.proof_url && (
-                        <a
-                          href={order.proof_url}
-                          target="_blank"
-                          rel="noreferrer"
+                      {(order.proof_path || order.proof_url) && (
+                        <button
+                          type="button"
+                          onClick={() => void handleOpenOrderProof(order)}
                           className="secondary-button order-proof-link"
                         >
                           Abrir comprovante
-                        </a>
+                        </button>
                       )}
 
                       <div className="manage-order-actions">

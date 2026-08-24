@@ -6,13 +6,13 @@ export function EventSettingsView() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [form, setForm] = useState({ title: 'FORJADOS', start_date: '', end_date: '', location: '' });
+  const [form, setForm] = useState({ title: 'FORJADOS', start_date: '', end_date: '', location: '', registration_fee: '80', registration_open: true });
 
   async function load() {
     setLoading(true);
     try {
       const event = await getActiveRetreatEvent();
-      if (event) setForm({ title: event.title, start_date: event.start_date?.slice(0, 16) || '', end_date: event.end_date?.slice(0, 16) || '', location: event.location || '' });
+      if (event) setForm({ title: event.title, start_date: event.start_date?.slice(0, 16) || '', end_date: event.end_date?.slice(0, 16) || '', location: event.location || '', registration_fee: String(event.registration_fee ?? ''), registration_open: event.registration_open !== false });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar evento.');
     } finally {
@@ -28,7 +28,9 @@ export function EventSettingsView() {
     setError('');
     setSuccess('');
     try {
-      await upsertActiveRetreatEvent(form);
+      const registrationFee = Number(form.registration_fee.replace(',', '.'));
+      if (!Number.isFinite(registrationFee) || registrationFee < 0) throw new Error('Informe um valor de inscrição válido.');
+      await upsertActiveRetreatEvent({ ...form, registration_fee: registrationFee });
       setSuccess('Próximo FORJADOS atualizado.');
       await load();
     } catch (err) {
@@ -51,7 +53,9 @@ export function EventSettingsView() {
             <div><label>Local</label><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></div>
             <div><label>Início</label><input type="datetime-local" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
             <div><label>Fim</label><input type="datetime-local" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} /></div>
-            <button className="primary-button" disabled={saving}>{saving ? 'Salvando...' : 'Salvar evento'}</button>
+            <div><label>Valor da inscrição</label><input inputMode="decimal" value={form.registration_fee} onChange={(e) => setForm({ ...form, registration_fee: e.target.value })} /></div>
+            <label className="auth-terms-consent"><input type="checkbox" checked={form.registration_open} onChange={(e) => setForm({ ...form, registration_open: e.target.checked })} /><span>Inscrições abertas para esta edição</span></label>
+            <button className="primary-button" disabled={saving}>{saving ? 'Salvando...' : 'Salvar edição'}</button>
           </form>
         )}
       </section>

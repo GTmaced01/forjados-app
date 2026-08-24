@@ -1,9 +1,16 @@
+import { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './components/AuthProvider';
 import { AuthView } from './views/AuthView';
 import { RegistrationView } from './views/RegistrationView';
 import { DashboardView } from './views/DashboardView';
 import { WaitingView } from './views/WaitingView';
 import { PwaStatus } from './components/PwaStatus';
+import { supabase } from './services/supabase';
+
+function isRecoveryUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('password-recovery') === '1' || window.location.hash.includes('type=recovery');
+}
 
 function AppContent() {
   const { user, profile, loading, authError, isAdmin, reloadProfile } = useAuth();
@@ -53,11 +60,30 @@ function AppContent() {
   return <DashboardView />;
 }
 
+function AppGate() {
+  const [passwordRecovery, setPasswordRecovery] = useState(isRecoveryUrl);
+
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event: string) => {
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
+      if (event === 'SIGNED_OUT') setPasswordRecovery(false);
+    });
+
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  if (passwordRecovery) {
+    return <AuthView initialMode="update-password" onPasswordUpdated={() => setPasswordRecovery(false)} />;
+  }
+
+  return <AppContent />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <PwaStatus />
-      <AppContent />
+      <AppGate />
     </AuthProvider>
   );
 }

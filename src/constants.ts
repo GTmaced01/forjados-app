@@ -119,9 +119,9 @@ export const MODULE_DNA = {
     description: 'Atualize seus dados, equipe, saúde e informações de cuidado.',
   },
   inscription: {
-    eyebrow: 'Jornada e contribuição',
-    title: 'Minha Jornada',
-    description: 'Acompanhe sua aprovação, contribuição e informações importantes do retiro.',
+    eyebrow: 'Edição e contribuição',
+    title: 'Minha Inscrição',
+    description: 'Acompanhe a edição ativa, o pagamento e o histórico das suas inscrições.',
   },
   publicPanel: {
     eyebrow: 'Direções da forja',

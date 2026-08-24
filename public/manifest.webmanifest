@@ -12,7 +12,7 @@
     "standalone",
     "minimal-ui"
   ],
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#0F0F10",
   "theme_color": "#0F0F10",
   "categories": [
@@ -69,8 +69,8 @@
       ]
     },
     {
-      "name": "Minha Jornada",
-      "short_name": "Jornada",
+      "name": "Minha Inscrição",
+      "short_name": "Inscrição",
       "url": "/?tab=inscription",
       "icons": [
         {

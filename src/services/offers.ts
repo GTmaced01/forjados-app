@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { removePrivateDocument } from './privateStorage';
 import type { Offer, OfferMethod, OfferStatus } from '../types';
 
 export function formatOfferMethod(method: OfferMethod) {
@@ -27,7 +28,7 @@ export async function createOffer(params: {
   if (userError) throw userError;
   if (!userData.user) throw new Error('Usuário não autenticado.');
 
-  let proofUrl = '';
+  let proofPath = '';
 
   if (params.file) {
     const safeFileName = params.file.name
@@ -44,23 +45,23 @@ export async function createOffer(params: {
 
     if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage.from('payment-receipts').getPublicUrl(filePath);
-    proofUrl = data.publicUrl;
+    proofPath = filePath;
   }
 
-  const { error } = await supabase.from('offers').insert({
-    user_id: userData.user.id,
-    user_name: params.userName,
-    user_email: params.userEmail || userData.user.email || '',
-    amount: params.amount,
-    method: params.method,
-    objective: params.objective,
-    notes: params.notes || '',
-    proof_url: proofUrl,
-    status: 'pending',
+  const { error } = await supabase.rpc('forjados_create_offer_v1', {
+    p_amount: params.amount,
+    p_method: params.method,
+    p_objective: params.objective,
+    p_notes: params.notes || '',
+    p_proof_path: proofPath || null,
+    p_user_name: params.userName,
+    p_user_email: params.userEmail || userData.user.email || '',
   });
 
-  if (error) throw error;
+  if (error) {
+    if (proofPath) await removePrivateDocument(proofPath);
+    throw error;
+  }
 }
 
 export async function listMyOffers(): Promise<Offer[]> {
@@ -89,19 +90,10 @@ export async function listAllOffers(): Promise<Offer[]> {
 }
 
 export async function updateOfferStatus(params: { offerId: string; status: OfferStatus }) {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError) throw userError;
-  if (!userData.user) throw new Error('Usuário não autenticado.');
-
-  const { error } = await supabase
-    .from('offers')
-    .update({
-      status: params.status,
-      reviewed_by: userData.user.id,
-      reviewed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', params.offerId);
+  const { error } = await supabase.rpc('forjados_review_offer_v1', {
+    p_offer_id: params.offerId,
+    p_status: params.status,
+  });
 
   if (error) throw error;
 }

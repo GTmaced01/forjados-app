@@ -63,7 +63,9 @@ import {
 } from "../services/adminDashboard";
 import { getActiveRetreatEvent, getCountdownParts } from "../services/eventSettings";
 import { processDueAutomatedMessages } from "../services/automatedMessages";
-import type { AppNotification, RetreatEventSettings, UserProfile } from "../types";
+import { listMyPaymentReceipts } from "../services/payments";
+import { exitNativeApp, registerNativeBackHandler } from "../services/platform";
+import type { AppNotification, PaymentReceipt, RetreatEventSettings, UserProfile } from "../types";
 
 type Tab =
   | "home"
@@ -165,6 +167,7 @@ export function DashboardView() {
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [activeEvent, setActiveEvent] = useState<RetreatEventSettings | null>(null);
+  const [currentEventReceipts, setCurrentEventReceipts] = useState<PaymentReceipt[]>([]);
   const [popupNotification, setPopupNotification] = useState<AppNotification | null>(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
   const countdown = getCountdownParts(activeEvent?.start_date, nowTick);
@@ -275,12 +278,52 @@ export function DashboardView() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+
+    if (!activeEvent?.id) {
+      setCurrentEventReceipts([]);
+      return () => { active = false; };
+    }
+
+    listMyPaymentReceipts()
+      .then((items) => {
+        if (active) setCurrentEventReceipts(items.filter((item) => item.edition_id === activeEvent.id));
+      })
+      .catch((err) => console.warn("Status financeiro não carregou:", err));
+
+    return () => { active = false; };
+  }, [activeEvent?.id, profile?.id]);
+
+  useEffect(() => {
     void nowTick;
   }, [nowTick]);
 
   useEffect(() => {
     localStorage.setItem("forjados-active-tab", tab);
   }, [tab]);
+
+  useEffect(() => {
+    let disposed = false;
+    let removeListener: () => void | Promise<void> = () => undefined;
+
+    registerNativeBackHandler(() => {
+      if (mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      } else if (tab !== "home") {
+        selectTab("home");
+      } else {
+        void exitNativeApp();
+      }
+    }).then((remove) => {
+      if (disposed) remove();
+      else removeListener = remove;
+    });
+
+    return () => {
+      disposed = true;
+      void removeListener();
+    };
+  }, [mobileMenuOpen, tab]);
 
   useEffect(() => {
     const canAccessTab =
@@ -380,7 +423,6 @@ export function DashboardView() {
     } catch (error) {
       console.error("Erro ao sair:", error);
     } finally {
-      localStorage.removeItem("forjados-active-tab");
       window.location.href = "/";
     }
   }
@@ -672,6 +714,8 @@ export function DashboardView() {
   }
 
   function renderHome() {
+    const currentPaymentApproved = currentEventReceipts.some((receipt) => receipt.status === "approved");
+
     return (
       <>
         <header className="hero">
@@ -710,6 +754,17 @@ export function DashboardView() {
               <strong>{countdown.hours}<span>horas</span></strong>
               <strong>{countdown.minutes}<span>min</span></strong>
             </div>
+          </section>
+        )}
+
+        {activeEvent && !currentPaymentApproved && (
+          <section className="card payment-pending-banner" role="status">
+            <div>
+              <p className="eyebrow">Inscrição pendente</p>
+              <h3>Sua inscrição para {activeEvent.title} ainda não foi confirmada.</h3>
+              <p className="muted">Envie o comprovante ou acompanhe a análise da tesouraria em Minha Inscrição.</p>
+            </div>
+            <button type="button" className="primary-button" onClick={() => selectTab("inscription")}>Ir para Minha Inscrição</button>
           </section>
         )}
 
@@ -850,7 +905,7 @@ export function DashboardView() {
   function renderMore() {
     const memberItems: Array<{ label: string; tab: Tab; visible?: boolean }> = [
       { label: "Minha Identidade", tab: "profile" },
-      { label: "Minha Jornada", tab: "inscription" },
+      { label: "Minha Inscrição", tab: "inscription" },
       { label: `Notificações${unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}`, tab: "notifications" },
       { label: "Loja de Honra", tab: "points-store" },
       { label: "Fazer Oferta", tab: "offer" },
@@ -1045,7 +1100,7 @@ export function DashboardView() {
               className={tab === "inscription" ? "active" : ""}
               onClick={() => selectTab("inscription")}
             >
-              Minha Jornada
+              Minha Inscrição
             </button>
             <button
               type="button"

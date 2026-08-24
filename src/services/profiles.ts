@@ -60,75 +60,12 @@ export async function getMyProfile(currentUser?: User | null): Promise<UserProfi
     return existingProfile as UserProfile;
   }
 
-  const isInitialAdmin = user.email === 'forjados.ofc@gmail.com';
+  const { data: createdProfile, error: createError } = await supabase.rpc(
+    'forjados_ensure_my_profile_v1'
+  );
 
-  const displayName =
-    user.user_metadata?.display_name ||
-    user.user_metadata?.full_name ||
-    user.email?.split('@')[0] ||
-    'Novo usuário';
-
-  const fullProfile = {
-    id: user.id,
-    email: user.email || '',
-    display_name: displayName,
-    full_name: user.user_metadata?.full_name || displayName,
-    role: isInitialAdmin ? 'admin' : 'member',
-    requested_role: isInitialAdmin
-      ? 'admin'
-      : user.user_metadata?.requested_role || 'member',
-    inscription_status: isInitialAdmin ? 'approved' : 'pending',
-    is_admin: isInitialAdmin,
-    member_id: isInitialAdmin
-      ? 'ADM-0001'
-      : `EQP-${user.id.replaceAll('-', '').slice(0, 6).toUpperCase()}`,
-    sectors: isInitialAdmin ? ['Liderança'] : [],
-    primary_team: isInitialAdmin ? 'Liderança' : user.user_metadata?.primary_team || null,
-    has_vehicle: false,
-    skills: [],
-    points: 0,
-    terms_accepted: {},
-  };
-
-  const { data: createdProfile, error: insertError } = await supabase
-    .from('profiles')
-    .insert(fullProfile as Record<string, unknown>)
-    .select('*')
-    .single();
-
-  if (!insertError && createdProfile) {
-    return createdProfile as UserProfile;
-  }
-
-  console.warn('Criação completa do perfil falhou. Tentando perfil mínimo:', insertError);
-
-  const minimalProfile = {
-    id: user.id,
-    email: user.email || '',
-    display_name: displayName,
-    role: isInitialAdmin ? 'admin' : 'member',
-    requested_role: isInitialAdmin ? 'admin' : user.user_metadata?.requested_role || 'member',
-    inscription_status: isInitialAdmin ? 'approved' : 'pending',
-    is_admin: isInitialAdmin,
-    primary_team: isInitialAdmin ? 'Liderança' : user.user_metadata?.primary_team || null,
-  };
-
-  const { data: minimalCreatedProfile, error: minimalInsertError } = await supabase
-    .from('profiles')
-    .insert(minimalProfile as Record<string, unknown>)
-    .select('*')
-    .single();
-
-  if (minimalInsertError) {
-    console.error('Erro ao criar perfil mínimo:', minimalInsertError);
-
-    throw new Error(
-      minimalInsertError.message ||
-        'Não foi possível criar seu perfil. Verifique a tabela profiles e as políticas RLS.'
-    );
-  }
-
-  return minimalCreatedProfile as UserProfile;
+  if (createError) throwRpcError(createError, 'Não foi possível preparar seu perfil.');
+  return (createdProfile || null) as UserProfile | null;
 }
 
 export async function updateMyRegistration(params: {
@@ -168,14 +105,9 @@ export async function updateMyRegistration(params: {
   if (userError) throw userError;
   if (!userData.user) throw new Error('Usuário não autenticado.');
 
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      ...params,
-      full_name: params.display_name,
-      updated_at: new Date().toISOString(),
-    } as Record<string, unknown>)
-    .eq('id', userData.user.id);
+  const { error } = await supabase.rpc('forjados_update_my_profile_v1', {
+    p_payload: params,
+  });
 
   if (error) throw error;
 }
@@ -186,28 +118,6 @@ export async function listProfiles(): Promise<UserProfile[]> {
   if (error) throwRpcError(error, 'Erro ao carregar membros.');
 
   return (data || []) as UserProfile[];
-}
-
-export async function updateProfileStatus(params: {
-  userId: string;
-  role?: UserRole;
-  inscription_status?: InscriptionStatus;
-  sectors?: string[];
-  primary_team?: string | null;
-}) {
-  const payload: Record<string, unknown> = {};
-
-  if (params.role) payload.role = params.role;
-  if (params.inscription_status) payload.inscription_status = params.inscription_status;
-  if (params.sectors) payload.sectors = params.sectors;
-  if (params.primary_team !== undefined) payload.primary_team = params.primary_team;
-
-  const { error } = await supabase
-    .from('profiles')
-    .update(payload as Record<string, unknown>)
-    .eq('id', params.userId);
-
-  if (error) throw error;
 }
 
 export async function adminUpdateProfile(params: {
@@ -301,28 +211,9 @@ export async function updateMyBasicProfile(params: {
   if (userError) throw userError;
   if (!userData.user) throw new Error('Usuário não autenticado.');
 
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      display_name: params.display_name,
-      full_name: params.display_name,
-      phone: params.phone,
-      birth_date: params.birth_date,
-      city: params.city,
-      neighborhood: params.neighborhood,
-      member_since: params.member_since || null,
-      primary_team: params.primary_team,
-      sectors: params.sectors,
-      specific_function: params.specific_function,
-      shirt_size: params.shirt_size,
-      has_vehicle: params.has_vehicle,
-      food_restrictions: params.food_restrictions,
-      health_problems: params.health_problems,
-      continuous_medicine: params.continuous_medicine,
-      emergency_contact: params.emergency_contact,
-      updated_at: new Date().toISOString(),
-    } as Record<string, unknown>)
-    .eq('id', userData.user.id);
+  const { error } = await supabase.rpc('forjados_update_my_profile_v1', {
+    p_payload: params,
+  });
 
   if (error) throw error;
 }
