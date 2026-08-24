@@ -18,9 +18,11 @@
 
 Mercado Pago não faz parte desta entrega. Nenhum token ou código de checkout foi adicionado. O pagamento manual continua ativo até a conta e o ambiente sandbox estarem disponíveis.
 
-## Bloqueio atual
+## Banco validado
 
-A integração Supabase disponível no workspace não aponta para o projeto usado pelo FORJADOS. Não aplique a migration em outro projeto. Conecte primeiro o projeto cujo `project_ref` é o mesmo configurado no aplicativo.
+O projeto confirmado é o `FORJADOS-app` (`szmujymzcifxnlladktn`). A migration foi comparada com o schema real e executada integralmente em transação com `ROLLBACK` antes da aplicação.
+
+A fonte oficial da edição é `forjados_editions`, com inscrições em `edition_enrollments` e comprovantes vinculados por `payment_receipts.edition_id`. A tabela `retreat_events` permanece temporariamente apenas como legado de compatibilidade. Comprovantes antigos sem edição continuam sem vínculo inferido para evitar histórico incorreto.
 
 ## Ordem obrigatória
 
@@ -44,7 +46,7 @@ Não execute os antigos arquivos SQL da raiz de `supabase/`. As migrations versi
 - valor adulterado no navegador não deve alterar inscrição ou pedido;
 - pedido com estoque insuficiente deve falhar sem criar registros parciais;
 - participante não deve aprovar pagamentos, ofertas ou pedidos;
-- evento fechado deve impedir novo comprovante de inscrição;
+- edição fechada deve impedir novo comprovante de inscrição;
 - alertas e navegação devem funcionar em desktop e mobile.
 
 ## Rollout recomendado

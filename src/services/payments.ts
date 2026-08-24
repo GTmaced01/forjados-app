@@ -22,6 +22,7 @@ export async function listMyPaymentReceipts(): Promise<PaymentReceipt[]> {
 
 export async function uploadInscriptionReceipt(params: {
   file: File;
+  editionId: string;
   userName: string;
   userEmail: string;
   userWhatsapp?: string;
@@ -39,7 +40,7 @@ export async function uploadInscriptionReceipt(params: {
     .replace(/[^a-zA-Z0-9.-]/g, '-')
     .toLowerCase();
 
-  const filePath = `${user.id}/${Date.now()}-${safeFileName}`;
+  const filePath = `${user.id}/inscricoes/${params.editionId}/${Date.now()}-${safeFileName}`;
 
   const { error: uploadError } = await supabase.storage
     .from('payment-receipts')

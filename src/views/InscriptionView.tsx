@@ -52,7 +52,7 @@ export function InscriptionView() {
 
   const currentReceipts = useMemo(() => {
     if (!activeEvent) return [];
-    return receipts.filter((receipt) => receipt.event_id === activeEvent.id);
+    return receipts.filter((receipt) => receipt.edition_id === activeEvent.id);
   }, [activeEvent, receipts]);
 
   const latestReceipt = currentReceipts[0];
@@ -82,6 +82,7 @@ export function InscriptionView() {
       setUploading(true);
       await uploadInscriptionReceipt({
         file: selectedFile,
+        editionId: activeEvent.id,
         userName: profile.display_name,
         userEmail: profile.email,
         userWhatsapp: profile.phone || '',

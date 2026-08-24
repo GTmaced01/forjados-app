@@ -287,7 +287,7 @@ export function DashboardView() {
 
     listMyPaymentReceipts()
       .then((items) => {
-        if (active) setCurrentEventReceipts(items.filter((item) => item.event_id === activeEvent.id));
+        if (active) setCurrentEventReceipts(items.filter((item) => item.edition_id === activeEvent.id));
       })
       .catch((err) => console.warn("Status financeiro não carregou:", err));
 

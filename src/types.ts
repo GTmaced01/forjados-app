@@ -70,7 +70,7 @@ export interface PaymentReceipt {
   file_type: string;
   status: PaymentReceiptStatus;
   type: 'inscription' | 'order';
-  event_id?: string | null;
+  edition_id?: string | null;
   order_id?: string | null;
   observations?: string;
   reviewed_at?: string | null;
