@@ -1,11 +1,28 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './components/AuthProvider';
 import { AuthView } from './views/AuthView';
-import { RegistrationView } from './views/RegistrationView';
-import { DashboardView } from './views/DashboardView';
 import { WaitingView } from './views/WaitingView';
 import { PwaStatus } from './components/PwaStatus';
 import { supabase } from './services/supabase';
+
+const RegistrationView = lazy(() =>
+  import('./views/RegistrationView').then(({ RegistrationView }) => ({ default: RegistrationView })),
+);
+const DashboardView = lazy(() =>
+  import('./views/DashboardView').then(({ DashboardView }) => ({ default: DashboardView })),
+);
+
+function AppLoading() {
+  return (
+    <div className="page-center">
+      <div className="panel center">
+        <h1>FORJADOS</h1>
+        <div className="loader"></div>
+        <p className="muted">Preparando sua experiência...</p>
+      </div>
+    </div>
+  );
+}
 
 function isRecoveryUrl() {
   const params = new URLSearchParams(window.location.search);
@@ -83,7 +100,9 @@ export default function App() {
   return (
     <AuthProvider>
       <PwaStatus />
-      <AppGate />
+      <Suspense fallback={<AppLoading />}>
+        <AppGate />
+      </Suspense>
     </AuthProvider>
   );
 }

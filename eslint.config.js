@@ -25,4 +25,10 @@ export default defineConfig([
       'preserve-caught-error': 'off',
     },
   },
+  {
+    files: ['tests/**/*.ts'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ]);

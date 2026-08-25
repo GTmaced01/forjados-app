@@ -11,6 +11,11 @@ import {
 import type { UserRole } from '../types';
 import { PrivacyContent, RulesContent, TermsContent } from './LegalDocumentsView';
 import { FORJADOS_MAIN_MESSAGE } from '../constants';
+import {
+  assertStrongPassword,
+  getPasswordRequirements,
+  PASSWORD_MIN_LENGTH,
+} from '../services/passwordPolicy';
 
 type Mode =
   | 'login'
@@ -45,7 +50,7 @@ function PasswordField(props: {
           id={props.id}
           type={visible ? 'text' : 'password'}
           required
-          minLength={8}
+          minLength={PASSWORD_MIN_LENGTH}
           autoComplete={props.autoComplete}
           placeholder={props.placeholder}
           value={props.value}
@@ -61,6 +66,19 @@ function PasswordField(props: {
         </button>
       </div>
     </>
+  );
+}
+
+function PasswordRequirements({ password }: { password: string }) {
+  return (
+    <ul className="password-requirements" aria-live="polite" aria-label="Requisitos da senha">
+      {getPasswordRequirements(password).map((requirement) => (
+        <li key={requirement.id} className={requirement.met ? 'met' : ''}>
+          <span aria-hidden="true">{requirement.met ? '✓' : '•'}</span>
+          {requirement.label}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -85,7 +103,7 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
   }
 
   function validatePasswords() {
-    if (password.length < 8) throw new Error('A senha deve ter pelo menos 8 caracteres.');
+    assertStrongPassword(password);
     if (password !== passwordConfirmation) throw new Error('As senhas informadas não são iguais.');
   }
 
@@ -155,7 +173,7 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
     try {
       validatePasswords();
       await updatePassword(password);
-      await signOut();
+      await signOut('global');
       window.history.replaceState({}, '', '/');
       setSuccess('Senha atualizada com segurança. Entre novamente.');
       setMode('login');
@@ -221,7 +239,8 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
             </select>
             <label htmlFor="register-email">E-mail</label>
             <input id="register-email" type="email" required autoComplete="email" placeholder="seuemail@email.com" value={email} onChange={(event) => setEmail(event.target.value)} />
-            <PasswordField id="register-password" label="Senha" value={password} onChange={setPassword} autoComplete="new-password" placeholder="Mínimo de 8 caracteres" />
+            <PasswordField id="register-password" label="Senha" value={password} onChange={setPassword} autoComplete="new-password" placeholder={`Mínimo de ${PASSWORD_MIN_LENGTH} caracteres`} />
+            <PasswordRequirements password={password} />
             <PasswordField id="register-password-confirmation" label="Confirmar senha" value={passwordConfirmation} onChange={setPasswordConfirmation} autoComplete="new-password" placeholder="Digite a senha novamente" />
 
             <label className="auth-terms-consent">
@@ -254,10 +273,11 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
         {mode === 'update-password' && (
           <form onSubmit={handlePasswordUpdate} className="form">
             <h2>Criar nova senha</h2>
-            <p className="muted">Escolha uma senha nova com pelo menos 8 caracteres.</p>
+            <p className="muted">Escolha uma senha nova e exclusiva para o FORJADOS.</p>
             {error && <div className="alert error">{error}</div>}
             {success && <div className="alert success">{success}</div>}
             <PasswordField id="recovery-password" label="Nova senha" value={password} onChange={setPassword} autoComplete="new-password" placeholder="Nova senha" />
+            <PasswordRequirements password={password} />
             <PasswordField id="recovery-password-confirmation" label="Confirmar nova senha" value={passwordConfirmation} onChange={setPasswordConfirmation} autoComplete="new-password" placeholder="Digite a senha novamente" />
             <button className="primary-button" disabled={loading}>{loading ? 'Atualizando...' : 'Atualizar senha'}</button>
           </form>
