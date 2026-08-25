@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   Activity,
   Bell,
@@ -30,27 +30,6 @@ import {
   STATUS_LABELS,
   ROLE_LABELS,
 } from "../constants";
-import { AdminPanelView } from "./AdminPanelView";
-import { ProfileView } from "./ProfileView";
-import { InscriptionView } from "./InscriptionView";
-import { TreasuryView } from "./TreasuryView";
-import { ShirtsView } from "./ShirtsView";
-import { ManageShirtsView } from "./ManageShirtsView";
-import { RidesView } from "./RidesView";
-import { PointsView } from "./PointsView";
-import { ManagePointsView } from "./ManagePointsView";
-import { PointsStoreView } from "./PointsStoreView";
-import { ManagePointsStoreView } from "./ManagePointsStoreView";
-import { ServiceScaleView } from "./ServiceScaleView";
-import { LeaderTeamView } from "./LeaderTeamView";
-import { PublicPanelView } from "./PublicPanelView";
-import { ManagePublicPanelView } from "./ManagePublicPanelView";
-import { LegalDocumentsView } from "./LegalDocumentsView";
-import { NotificationsView } from "./NotificationsView";
-import { AuditLogView } from "./AuditLogView";
-import { OfferView } from "./OfferView";
-import { AutomatedMessagesView } from "./AutomatedMessagesView";
-import { EventSettingsView } from "./EventSettingsView";
 import {
   listPendingAccessRequests,
   updateAccessRequestStatus,
@@ -66,6 +45,37 @@ import { processDueAutomatedMessages } from "../services/automatedMessages";
 import { listMyPaymentReceipts } from "../services/payments";
 import { exitNativeApp, registerNativeBackHandler } from "../services/platform";
 import type { AppNotification, PaymentReceipt, RetreatEventSettings, UserProfile } from "../types";
+
+const AdminPanelView = lazy(() => import("./AdminPanelView").then(({ AdminPanelView }) => ({ default: AdminPanelView })));
+const ProfileView = lazy(() => import("./ProfileView").then(({ ProfileView }) => ({ default: ProfileView })));
+const InscriptionView = lazy(() => import("./InscriptionView").then(({ InscriptionView }) => ({ default: InscriptionView })));
+const TreasuryView = lazy(() => import("./TreasuryView").then(({ TreasuryView }) => ({ default: TreasuryView })));
+const ShirtsView = lazy(() => import("./ShirtsView").then(({ ShirtsView }) => ({ default: ShirtsView })));
+const ManageShirtsView = lazy(() => import("./ManageShirtsView").then(({ ManageShirtsView }) => ({ default: ManageShirtsView })));
+const RidesView = lazy(() => import("./RidesView").then(({ RidesView }) => ({ default: RidesView })));
+const PointsView = lazy(() => import("./PointsView").then(({ PointsView }) => ({ default: PointsView })));
+const ManagePointsView = lazy(() => import("./ManagePointsView").then(({ ManagePointsView }) => ({ default: ManagePointsView })));
+const PointsStoreView = lazy(() => import("./PointsStoreView").then(({ PointsStoreView }) => ({ default: PointsStoreView })));
+const ManagePointsStoreView = lazy(() => import("./ManagePointsStoreView").then(({ ManagePointsStoreView }) => ({ default: ManagePointsStoreView })));
+const ServiceScaleView = lazy(() => import("./ServiceScaleView").then(({ ServiceScaleView }) => ({ default: ServiceScaleView })));
+const LeaderTeamView = lazy(() => import("./LeaderTeamView").then(({ LeaderTeamView }) => ({ default: LeaderTeamView })));
+const PublicPanelView = lazy(() => import("./PublicPanelView").then(({ PublicPanelView }) => ({ default: PublicPanelView })));
+const ManagePublicPanelView = lazy(() => import("./ManagePublicPanelView").then(({ ManagePublicPanelView }) => ({ default: ManagePublicPanelView })));
+const LegalDocumentsView = lazy(() => import("./LegalDocumentsView").then(({ LegalDocumentsView }) => ({ default: LegalDocumentsView })));
+const NotificationsView = lazy(() => import("./NotificationsView").then(({ NotificationsView }) => ({ default: NotificationsView })));
+const AuditLogView = lazy(() => import("./AuditLogView").then(({ AuditLogView }) => ({ default: AuditLogView })));
+const OfferView = lazy(() => import("./OfferView").then(({ OfferView }) => ({ default: OfferView })));
+const AutomatedMessagesView = lazy(() => import("./AutomatedMessagesView").then(({ AutomatedMessagesView }) => ({ default: AutomatedMessagesView })));
+const EventSettingsView = lazy(() => import("./EventSettingsView").then(({ EventSettingsView }) => ({ default: EventSettingsView })));
+
+function ModuleLoading() {
+  return (
+    <div className="panel wide center" role="status" aria-live="polite">
+      <div className="loader"></div>
+      <p className="muted">Carregando módulo...</p>
+    </div>
+  );
+}
 
 type Tab =
   | "home"
@@ -1296,7 +1306,9 @@ export function DashboardView() {
             </button>
           </div>
         </div>
-        {renderContent()}
+        <Suspense fallback={<ModuleLoading />}>
+          {renderContent()}
+        </Suspense>
       </main>
 
       {popupNotification && (

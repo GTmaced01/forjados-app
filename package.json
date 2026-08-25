@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "check:secrets": "node scripts/check-secrets.mjs",
     "preview": "vite preview",
     "mobile:check": "cap sync",
     "mobile:sync": "npm run build && cap sync",

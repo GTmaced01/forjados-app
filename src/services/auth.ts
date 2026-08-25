@@ -1,6 +1,10 @@
 import { supabase } from './supabase';
 import { clearSensitiveLocalData } from './localData';
 import type { UserRole } from '../types';
+import { PASSWORD_MIN_LENGTH } from './passwordPolicy';
+import { PASSWORD_RECOVERY_PATH } from './authRecovery';
+
+type SignOutScope = 'local' | 'global';
 
 export function getAuthErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -13,8 +17,8 @@ export function getAuthErrorMessage(error: unknown) {
     return 'Este e-mail já está cadastrado. Faça login ou use outro e-mail.';
   }
 
-  if (message.includes('Password should be at least')) {
-    return 'A senha deve ter pelo menos 8 caracteres.';
+  if (message.includes('Password should be at least') || message.toLowerCase().includes('weak password')) {
+    return `A senha deve ter pelo menos ${PASSWORD_MIN_LENGTH} caracteres e combinar letras, número e símbolo.`;
   }
 
   if (message.includes('Email not confirmed')) {
@@ -62,12 +66,12 @@ export async function signUp(params: {
   return data.user;
 }
 
-export async function signOut() {
+export async function signOut(scope: SignOutScope = 'local') {
   let signOutError: unknown;
 
   try {
     const { error } = await supabase.auth.signOut({
-      scope: 'local',
+      scope,
     });
 
     if (error) throw error;
@@ -83,7 +87,7 @@ export async function signOut() {
 export async function resetPassword(email: string) {
   const appUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, '');
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${appUrl}/?password-recovery=1`,
+    redirectTo: `${appUrl}${PASSWORD_RECOVERY_PATH}`,
   });
 
   if (error) throw error;

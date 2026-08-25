@@ -44,4 +44,6 @@ Consulte [docs/MOBILE_ANDROID_IOS.md](docs/MOBILE_ANDROID_IOS.md) antes de gerar
 
 As migrations oficiais ficam exclusivamente em `supabase/migrations/`. Não execute scripts legados ou cópias duplicadas. A ordem de publicação do FORJADOS 2.1R está em [docs/FORJADOS_2_1R_RELEASE.md](docs/FORJADOS_2_1R_RELEASE.md).
 
+O lote de qualidade e desempenho 2.1R.1 está documentado em [docs/FORJADOS_2_1R1_RELEASE.md](docs/FORJADOS_2_1R1_RELEASE.md).
+
 Nunca coloque tokens privados de gateway, `service_role`, VAPID privada ou qualquer secret em variáveis `VITE_*`.
