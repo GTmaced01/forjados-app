@@ -1,4 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
+import { isPasswordRecoveryUrl } from './authRecovery';
+
+// O fluxo implícito do Supabase consome e pode remover o hash da URL durante a
+// criação do client. Capturamos o callback antes disso para não perder o evento
+// de recuperação em carregamentos rápidos, PWA ou navegadores mobile.
+export const initialPasswordRecovery =
+  typeof window !== 'undefined' && isPasswordRecoveryUrl(window.location);
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;

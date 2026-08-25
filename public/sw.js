@@ -1,4 +1,4 @@
-const SW_VERSION = 'forjados-pwa-v8-2-1r1';
+const SW_VERSION = 'forjados-pwa-v9-2-1r1-auth-recovery';
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 const APP_SHELL_CACHE = `${SW_VERSION}-shell`;
 

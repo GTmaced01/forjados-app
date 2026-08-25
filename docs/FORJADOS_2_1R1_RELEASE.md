@@ -11,6 +11,8 @@
 - verificação automática de secrets versionados;
 - 21 índices idempotentes para chaves estrangeiras indicadas pelo Performance Advisor;
 - cache PWA versionado para distribuir os novos chunks com segurança.
+- callback de recuperação capturado antes de o Supabase consumir o hash da URL;
+- rota pública dedicada `/recuperar-senha`, compatível também com os links antigos.
 
 A verificação local não substitui a proteção contra senhas vazadas do Supabase, que permanece indisponível no plano gratuito. Ela reduz senhas fracas na interface; o Supabase Auth continua sendo a autoridade de cadastro e autenticação.
 
@@ -36,6 +38,14 @@ npm run mobile:check
 ```
 
 Teste a recuperação de senha por e-mail em uma janela anônima. Depois da troca, confirme que a nova senha entra e que uma sessão anterior em outro navegador precisa autenticar novamente.
+
+Antes do teste, adicione exatamente esta URL em **Supabase > Authentication > URL Configuration > Redirect URLs**:
+
+```text
+https://forjados-app.vercel.app/recuperar-senha
+```
+
+Solicite um e-mail novo após o deploy e abra apenas o link mais recente. O token de recuperação é de uso único; reutilizar um link já validado resulta em “inválido ou expirado”.
 
 ## Gateway
 

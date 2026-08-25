@@ -3,7 +3,8 @@ import { AuthProvider, useAuth } from './components/AuthProvider';
 import { AuthView } from './views/AuthView';
 import { WaitingView } from './views/WaitingView';
 import { PwaStatus } from './components/PwaStatus';
-import { supabase } from './services/supabase';
+import { initialPasswordRecovery, supabase } from './services/supabase';
+import { isPasswordRecoveryUrl } from './services/authRecovery';
 
 const RegistrationView = lazy(() =>
   import('./views/RegistrationView').then(({ RegistrationView }) => ({ default: RegistrationView })),
@@ -25,8 +26,7 @@ function AppLoading() {
 }
 
 function isRecoveryUrl() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('password-recovery') === '1' || window.location.hash.includes('type=recovery');
+  return initialPasswordRecovery || isPasswordRecoveryUrl(window.location);
 }
 
 function AppContent() {

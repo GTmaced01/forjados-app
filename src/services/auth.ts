@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { clearSensitiveLocalData } from './localData';
 import type { UserRole } from '../types';
 import { PASSWORD_MIN_LENGTH } from './passwordPolicy';
+import { PASSWORD_RECOVERY_PATH } from './authRecovery';
 
 type SignOutScope = 'local' | 'global';
 
@@ -86,7 +87,7 @@ export async function signOut(scope: SignOutScope = 'local') {
 export async function resetPassword(email: string) {
   const appUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, '');
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${appUrl}/?password-recovery=1`,
+    redirectTo: `${appUrl}${PASSWORD_RECOVERY_PATH}`,
   });
 
   if (error) throw error;
