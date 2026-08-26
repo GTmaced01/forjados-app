@@ -6,6 +6,7 @@ import type {
   ServiceScalePerson,
   ServiceScaleSchedule,
   GeneratedScaleSlot,
+  ServiceScaleSlotRequirement,
 } from '../types';
 
 const PEOPLE_TABLE = 'service_scale_people';
@@ -176,18 +177,23 @@ export async function saveGeneratedScale(params: {
     return [...men, ...women];
   });
 
-  const { data, error } = await supabase.rpc('forjados_save_service_scale_v1', {
+  const { data, error } = await supabase.rpc('forjados_save_service_scale_v2', {
     p_config: {
       title: params.config.title.trim(),
       start_at: params.config.startAt,
       end_at: params.config.endAt,
       shift_minutes: params.config.shiftMinutes,
-      men_per_shift: params.config.menPerShift,
-      women_per_shift: params.config.womenPerShift,
       min_rest_minutes: params.config.minRestMinutes,
       avoid_consecutive: params.config.avoidConsecutive,
       status: params.status || 'published',
     },
+    p_slots: params.slots.map((slot) => ({
+      slot_number: slot.slotNumber,
+      slot_start: slot.startAt,
+      slot_end: slot.endAt,
+      men_required: slot.menRequired,
+      women_required: slot.womenRequired,
+    })),
     p_assignments: assignments,
   });
 
@@ -203,7 +209,8 @@ export async function deleteServiceSchedule(id: string): Promise<void> {
 
 export function buildGeneratedScale(
   people: ServiceScalePerson[],
-  config: ServiceScaleConfig
+  config: ServiceScaleConfig,
+  requirements: ServiceScaleSlotRequirement[] = buildScaleSlotRequirements(config)
 ): ScaleGenerationResult {
   const warnings: string[] = [];
   const start = new Date(config.startAt);
@@ -219,13 +226,16 @@ export function buildGeneratedScale(
   const incompleteActivePeople = activePeople.filter((person) => !isServiceScaleGender(person.gender));
   const men = activePeople.filter((person) => person.gender === 'male');
   const women = activePeople.filter((person) => person.gender === 'female');
-  const isDateRangeValid = !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end > start;
-  const totalSlots = isDateRangeValid && Number.isFinite(config.shiftMinutes) && config.shiftMinutes > 0
-    ? Math.ceil((end.getTime() - start.getTime()) / (config.shiftMinutes * 60 * 1000))
-    : 0;
+  const activeRequirements = requirements
+    .filter((slot) => slot.enabled && slot.menRequired + slot.womenRequired > 0)
+    .map((slot, index) => ({ ...slot, slotNumber: index + 1 }));
+  const totalSlots = activeRequirements.length;
   const metrics: ScaleGenerationMetrics = {
     totalSlots,
-    expectedAssignments: totalSlots * (Math.max(0, config.menPerShift || 0) + Math.max(0, config.womenPerShift || 0)),
+    expectedAssignments: activeRequirements.reduce(
+      (total, slot) => total + Math.max(0, slot.menRequired) + Math.max(0, slot.womenRequired),
+      0
+    ),
     generatedAssignments: 0,
     activeMen: men.length,
     activeWomen: women.length,
@@ -237,19 +247,40 @@ export function buildGeneratedScale(
   else if (end <= start) warnings.push('A data final precisa ser maior que a data inicial.');
   if (hasInvalidNumber) warnings.push('Use números inteiros válidos na configuração da escala.');
   if (config.shiftMinutes < 15 || config.shiftMinutes > 720) warnings.push('A duração do serviço deve ficar entre 15 minutos e 12 horas.');
-  if (config.menPerShift < 0 || config.womenPerShift < 0) warnings.push('A quantidade por alojamento não pode ser negativa.');
+  if (config.menPerShift < 0 || config.womenPerShift < 0) warnings.push('A quantidade padrão por alojamento não pode ser negativa.');
   if (config.minRestMinutes < 0 || config.minRestMinutes > 1440) warnings.push('O descanso mínimo deve ficar entre 0 e 1.440 minutos.');
-  if (config.menPerShift + config.womenPerShift < 1) warnings.push('Informe pelo menos uma pessoa por turno.');
+  if (requirements.length === 0) warnings.push('Monte os horários e informe quando haverá pessoas no alojamento.');
+  if (activeRequirements.length === 0) warnings.push('Ative pelo menos um horário com uma pessoa no alojamento.');
+  if (requirements.some((slot) => (
+    !Number.isInteger(slot.menRequired)
+    || !Number.isInteger(slot.womenRequired)
+    || slot.menRequired < 0
+    || slot.womenRequired < 0
+    || slot.menRequired > 50
+    || slot.womenRequired > 50
+  ))) warnings.push('Cada horário deve ter quantidades inteiras entre 0 e 50.');
+  if (activeRequirements.some((slot) => {
+    const slotStart = new Date(slot.startAt).getTime();
+    const slotEnd = new Date(slot.endAt).getTime();
+    return Number.isNaN(slotStart)
+      || Number.isNaN(slotEnd)
+      || slotStart < start.getTime()
+      || slotEnd > end.getTime()
+      || slotEnd <= slotStart
+      || slotEnd - slotStart > config.shiftMinutes * 60 * 1000;
+  })) warnings.push('Há um horário fora do período ou com duração inválida. Monte os horários novamente.');
   if (totalSlots > 1000) warnings.push('O período gera turnos demais. Reduza o período ou aumente a duração do serviço.');
 
   if (incompleteActivePeople.length > 0) {
     warnings.push(`${incompleteActivePeople.length} pessoa(s) ativa(s) ainda precisa(m) de alojamento definido. Edite o cadastro antes de gerar.`);
   }
-  if (men.length < config.menPerShift) {
-    warnings.push(`Há apenas ${men.length} homem(ns) ativo(s), mas a escala pede ${config.menPerShift} por turno.`);
+  const maxMenRequired = activeRequirements.reduce((max, slot) => Math.max(max, slot.menRequired), 0);
+  const maxWomenRequired = activeRequirements.reduce((max, slot) => Math.max(max, slot.womenRequired), 0);
+  if (men.length < maxMenRequired) {
+    warnings.push(`Há apenas ${men.length} homem(ns) ativo(s), mas um horário pede ${maxMenRequired}.`);
   }
-  if (women.length < config.womenPerShift) {
-    warnings.push(`Há apenas ${women.length} mulher(es) ativa(s), mas a escala pede ${config.womenPerShift} por turno.`);
+  if (women.length < maxWomenRequired) {
+    warnings.push(`Há apenas ${women.length} mulher(es) ativa(s), mas um horário pede ${maxWomenRequired}.`);
   }
 
   const uniqueWarnings = () => [...new Set(warnings)];
@@ -258,7 +289,6 @@ export function buildGeneratedScale(
     return { slots: [], warnings: uniqueWarnings(), isValid: false, metrics };
   }
 
-  const shiftMs = config.shiftMinutes * 60 * 1000;
   const counts = new Map<string, number>();
   const lastEnd = new Map<string, number>();
   const previousSlotIds = new Set<string>();
@@ -300,16 +330,14 @@ export function buildGeneratedScale(
   }
 
   const slots: GeneratedScaleSlot[] = [];
-  let cursor = start.getTime();
-  let slotNumber = 1;
-
-  while (cursor < end.getTime()) {
-    const slotEnd = Math.min(cursor + shiftMs, end.getTime());
-    const selectedMen = choose(men, config.menPerShift, cursor, 'homens');
-    const selectedWomen = choose(women, config.womenPerShift, cursor, 'mulheres');
+  for (const requirement of activeRequirements) {
+    const cursor = new Date(requirement.startAt).getTime();
+    const slotEnd = new Date(requirement.endAt).getTime();
+    const selectedMen = choose(men, requirement.menRequired, cursor, 'homens');
+    const selectedWomen = choose(women, requirement.womenRequired, cursor, 'mulheres');
     const selected = [...selectedMen, ...selectedWomen];
 
-    if (selectedMen.length !== config.menPerShift || selectedWomen.length !== config.womenPerShift) {
+    if (selectedMen.length !== requirement.menRequired || selectedWomen.length !== requirement.womenRequired) {
       return {
         slots: [],
         warnings: uniqueWarnings(),
@@ -328,18 +356,49 @@ export function buildGeneratedScale(
     selected.forEach((person) => previousSlotIds.add(person.id));
 
     slots.push({
-      slotNumber,
-      startAt: new Date(cursor).toISOString(),
-      endAt: new Date(slotEnd).toISOString(),
+      slotNumber: requirement.slotNumber,
+      startAt: requirement.startAt,
+      endAt: requirement.endAt,
+      menRequired: requirement.menRequired,
+      womenRequired: requirement.womenRequired,
       men: selectedMen,
       women: selectedWomen,
     });
-
-    cursor = slotEnd;
-    slotNumber += 1;
   }
 
   return { slots, warnings: uniqueWarnings(), isValid: true, metrics };
+}
+
+export function buildScaleSlotRequirements(config: ServiceScaleConfig): ServiceScaleSlotRequirement[] {
+  const start = new Date(config.startAt);
+  const end = new Date(config.endAt);
+  if (
+    Number.isNaN(start.getTime())
+    || Number.isNaN(end.getTime())
+    || end <= start
+    || !Number.isInteger(config.shiftMinutes)
+    || config.shiftMinutes < 15
+    || config.shiftMinutes > 720
+  ) return [];
+
+  const shiftMs = config.shiftMinutes * 60 * 1000;
+  const slots: ServiceScaleSlotRequirement[] = [];
+  let cursor = start.getTime();
+
+  while (cursor < end.getTime() && slots.length < 1001) {
+    const slotEnd = Math.min(cursor + shiftMs, end.getTime());
+    slots.push({
+      slotNumber: slots.length + 1,
+      startAt: new Date(cursor).toISOString(),
+      endAt: new Date(slotEnd).toISOString(),
+      menRequired: Math.max(0, config.menPerShift || 0),
+      womenRequired: Math.max(0, config.womenPerShift || 0),
+      enabled: config.menPerShift + config.womenPerShift > 0,
+    });
+    cursor = slotEnd;
+  }
+
+  return slots;
 }
 
 export function summarizeGeneratedScale(slots: GeneratedScaleSlot[]): Record<string, number> {
@@ -352,12 +411,14 @@ export function summarizeGeneratedScale(slots: GeneratedScaleSlot[]): Record<str
 }
 
 export function exportScaleCsv(slots: GeneratedScaleSlot[]): string {
-  const header = ['Turno', 'Início', 'Fim', 'Alojamento Masculino', 'Alojamento Feminino'];
+  const header = ['Turno', 'Início', 'Fim', 'Necessidade masculina', 'Alojamento Masculino', 'Necessidade feminina', 'Alojamento Feminino'];
   const rows = slots.map((slot) => [
     String(slot.slotNumber),
     formatDateTime(slot.startAt),
     formatDateTime(slot.endAt),
+    String(slot.menRequired),
     slot.men.map((person) => person.name).join(' / '),
+    String(slot.womenRequired),
     slot.women.map((person) => person.name).join(' / '),
   ]);
 
