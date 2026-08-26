@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Download, FileText, Search, Shield, Trash2, UserX } from 'lucide-react';
+import {
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  FileText,
+  RefreshCw,
+  Search,
+  Shield,
+  SlidersHorizontal,
+  Trash2,
+  UserX,
+} from 'lucide-react';
 import { PRIMARY_TEAMS, ROLE_LABELS, SECTORS, STATUS_LABELS } from '../constants';
 import {
   adminDeleteProfile,
@@ -18,11 +30,15 @@ export function AdminPanelView() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | InscriptionStatus>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
+  const [teamFilter, setTeamFilter] = useState('all');
+  const [expandedProfileId, setExpandedProfileId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
 
-  async function loadProfiles() {
-    setLoading(true);
+  async function loadProfiles(silent = false) {
+    if (!silent) setLoading(true);
     setError('');
 
     try {
@@ -32,7 +48,7 @@ export function AdminPanelView() {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar membros.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
@@ -50,17 +66,27 @@ export function AdminPanelView() {
       const matchesStatus =
         statusFilter === 'all' || profile.inscription_status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      const matchesRole = roleFilter === 'all' || profile.role === roleFilter;
+      const matchesTeam = teamFilter === 'all' || profile.primary_team === teamFilter;
+
+      return matchesSearch && matchesStatus && matchesRole && matchesTeam;
+    }).sort((first, second) => {
+      const statusOrder: Record<InscriptionStatus, number> = { pending: 0, rejected: 1, approved: 2 };
+      const statusDifference = statusOrder[first.inscription_status] - statusOrder[second.inscription_status];
+      if (statusDifference !== 0) return statusDifference;
+      return (first.display_name || '').localeCompare(second.display_name || '', 'pt-BR');
     });
-  }, [profiles, search, statusFilter]);
+  }, [profiles, search, statusFilter, roleFilter, teamFilter]);
 
   async function handleApprove(profile: UserProfile) {
     setSavingId(profile.id);
     setError('');
+    setSuccess('');
 
     try {
       await approveProfile(profile.id, profile.requested_role || 'member');
-      await loadProfiles();
+      await loadProfiles(true);
+      setSuccess(`${profile.display_name} teve o acesso aprovado.`);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao aprovar usuário.');
@@ -78,10 +104,12 @@ export function AdminPanelView() {
 
     setSavingId(profile.id);
     setError('');
+    setSuccess('');
 
     try {
       await rejectProfile(profile.id);
-      await loadProfiles();
+      await loadProfiles(true);
+      setSuccess(`${profile.display_name} teve o acesso recusado.`);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao recusar usuário.');
@@ -100,7 +128,8 @@ export function AdminPanelView() {
         role,
       });
 
-      await loadProfiles();
+      await loadProfiles(true);
+      setSuccess(`Cargo de ${profile.display_name} atualizado.`);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao alterar cargo.');
@@ -119,7 +148,8 @@ export function AdminPanelView() {
         inscription_status: status,
       });
 
-      await loadProfiles();
+      await loadProfiles(true);
+      setSuccess(`Status de ${profile.display_name} atualizado.`);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao alterar status.');
@@ -144,7 +174,7 @@ export function AdminPanelView() {
         sectors: newSectors,
       });
 
-      await loadProfiles();
+      await loadProfiles(true);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao alterar setores.');
@@ -169,7 +199,8 @@ export function AdminPanelView() {
         sectors: newSectors,
       });
 
-      await loadProfiles();
+      await loadProfiles(true);
+      setSuccess(`Equipe principal de ${profile.display_name} atualizada.`);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao alterar equipe principal.');
@@ -185,7 +216,7 @@ export function AdminPanelView() {
 
     try {
       await adminUpdateRetreatCount({ userId: profile.id, count });
-      await loadProfiles();
+      await loadProfiles(true);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao atualizar retiros.');
@@ -211,7 +242,8 @@ export function AdminPanelView() {
 
     try {
       await adminDeleteProfile(profile.id);
-      await loadProfiles();
+      await loadProfiles(true);
+      setSuccess(`${profile.display_name} foi removido da operação.`);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao excluir usuário.');
@@ -236,41 +268,47 @@ export function AdminPanelView() {
         </div>
 
         <div className="header-actions">
-          <button className="secondary-button" onClick={() => exportTeamWorkbook(filteredProfiles)}>
+          <button className="secondary-button" type="button" onClick={() => exportTeamWorkbook(filteredProfiles)}>
             <Download size={16} />
             Exportar equipe
           </button>
-          <button className="secondary-button" onClick={loadProfiles}>
+          <button className="secondary-button" type="button" onClick={() => loadProfiles()} disabled={loading}>
+            <RefreshCw size={16} />
             Atualizar
           </button>
         </div>
       </div>
 
       {error && <div className="alert error">{error}</div>}
+      {success && <div className="alert success" role="status">{success}</div>}
 
-      <section className="admin-stats">
-        <div className="card">
+      <section className="admin-stats admin-status-filters" aria-label="Filtrar por status">
+        <button type="button" className={statusFilter === 'pending' ? 'card active' : 'card'} onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}>
           <h3>Pendentes</h3>
           <strong>{pendingCount}</strong>
-        </div>
+          <span>Priorizar análise</span>
+        </button>
 
-        <div className="card">
+        <button type="button" className={statusFilter === 'approved' ? 'card active' : 'card'} onClick={() => setStatusFilter(statusFilter === 'approved' ? 'all' : 'approved')}>
           <h3>Aprovados</h3>
           <strong>{approvedCount}</strong>
-        </div>
+          <span>Acessos liberados</span>
+        </button>
 
-        <div className="card">
+        <button type="button" className={statusFilter === 'rejected' ? 'card active' : 'card'} onClick={() => setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected')}>
           <h3>Recusados</h3>
           <strong>{rejectedCount}</strong>
-        </div>
+          <span>Revisar decisões</span>
+        </button>
 
-        <div className="card">
+        <button type="button" className={statusFilter === 'all' ? 'card active' : 'card'} onClick={() => setStatusFilter('all')}>
           <h3>Total</h3>
           <strong>{profiles.length}</strong>
-        </div>
+          <span>Base completa</span>
+        </button>
       </section>
 
-      <section className="admin-filters">
+      <section className="admin-filters admin-filters-v2">
         <div className="search-box">
           <Search size={18} />
           <input
@@ -289,7 +327,29 @@ export function AdminPanelView() {
           <option value="approved">Aprovados</option>
           <option value="rejected">Recusados</option>
         </select>
+
+        <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as 'all' | UserRole)} aria-label="Filtrar por cargo">
+          <option value="all">Todos os cargos</option>
+          <option value="member">Equipe</option>
+          <option value="leader">Líderes</option>
+          <option value="director">Diretoria</option>
+          <option value="treasury">Tesouraria</option>
+          <option value="admin">Administradores</option>
+        </select>
+
+        <select value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)} aria-label="Filtrar por equipe">
+          <option value="all">Todas as equipes</option>
+          {PRIMARY_TEAMS.map((team) => <option key={team} value={team}>{team}</option>)}
+        </select>
       </section>
+
+      <div className="admin-results-summary">
+        <SlidersHorizontal size={16} />
+        <span>{filteredProfiles.length} de {profiles.length} pessoa(s) exibida(s)</span>
+        {(search || statusFilter !== 'all' || roleFilter !== 'all' || teamFilter !== 'all') && (
+          <button type="button" onClick={() => { setSearch(''); setStatusFilter('all'); setRoleFilter('all'); setTeamFilter('all'); }}>Limpar filtros</button>
+        )}
+      </div>
 
       {loading ? (
         <div className="panel center">
@@ -334,6 +394,8 @@ export function AdminPanelView() {
                   </div>
                 </div>
 
+                {expandedProfileId === profile.id && (
+                  <div className="member-editor">
                 <div className="member-controls">
                   <div>
                     <label>Cargo</label>
@@ -410,28 +472,42 @@ export function AdminPanelView() {
                     ))}
                   </div>
                 </div>
+                  </div>
+                )}
 
                 <div className="member-actions">
                   <button
-                    className="approve-button"
+                    className="secondary-button"
+                    type="button"
                     disabled={isSaving}
-                    onClick={() => handleApprove(profile)}
+                    aria-expanded={expandedProfileId === profile.id}
+                    onClick={() => setExpandedProfileId((current) => current === profile.id ? null : profile.id)}
                   >
-                    <CheckCircle size={16} />
-                    Aprovar
+                    {expandedProfileId === profile.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    {expandedProfileId === profile.id ? 'Recolher gestão' : 'Gerenciar cadastro'}
                   </button>
 
-                  <button
-                    className="reject-button"
-                    disabled={isSaving}
-                    onClick={() => handleReject(profile)}
-                  >
-                    <UserX size={16} />
-                    Recusar
-                  </button>
+                  {profile.inscription_status !== 'approved' && (
+                    <button className="approve-button" type="button" disabled={isSaving} onClick={() => handleApprove(profile)}>
+                      <CheckCircle size={16} />
+                      {isSaving ? 'Aprovando...' : 'Aprovar'}
+                    </button>
+                  )}
+
+                  {profile.inscription_status === 'approved' && (
+                    <span className="payment-approved-label"><CheckCircle size={16} />Acesso aprovado</span>
+                  )}
+
+                  {profile.inscription_status !== 'rejected' && !profile.is_admin && profile.role !== 'admin' && (
+                    <button className="reject-button" type="button" disabled={isSaving} onClick={() => handleReject(profile)}>
+                      <UserX size={16} />
+                      Recusar
+                    </button>
+                  )}
 
                   <button
                     className="secondary-button"
+                    type="button"
                     disabled={isSaving}
                     onClick={() => setSelectedProfile(profile)}
                   >
@@ -441,6 +517,7 @@ export function AdminPanelView() {
 
                   <button
                     className="secondary-button"
+                    type="button"
                     disabled={isSaving}
                     onClick={() => printProfileFicha(profile)}
                   >
@@ -451,11 +528,12 @@ export function AdminPanelView() {
                   {!profile.is_admin && profile.role !== 'admin' && (
                     <button
                       className="reject-button"
+                      type="button"
                       disabled={isSaving}
                       onClick={() => handleDeleteProfile(profile)}
                     >
                       <Trash2 size={16} />
-                      Excluir
+                      Remover
                     </button>
                   )}
 

@@ -84,6 +84,7 @@ function PasswordRequirements({ password }: { password: string }) {
 
 export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewProps) {
   const [mode, setMode] = useState<Mode>(initialMode);
+  const [legalReturnMode, setLegalReturnMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
@@ -100,6 +101,19 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
     setSuccess('');
     setPassword('');
     setPasswordConfirmation('');
+  }
+
+  function openLegal(nextMode: Extract<Mode, 'privacy' | 'terms' | 'rules'>) {
+    setLegalReturnMode(mode === 'register' ? 'register' : 'login');
+    setMode(nextMode);
+    setError('');
+    setSuccess('');
+  }
+
+  function closeLegal() {
+    setMode(legalReturnMode);
+    setError('');
+    setSuccess('');
   }
 
   function validatePasswords() {
@@ -214,9 +228,9 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
               <button type="button" onClick={() => changeMode('register')}>Solicitar acesso</button>
             </div>
             <div className="auth-legal-links">
-              <button type="button" onClick={() => changeMode('rules')}>Regras do Retiro</button>
-              <button type="button" onClick={() => changeMode('privacy')}>Política de Privacidade</button>
-              <button type="button" onClick={() => changeMode('terms')}>Termos e Confidencialidade</button>
+              <button type="button" onClick={() => openLegal('rules')}>Regras do Retiro</button>
+              <button type="button" onClick={() => openLegal('privacy')}>Política de Privacidade</button>
+              <button type="button" onClick={() => openLegal('terms')}>Termo de Responsabilidade</button>
             </div>
           </form>
         )}
@@ -243,17 +257,34 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
             <PasswordRequirements password={password} />
             <PasswordField id="register-password-confirmation" label="Confirmar senha" value={passwordConfirmation} onChange={setPasswordConfirmation} autoComplete="new-password" placeholder="Digite a senha novamente" />
 
-            <label className="auth-terms-consent">
-              <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} />
-              <span>Li e aceito os termos, a política de privacidade e o compromisso de confidencialidade, proteção de dados e conduta da equipe FORJADOS.</span>
-            </label>
+            <div className="auth-terms-consent">
+              <input
+                id="register-terms"
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(event) => setAcceptedTerms(event.target.checked)}
+              />
+              <div>
+                <label htmlFor="register-terms">
+                  Li e aceito os documentos e o compromisso de confidencialidade, proteção de
+                  dados e conduta da equipe FORJADOS.
+                </label>
+                <p className="auth-consent-links">
+                  Leia antes de aceitar:{' '}
+                  <button type="button" onClick={() => openLegal('rules')}>Regras do Retiro</button>,{' '}
+                  <button type="button" onClick={() => openLegal('privacy')}>Política de Privacidade</button>{' '}
+                  e{' '}
+                  <button type="button" onClick={() => openLegal('terms')}>Termo de Responsabilidade</button>.
+                </p>
+              </div>
+            </div>
 
             <button className="primary-button" disabled={loading}>{loading ? 'Criando...' : 'Começar inscrição'}</button>
             <div className="auth-links"><button type="button" onClick={() => changeMode('login')}>Já tenho conta</button></div>
             <div className="auth-legal-links">
-              <button type="button" onClick={() => changeMode('rules')}>Regras do Retiro</button>
-              <button type="button" onClick={() => changeMode('privacy')}>Política de Privacidade</button>
-              <button type="button" onClick={() => changeMode('terms')}>Termos e Confidencialidade</button>
+              <button type="button" onClick={() => openLegal('rules')}>Regras do Retiro</button>
+              <button type="button" onClick={() => openLegal('privacy')}>Política de Privacidade</button>
+              <button type="button" onClick={() => openLegal('terms')}>Termo de Responsabilidade</button>
             </div>
           </form>
         )}
@@ -283,9 +314,9 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
           </form>
         )}
 
-        {mode === 'privacy' && <div className="form legal-auth-view"><PrivacyContent /><button type="button" className="secondary-button" onClick={() => changeMode('login')}>Voltar</button></div>}
-        {mode === 'terms' && <div className="form legal-auth-view"><TermsContent /><button type="button" className="secondary-button" onClick={() => changeMode('login')}>Voltar</button></div>}
-        {mode === 'rules' && <div className="form legal-auth-view"><RulesContent /><button type="button" className="secondary-button" onClick={() => changeMode('login')}>Voltar</button></div>}
+        {mode === 'privacy' && <div className="form legal-auth-view"><PrivacyContent /><button type="button" className="secondary-button" onClick={closeLegal}>Voltar</button></div>}
+        {mode === 'terms' && <div className="form legal-auth-view"><TermsContent /><button type="button" className="secondary-button" onClick={closeLegal}>Voltar</button></div>}
+        {mode === 'rules' && <div className="form legal-auth-view"><RulesContent /><button type="button" className="secondary-button" onClick={closeLegal}>Voltar</button></div>}
       </div>
     </div>
   );

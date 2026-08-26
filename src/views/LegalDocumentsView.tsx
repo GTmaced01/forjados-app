@@ -1,3 +1,4 @@
+import { ArrowLeft } from 'lucide-react';
 import {
   FORJADOS_IDENTITY_TEXT,
   FORJADOS_MAIN_MESSAGE,
@@ -8,6 +9,7 @@ type LegalDocumentsTab = 'privacy' | 'terms' | 'rules';
 
 type LegalDocumentsViewProps = {
   initialTab?: LegalDocumentsTab;
+  onBack?: () => void;
 };
 
 const TITLES: Record<LegalDocumentsTab, string> = {
@@ -16,7 +18,7 @@ const TITLES: Record<LegalDocumentsTab, string> = {
   rules: 'Regras do Retiro',
 };
 
-export function LegalDocumentsView({ initialTab = 'privacy' }: LegalDocumentsViewProps) {
+export function LegalDocumentsView({ initialTab = 'privacy', onBack }: LegalDocumentsViewProps) {
   return (
     <div className="legal-page">
       <div className="admin-header">
@@ -27,11 +29,24 @@ export function LegalDocumentsView({ initialTab = 'privacy' }: LegalDocumentsVie
             Diretrizes para proteger o propósito, a segurança e o ambiente de cura do FORJADOS.
           </p>
         </div>
+        {onBack && (
+          <button className="secondary-button legal-back-button" type="button" onClick={onBack}>
+            <ArrowLeft size={17} />
+            Voltar ao aplicativo
+          </button>
+        )}
       </div>
 
       {initialTab === 'privacy' && <PrivacyContent />}
       {initialTab === 'terms' && <TermsContent />}
       {initialTab === 'rules' && <RulesContent />}
+
+      {onBack && (
+        <button className="secondary-button legal-bottom-back" type="button" onClick={onBack}>
+          <ArrowLeft size={17} />
+          Voltar ao aplicativo
+        </button>
+      )}
     </div>
   );
 }

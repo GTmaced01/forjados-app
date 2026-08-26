@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './components/AuthProvider';
 import { AuthView } from './views/AuthView';
 import { WaitingView } from './views/WaitingView';
 import { PwaStatus } from './components/PwaStatus';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { initialPasswordRecovery, supabase } from './services/supabase';
 import { isPasswordRecoveryUrl } from './services/authRecovery';
 
@@ -99,10 +100,12 @@ function AppGate() {
 export default function App() {
   return (
     <AuthProvider>
-      <PwaStatus />
-      <Suspense fallback={<AppLoading />}>
-        <AppGate />
-      </Suspense>
+      <AppErrorBoundary>
+        <PwaStatus />
+        <Suspense fallback={<AppLoading />}>
+          <AppGate />
+        </Suspense>
+      </AppErrorBoundary>
     </AuthProvider>
   );
 }
