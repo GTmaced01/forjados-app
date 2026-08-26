@@ -1,48 +1,59 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ExternalLink, FileCheck, Upload } from 'lucide-react';
+import { CalendarCheck2, ExternalLink, FileCheck, MapPin, TicketCheck, Upload } from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
 import { FORJADOS_MAIN_MESSAGE, MODULE_DNA, STATUS_LABELS } from '../constants';
-import { getActiveRetreatEvent } from '../services/eventSettings';
 import {
   formatReceiptStatus,
+  getMyInscriptionOverview,
   listMyPaymentReceipts,
+  setActiveEditionParticipation,
   uploadInscriptionReceipt,
 } from '../services/payments';
 import { getPrivateDocumentUrl } from '../services/privateStorage';
 import { withTimeout } from '../services/safeAsync';
-import type { PaymentReceipt, RetreatEventSettings } from '../types';
+import type { InscriptionOverview, PaymentReceipt } from '../types';
 
 function formatCurrency(value?: number | null) {
   if (value == null) return 'A definir';
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
+function formatEditionDate(value?: string | null) {
+  if (!value) return 'data a definir';
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
 export function InscriptionView() {
   const { profile } = useAuth();
   const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
-  const [activeEvent, setActiveEvent] = useState<RetreatEventSettings | null>(null);
+  const [overview, setOverview] = useState<InscriptionOverview | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [loadingReceipts, setLoadingReceipts] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [savingParticipation, setSavingParticipation] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   async function loadInscription() {
-    setLoadingReceipts(true);
+    setLoading(true);
     setError('');
 
     try {
-      const [receiptData, eventData] = await Promise.all([
+      const [receiptData, overviewData] = await Promise.all([
         withTimeout(listMyPaymentReceipts(), 10000, 'Não foi possível carregar seus comprovantes. Tente novamente.'),
-        withTimeout(getActiveRetreatEvent(), 10000, 'Não foi possível carregar a edição atual.'),
+        withTimeout(getMyInscriptionOverview(), 10000, 'Não foi possível carregar a edição atual.'),
       ]);
       setReceipts(receiptData);
-      setActiveEvent(eventData);
+      setOverview(overviewData);
     } catch (err) {
       console.error('Erro ao carregar inscrição:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar sua inscrição.');
     } finally {
-      setLoadingReceipts(false);
+      setLoading(false);
     }
   }
 
@@ -50,19 +61,41 @@ export function InscriptionView() {
     void loadInscription();
   }, []);
 
+  const activeEdition = overview?.edition || null;
   const currentReceipts = useMemo(() => {
-    if (!activeEvent) return [];
-    return receipts.filter((receipt) => receipt.edition_id === activeEvent.id);
-  }, [activeEvent, receipts]);
+    if (!activeEdition) return [];
+    return receipts.filter((receipt) => receipt.edition_id === activeEdition.id);
+  }, [activeEdition, receipts]);
 
   const latestReceipt = currentReceipts[0];
+  const hasLockedReceipt = currentReceipts.some((receipt) => (
+    receipt.status === 'pending' || receipt.status === 'approved'
+  ));
+  const willParticipate = overview?.enrollment?.will_participate ?? null;
   const paymentStatus = useMemo(() => {
-    if (!activeEvent) return 'Nenhuma edição ativa';
-    if (!latestReceipt) return 'Pagamento pendente';
-    if (latestReceipt.status === 'approved') return 'Inscrição confirmada';
-    if (latestReceipt.status === 'rejected') return 'Comprovante recusado';
-    return 'Comprovante em análise';
-  }, [activeEvent, latestReceipt]);
+    if (!activeEdition) return 'Nenhuma edição ativa';
+    if (overview?.enrollment?.payment_status === 'approved' || latestReceipt?.status === 'approved') return 'Inscrição confirmada';
+    if (latestReceipt?.status === 'rejected') return 'Comprovante recusado';
+    if (latestReceipt?.status === 'pending') return 'Comprovante em análise';
+    return 'Pagamento pendente';
+  }, [activeEdition, latestReceipt, overview?.enrollment?.payment_status]);
+
+  async function handleParticipationAnswer(answer: boolean) {
+    setError('');
+    setSuccess('');
+    try {
+      setSavingParticipation(true);
+      await setActiveEditionParticipation(answer);
+      setSuccess(answer
+        ? 'Participação confirmada. Agora você pode concluir o pagamento desta edição.'
+        : 'Resposta registrada. Você poderá mudar para “Sim” enquanto não houver comprovante em análise.');
+      await loadInscription();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível registrar sua resposta.');
+    } finally {
+      setSavingParticipation(false);
+    }
+  }
 
   async function handleUpload(event: React.FormEvent) {
     event.preventDefault();
@@ -71,8 +104,10 @@ export function InscriptionView() {
     setSuccess('');
 
     try {
-      if (!activeEvent) throw new Error('Não existe uma edição ativa para receber inscrições.');
-      if (activeEvent.registration_open === false) throw new Error('As inscrições desta edição estão fechadas.');
+      if (!activeEdition) throw new Error('Não existe uma edição ativa para receber inscrições.');
+      if (willParticipate !== true) throw new Error('Confirme sua participação antes de enviar o comprovante.');
+      if (activeEdition.status !== 'open') throw new Error('As inscrições desta edição estão fechadas.');
+      if (hasLockedReceipt) throw new Error('Já existe um comprovante válido ou em análise para esta edição.');
       if (!selectedFile) throw new Error('Selecione um comprovante antes de enviar.');
 
       const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
@@ -82,7 +117,7 @@ export function InscriptionView() {
       setUploading(true);
       await uploadInscriptionReceipt({
         file: selectedFile,
-        editionId: activeEvent.id,
+        editionId: activeEdition.id,
         userName: profile.display_name,
         userEmail: profile.email,
         userWhatsapp: profile.phone || '',
@@ -116,7 +151,12 @@ export function InscriptionView() {
     return <div className="panel wide"><h1>{MODULE_DNA.inscription.title}</h1><p className="muted">Perfil não encontrado.</p></div>;
   }
 
-  const canUpload = Boolean(activeEvent && activeEvent.registration_open !== false);
+  const canUpload = Boolean(
+    activeEdition
+    && activeEdition.status === 'open'
+    && willParticipate === true
+    && !hasLockedReceipt
+  );
 
   return (
     <div className="inscription-page">
@@ -132,26 +172,95 @@ export function InscriptionView() {
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
 
-      <section className="inscription-grid">
-        <div className="card inscription-card"><h3>Edição atual</h3><strong>{activeEvent?.title || 'A definir'}</strong><p className="muted">{activeEvent?.start_date ? new Date(activeEvent.start_date).toLocaleDateString('pt-BR') : 'Aguarde a publicação da próxima edição.'}</p></div>
-        <div className="card inscription-card"><h3>Status de acesso</h3><strong>{STATUS_LABELS[profile.inscription_status]}</strong><p className="muted">Seu acesso ao aplicativo depende da aprovação da diretoria.</p></div>
-        <div className="card inscription-card"><h3>Valor da inscrição</h3><strong>{formatCurrency(activeEvent?.registration_fee)}</strong><p className="muted">O valor é definido pela edição ativa, não pelo navegador.</p></div>
-        <div className="card inscription-card"><h3>Status financeiro</h3><strong>{paymentStatus}</strong><p className="muted">{latestReceipt ? `Último envio: ${new Date(latestReceipt.uploaded_at).toLocaleString('pt-BR')}` : 'Nenhum comprovante para esta edição.'}</p></div>
+      <section className="inscription-grid inscription-overview-grid">
+        <div className="card inscription-card">
+          <CalendarCheck2 size={22} aria-hidden="true" />
+          <h3>Próxima edição</h3>
+          <strong>{activeEdition?.title || 'A definir'}</strong>
+          <p className="muted">{activeEdition ? formatEditionDate(activeEdition.starts_at) : 'Aguarde a publicação da próxima edição.'}</p>
+          {activeEdition?.location && <p className="muted inscription-location"><MapPin size={14} />{activeEdition.location}</p>}
+        </div>
+        <div className="card inscription-card participation-count-card">
+          <TicketCheck size={22} aria-hidden="true" />
+          <h3>Edições já participadas</h3>
+          <strong>{overview?.participation_count ?? 0}</strong>
+          <p className="muted">
+            {overview?.participation_count_is_manual
+              ? 'Quantidade ajustada pela administração.'
+              : 'Contagem baseada em pagamentos de inscrição aprovados.'}
+          </p>
+        </div>
+        <div className="card inscription-card">
+          <h3>Status de acesso</h3>
+          <strong>{STATUS_LABELS[profile.inscription_status]}</strong>
+          <p className="muted">Seu acesso ao aplicativo depende da aprovação da diretoria.</p>
+        </div>
       </section>
 
-      <section className="panel wide receipt-upload-panel">
-        <div><h3>Enviar comprovante</h3><p className="muted">PNG, JPG, JPEG ou PDF, até 8MB. O arquivo ficará privado.</p></div>
-        <form onSubmit={handleUpload} className="receipt-upload-form">
-          <input type="file" accept="image/png,image/jpeg,image/jpg,application/pdf" disabled={!canUpload} onChange={(event) => setSelectedFile(event.target.files?.[0] || null)} />
-          {selectedFile && <p className="muted">Arquivo selecionado: <strong>{selectedFile.name}</strong></p>}
-          {!canUpload && <p className="muted">As inscrições não estão abertas neste momento.</p>}
-          <button className="primary-button upload-button" disabled={uploading || !canUpload}><Upload size={16} />{uploading ? 'Enviando...' : 'Enviar comprovante'}</button>
-        </form>
-      </section>
+      {loading && !overview ? (
+        <section className="panel wide center"><div className="loader"></div><p className="muted">Carregando sua inscrição...</p></section>
+      ) : !activeEdition ? (
+        <section className="panel wide"><h3>Próxima edição ainda não publicada</h3><p className="muted">Quando a administração cadastrar uma nova edição, a confirmação de participação aparecerá aqui.</p></section>
+      ) : (
+        <section className={`panel wide participation-question ${willParticipate === true ? 'confirmed' : ''}`}>
+          <div>
+            <p className="eyebrow">Confirmação por edição</p>
+            <h3>Você irá participar da próxima edição do FORJADOS {formatEditionDate(activeEdition.starts_at)}?</h3>
+            <p className="muted">O pagamento desta edição só é liberado depois da sua confirmação.</p>
+          </div>
+
+          {willParticipate === true ? (
+            <div className="participation-answer">
+              <span className="pill success">Sim, vou participar</span>
+              {!hasLockedReceipt && (
+                <button type="button" className="secondary-button" disabled={savingParticipation} onClick={() => void handleParticipationAnswer(false)}>
+                  Alterar resposta
+                </button>
+              )}
+            </div>
+          ) : willParticipate === false ? (
+            <div className="participation-answer">
+              <span className="pill muted-pill">Não participarei desta edição</span>
+              <button type="button" className="primary-button" disabled={savingParticipation} onClick={() => void handleParticipationAnswer(true)}>
+                {savingParticipation ? 'Salvando...' : 'Quero participar'}
+              </button>
+            </div>
+          ) : (
+            <div className="participation-answer">
+              <button type="button" className="primary-button" disabled={savingParticipation} onClick={() => void handleParticipationAnswer(true)}>
+                {savingParticipation ? 'Salvando...' : 'Sim, vou participar'}
+              </button>
+              <button type="button" className="secondary-button" disabled={savingParticipation} onClick={() => void handleParticipationAnswer(false)}>
+                Não nesta edição
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeEdition && willParticipate === true && (
+        <>
+          <section className="inscription-grid inscription-payment-grid">
+            <div className="card inscription-card"><h3>Valor da inscrição</h3><strong>{formatCurrency(activeEdition.amount)}</strong><p className="muted">Valor protegido e definido no banco para esta edição.</p></div>
+            <div className="card inscription-card"><h3>Status financeiro</h3><strong>{paymentStatus}</strong><p className="muted">{latestReceipt ? `Último envio: ${new Date(latestReceipt.uploaded_at).toLocaleString('pt-BR')}` : 'Nenhum comprovante para esta edição.'}</p></div>
+          </section>
+
+          <section className="panel wide receipt-upload-panel">
+            <div><h3>Enviar comprovante</h3><p className="muted">PNG, JPG, JPEG ou PDF, até 8MB. O arquivo ficará privado.</p></div>
+            <form onSubmit={handleUpload} className="receipt-upload-form">
+              <input type="file" accept="image/png,image/jpeg,image/jpg,application/pdf" disabled={!canUpload} onChange={(event) => setSelectedFile(event.target.files?.[0] || null)} />
+              {selectedFile && <p className="muted">Arquivo selecionado: <strong>{selectedFile.name}</strong></p>}
+              {activeEdition.status !== 'open' && <p className="muted">As inscrições não estão abertas neste momento.</p>}
+              {hasLockedReceipt && <p className="muted">Esta edição já possui comprovante em análise ou aprovado.</p>}
+              <button className="primary-button upload-button" disabled={uploading || !canUpload}><Upload size={16} />{uploading ? 'Enviando...' : 'Enviar comprovante'}</button>
+            </form>
+          </section>
+        </>
+      )}
 
       <section className="panel wide">
         <h3>Histórico de comprovantes</h3>
-        {loadingReceipts ? <p className="muted">Carregando comprovantes...</p> : receipts.length === 0 ? <p className="muted">Você ainda não enviou nenhum comprovante.</p> : (
+        {loading ? <p className="muted">Carregando comprovantes...</p> : receipts.length === 0 ? <p className="muted">Você ainda não enviou nenhum comprovante.</p> : (
           <div className="receipt-list">
             {receipts.map((receipt) => (
               <div className="receipt-item" key={receipt.id}>
