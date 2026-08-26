@@ -20,6 +20,7 @@ import {
   listServicePeople,
   listServiceSchedules,
   saveGeneratedScale,
+  type ScaleGenerationMetrics,
   summarizeGeneratedScale,
   toDatetimeLocalValue,
   updateServicePerson,
@@ -53,14 +54,18 @@ const initialPersonForm = {
   notes: '',
 };
 
+type PersonForm = typeof initialPersonForm;
+
 function normalizeDatetimeLocal(value: string) {
   if (!value) return '';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toISOString();
 }
 
-function genderLabel(gender: ServiceScaleGender) {
-  return gender === 'male' ? 'Masculino' : 'Feminino';
+function genderLabel(gender: ServiceScaleGender | null) {
+  if (gender === 'male') return 'Masculino';
+  if (gender === 'female') return 'Feminino';
+  return 'Definir alojamento';
 }
 
 export function ServiceScaleView() {
@@ -68,10 +73,13 @@ export function ServiceScaleView() {
   const [schedules, setSchedules] = useState<ServiceScaleSchedule[]>([]);
   const [selectedScheduleId, setSelectedScheduleId] = useState('');
   const [selectedAssignments, setSelectedAssignments] = useState<ServiceScaleAssignment[]>([]);
-  const [personForm, setPersonForm] = useState(initialPersonForm);
+  const [personForm, setPersonForm] = useState<PersonForm>(initialPersonForm);
+  const [editingPersonId, setEditingPersonId] = useState<string | null>(null);
   const [config, setConfig] = useState<ServiceScaleConfig>(initialConfig);
   const [generatedSlots, setGeneratedSlots] = useState<GeneratedScaleSlot[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [generationValid, setGenerationValid] = useState(false);
+  const [generationMetrics, setGenerationMetrics] = useState<ScaleGenerationMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingPerson, setSavingPerson] = useState(false);
   const [savingSchedule, setSavingSchedule] = useState(false);
@@ -115,9 +123,7 @@ export function ServiceScaleView() {
         setSelectedScheduleId(scheduleData[0].id);
       }
     } catch (err) {
-      setError(
-        `Não consegui carregar o módulo de escala. Verifique se você executou o arquivo supabase/service-scale.sql no Supabase. Detalhe: ${formatSupabaseError(err)}`
-      );
+      setError(`Não consegui carregar o módulo de escala. Detalhe: ${formatSupabaseError(err)}`);
     } finally {
       setLoading(false);
     }
@@ -149,24 +155,80 @@ export function ServiceScaleView() {
     loadAssignments();
   }, [selectedScheduleId]);
 
-  async function handleCreatePerson(event: React.FormEvent) {
+  function invalidateGeneratedScale() {
+    setGeneratedSlots([]);
+    setGenerationValid(false);
+    setGenerationMetrics(null);
+  }
+
+  function updateConfig<K extends keyof ServiceScaleConfig>(key: K, value: ServiceScaleConfig[K]) {
+    setConfig((current) => ({ ...current, [key]: value }));
+    invalidateGeneratedScale();
+  }
+
+  function beginEditPerson(person: ServiceScalePerson) {
+    setEditingPersonId(person.id);
+    setPersonForm({
+      name: person.name,
+      gender: person.gender || 'male',
+      phone: person.phone || '',
+      sector: person.sector || '',
+      is_active: person.is_active && !person.does_trail,
+      does_trail: person.does_trail,
+      notes: person.notes || '',
+    });
+    setError('');
+    setSuccess('');
+  }
+
+  function cancelEditPerson() {
+    setEditingPersonId(null);
+    setPersonForm(initialPersonForm);
+  }
+
+  async function handleSubmitPerson(event: React.FormEvent) {
     event.preventDefault();
     setError('');
     setSuccess('');
 
-    if (!personForm.name.trim()) {
-      setError('Informe o nome da pessoa.');
+    const name = personForm.name.trim();
+    const sector = personForm.sector.trim();
+    if (name.length < 3) {
+      setError('Informe o nome completo da pessoa.');
+      return;
+    }
+    if (!sector) {
+      setError('Informe o setor ou função para facilitar a organização da escala.');
+      return;
+    }
+    if (people.some((person) => person.id !== editingPersonId && person.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase())) {
+      setError('Essa pessoa já está cadastrada na lista de escala.');
       return;
     }
 
     try {
       setSavingPerson(true);
-      const created = await createServicePerson(personForm);
-      setPeople((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
-      setPersonForm(initialPersonForm);
-      setSuccess('Pessoa cadastrada com sucesso.');
+      if (editingPersonId) {
+        const updated = await updateServicePerson(editingPersonId, {
+          ...personForm,
+          name,
+          sector,
+          gender: personForm.gender,
+        });
+        setPeople((current) => current.map((item) => (item.id === editingPersonId ? updated : item)).sort((a, b) => a.name.localeCompare(b.name)));
+        setSuccess('Dados do servo atualizados.');
+      } else {
+        const created = await createServicePerson({ ...personForm, name, sector });
+        setPeople((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+        setSuccess('Servo cadastrado com sucesso.');
+      }
+      cancelEditPerson();
+      invalidateGeneratedScale();
     } catch (err) {
-      setError(`Não foi possível cadastrar a pessoa. Detalhe: ${formatSupabaseError(err)}`);
+      const detail = formatSupabaseError(err);
+      setError(detail.includes('display_name')
+        ? 'O cadastro antigo do módulo está incompleto. Atualize o aplicativo e tente novamente.'
+        : `Não foi possível salvar o servo. Detalhe: ${detail}`);
     } finally {
       setSavingPerson(false);
     }
@@ -190,6 +252,7 @@ export function ServiceScaleView() {
     try {
       const updated = await updateServicePerson(person.id, payload);
       setPeople((current) => current.map((item) => (item.id === person.id ? updated : item)));
+      invalidateGeneratedScale();
     } catch (err) {
       setError(`Não foi possível atualizar a pessoa. Detalhe: ${formatSupabaseError(err)}`);
     }
@@ -202,6 +265,7 @@ export function ServiceScaleView() {
     try {
       await deleteServicePerson(person.id);
       setPeople((current) => current.filter((item) => item.id !== person.id));
+      invalidateGeneratedScale();
       setSuccess('Pessoa removida.');
     } catch (err) {
       setError(`Não foi possível remover. Detalhe: ${formatSupabaseError(err)}`);
@@ -221,32 +285,38 @@ export function ServiceScaleView() {
     const result = buildGeneratedScale(people, normalizedConfig);
     setGeneratedSlots(result.slots);
     setWarnings(result.warnings);
+    setGenerationValid(result.isValid);
+    setGenerationMetrics(result.metrics);
 
-    if (result.slots.length === 0) {
-      setError(result.warnings[0] || 'Não foi possível gerar a escala.');
+    if (!result.isValid || result.slots.length === 0) {
+      setError(result.warnings.join(' ') || 'Não foi possível gerar uma escala completa.');
       return;
     }
 
-    setSuccess(`Escala gerada com ${result.slots.length} turno(s). Revise e salve/publica quando estiver tudo certo.`);
+    setSuccess(`Prévia válida com ${result.slots.length} turno(s). Revise antes de publicar.`);
   }
 
   async function handleSaveScale() {
     setError('');
     setSuccess('');
 
-    if (generatedSlots.length === 0) {
-      setError('Gere uma escala antes de salvar.');
+    const normalizedConfig = {
+      ...config,
+      startAt: normalizeDatetimeLocal(config.startAt),
+      endAt: normalizeDatetimeLocal(config.endAt),
+    };
+    const validation = buildGeneratedScale(people, normalizedConfig);
+    if (!validation.isValid || validation.slots.length === 0) {
+      setWarnings(validation.warnings);
+      setGenerationValid(false);
+      setGenerationMetrics(validation.metrics);
+      setError(validation.warnings.join(' ') || 'Gere uma escala completa antes de salvar.');
       return;
     }
 
     try {
       setSavingSchedule(true);
-      const normalizedConfig = {
-        ...config,
-        startAt: normalizeDatetimeLocal(config.startAt),
-        endAt: normalizeDatetimeLocal(config.endAt),
-      };
-      const schedule = await saveGeneratedScale({ config: normalizedConfig, slots: generatedSlots, status: 'published' });
+      const schedule = await saveGeneratedScale({ config: normalizedConfig, slots: validation.slots, status: 'published' });
       setSchedules((current) => [schedule, ...current]);
       setSelectedScheduleId(schedule.id);
       setSuccess('Escala salva/publicada com sucesso.');
@@ -321,13 +391,16 @@ export function ServiceScaleView() {
 
       <section className="grid two service-scale-main-grid">
         <div className="card">
-          <h3>Cadastrar servo na escala</h3>
-          <p className="muted">Quem estiver marcado como trilha não entra na escala automaticamente.</p>
+          <h3>{editingPersonId ? 'Editar servo da escala' : 'Cadastrar servo na escala'}</h3>
+          <p className="muted">O alojamento e o setor são obrigatórios para que a geração seja segura.</p>
 
-          <form className="form" onSubmit={handleCreatePerson}>
+          <form className="form" onSubmit={handleSubmitPerson}>
             <div>
               <label>Nome</label>
               <input
+                required
+                minLength={3}
+                maxLength={160}
                 value={personForm.name}
                 onChange={(event) => setPersonForm((current) => ({ ...current, name: event.target.value }))}
                 placeholder="Ex.: João Silva"
@@ -338,6 +411,7 @@ export function ServiceScaleView() {
               <div>
                 <label>Alojamento</label>
                 <select
+                  required
                   value={personForm.gender}
                   onChange={(event) => setPersonForm((current) => ({ ...current, gender: event.target.value as ServiceScaleGender }))}
                 >
@@ -350,6 +424,7 @@ export function ServiceScaleView() {
                 <label>Telefone</label>
                 <input
                   value={personForm.phone}
+                  maxLength={40}
                   onChange={(event) => setPersonForm((current) => ({ ...current, phone: event.target.value }))}
                   placeholder="Opcional"
                 />
@@ -359,9 +434,21 @@ export function ServiceScaleView() {
             <div>
               <label>Setor/Função</label>
               <input
+                required
+                maxLength={160}
                 value={personForm.sector}
                 onChange={(event) => setPersonForm((current) => ({ ...current, sector: event.target.value }))}
                 placeholder="Ex.: Apoio, cozinha, liderança..."
+              />
+            </div>
+
+            <div>
+              <label>Observações</label>
+              <textarea
+                value={personForm.notes}
+                maxLength={2000}
+                onChange={(event) => setPersonForm((current) => ({ ...current, notes: event.target.value }))}
+                placeholder="Restrições de horário, cuidados ou outras observações"
               />
             </div>
 
@@ -392,9 +479,12 @@ export function ServiceScaleView() {
               </label>
             </div>
 
-            <button type="submit" className="primary-button" disabled={savingPerson}>
-              {savingPerson ? 'Cadastrando...' : 'Cadastrar servo na escala'}
-            </button>
+            <div className="service-action-row">
+              <button type="submit" className="primary-button" disabled={savingPerson}>
+                {savingPerson ? 'Salvando...' : editingPersonId ? 'Salvar alterações' : 'Cadastrar servo na escala'}
+              </button>
+              {editingPersonId && <button type="button" className="secondary-button" onClick={cancelEditPerson}>Cancelar edição</button>}
+            </div>
           </form>
         </div>
 
@@ -406,8 +496,10 @@ export function ServiceScaleView() {
             <div>
               <label>Nome da escala</label>
               <input
+                required
+                maxLength={160}
                 value={config.title}
-                onChange={(event) => setConfig((current) => ({ ...current, title: event.target.value }))}
+              onChange={(event) => updateConfig('title', event.target.value)}
               />
             </div>
 
@@ -416,16 +508,18 @@ export function ServiceScaleView() {
                 <label>Início</label>
                 <input
                   type="datetime-local"
+                  required
                   value={config.startAt}
-                  onChange={(event) => setConfig((current) => ({ ...current, startAt: event.target.value }))}
+                  onChange={(event) => updateConfig('startAt', event.target.value)}
                 />
               </div>
               <div>
                 <label>Fim</label>
                 <input
                   type="datetime-local"
+                  required
                   value={config.endAt}
-                  onChange={(event) => setConfig((current) => ({ ...current, endAt: event.target.value }))}
+                  onChange={(event) => updateConfig('endAt', event.target.value)}
                 />
               </div>
             </div>
@@ -436,9 +530,11 @@ export function ServiceScaleView() {
                 <input
                   type="number"
                   min="15"
+                  max="720"
                   step="15"
+                  required
                   value={config.shiftMinutes}
-                  onChange={(event) => setConfig((current) => ({ ...current, shiftMinutes: Number(event.target.value) || 90 }))}
+                  onChange={(event) => updateConfig('shiftMinutes', Number(event.target.value))}
                 />
               </div>
               <div>
@@ -446,8 +542,10 @@ export function ServiceScaleView() {
                 <input
                   type="number"
                   min="0"
+                  max="50"
+                  required
                   value={config.menPerShift}
-                  onChange={(event) => setConfig((current) => ({ ...current, menPerShift: Number(event.target.value) || 0 }))}
+                  onChange={(event) => updateConfig('menPerShift', Number(event.target.value))}
                 />
               </div>
               <div>
@@ -455,8 +553,10 @@ export function ServiceScaleView() {
                 <input
                   type="number"
                   min="0"
+                  max="50"
+                  required
                   value={config.womenPerShift}
-                  onChange={(event) => setConfig((current) => ({ ...current, womenPerShift: Number(event.target.value) || 0 }))}
+                  onChange={(event) => updateConfig('womenPerShift', Number(event.target.value))}
                 />
               </div>
             </div>
@@ -467,9 +567,11 @@ export function ServiceScaleView() {
                 <input
                   type="number"
                   min="0"
+                  max="1440"
                   step="30"
+                  required
                   value={config.minRestMinutes}
-                  onChange={(event) => setConfig((current) => ({ ...current, minRestMinutes: Number(event.target.value) || 0 }))}
+                  onChange={(event) => updateConfig('minRestMinutes', Number(event.target.value))}
                 />
               </div>
               <div className="service-toggle-card">
@@ -477,7 +579,7 @@ export function ServiceScaleView() {
                   <input
                     type="checkbox"
                     checked={config.avoidConsecutive}
-                    onChange={(event) => setConfig((current) => ({ ...current, avoidConsecutive: event.target.checked }))}
+                    onChange={(event) => updateConfig('avoidConsecutive', event.target.checked)}
                   />
                   Evitar serviço colado
                 </label>
@@ -486,7 +588,7 @@ export function ServiceScaleView() {
 
             <div className="service-action-row">
               <button type="button" className="primary-button" onClick={handleGenerateScale}>Gerar escala</button>
-              <button type="button" className="secondary-button" onClick={handleSaveScale} disabled={savingSchedule || generatedSlots.length === 0}>
+              <button type="button" className="secondary-button" onClick={handleSaveScale} disabled={savingSchedule || !generationValid || generatedSlots.length === 0}>
                 {savingSchedule ? 'Salvando...' : 'Salvar/Publicar'}
               </button>
               <button type="button" className="secondary-button" onClick={handleExportGenerated} disabled={generatedSlots.length === 0}>
@@ -538,6 +640,9 @@ export function ServiceScaleView() {
                   </td>
                   <td>
                     <div className="table-actions">
+                      <button type="button" className="secondary-button" onClick={() => beginEditPerson(person)}>
+                        Editar
+                      </button>
                       <button type="button" className="secondary-button" onClick={() => handleTogglePerson(person, 'is_active')}>
                         {person.is_active && !person.does_trail ? 'Desativar' : 'Ativar'}
                       </button>
@@ -558,7 +663,18 @@ export function ServiceScaleView() {
 
       {warnings.length > 0 && (
         <section className="card warning-card">
-          <h3>Avisos da geração</h3>
+          <h3>Checklist da geração</h3>
+          {generationMetrics && (
+            <div className="service-preflight-grid">
+              <div><span>Turnos previstos</span><strong>{generationMetrics.totalSlots}</strong></div>
+              <div><span>Alocações esperadas</span><strong>{generationMetrics.expectedAssignments}</strong></div>
+              <div><span>Homens ativos</span><strong>{generationMetrics.activeMen}</strong></div>
+              <div><span>Mulheres ativas</span><strong>{generationMetrics.activeWomen}</strong></div>
+            </div>
+          )}
+          <p className={generationValid ? 'pill success' : 'pill warning'}>
+            {generationValid ? 'Prévia pronta para publicação' : 'Ajustes necessários antes de publicar'}
+          </p>
           <ul>
             {warnings.map((warning) => <li key={warning}>{warning}</li>)}
           </ul>
