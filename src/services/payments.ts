@@ -1,6 +1,26 @@
 import { supabase } from './supabase';
 import { removePrivateDocument } from './privateStorage';
-import type { PaymentReceipt } from '../types';
+import type { InscriptionOverview, PaymentReceipt } from '../types';
+
+export async function getMyInscriptionOverview(): Promise<InscriptionOverview> {
+  const { data, error } = await supabase.rpc('forjados_get_my_inscription_overview_v1');
+  if (error) throw error;
+
+  const overview = (data || {}) as Partial<InscriptionOverview>;
+  return {
+    participation_count: Number(overview.participation_count || 0),
+    participation_count_is_manual: overview.participation_count_is_manual === true,
+    edition: overview.edition || null,
+    enrollment: overview.enrollment || null,
+  };
+}
+
+export async function setActiveEditionParticipation(willParticipate: boolean): Promise<void> {
+  const { error } = await supabase.rpc('forjados_set_active_edition_participation_v1', {
+    p_will_participate: willParticipate,
+  });
+  if (error) throw error;
+}
 
 export async function listMyPaymentReceipts(): Promise<PaymentReceipt[]> {
   const { data: userData, error: userError } = await supabase.auth.getUser();
