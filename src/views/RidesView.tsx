@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Car, MapPin, Plus, RefreshCw, UserPlus, XCircle } from 'lucide-react';
+import { CalendarClock, Car, MapPin, Plus, RefreshCw, Route, UserPlus, Users, XCircle } from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
 import {
   cancelRide,
@@ -15,6 +15,22 @@ import type { Ride } from '../types';
 
 type RideFilter = 'all' | 'available' | 'mine';
 
+function getSafeExternalUrl(value?: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function getDepartureTimestamp(value?: string | null) {
+  if (!value) return Number.POSITIVE_INFINITY;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : Number.POSITIVE_INFINITY;
+}
+
 export function RidesView() {
   const { profile, isAdmin, isDirector } = useAuth();
 
@@ -24,6 +40,7 @@ export function RidesView() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [actionRideId, setActionRideId] = useState<string | null>(null);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -67,7 +84,7 @@ export function RidesView() {
       if (!profile) return false;
 
       if (filter === 'available') {
-        return ride.status === 'available' || ride.status === 'full';
+        return ride.status === 'available' && ride.available_seats > 0;
       }
 
       if (filter === 'mine') {
@@ -80,8 +97,26 @@ export function RidesView() {
       }
 
       return true;
+    }).sort((first, second) => {
+      const firstActive = ['available', 'full', 'confirmed'].includes(first.status) ? 0 : 1;
+      const secondActive = ['available', 'full', 'confirmed'].includes(second.status) ? 0 : 1;
+      if (firstActive !== secondActive) return firstActive - secondActive;
+      return getDepartureTimestamp(first.departure_time) - getDepartureTimestamp(second.departure_time);
     });
   }, [rides, filter, profile]);
+
+  const rideMetrics = useMemo(() => {
+    if (!profile) return { open: 0, seats: 0, mine: 0 };
+    return rides.reduce((totals, ride) => {
+      const active = ['available', 'full', 'confirmed'].includes(ride.status);
+      const mine = ride.driver_id === profile.id || ride.passengers?.some((passenger) => passenger.passenger_id === profile.id);
+      return {
+        open: totals.open + (active ? 1 : 0),
+        seats: totals.seats + (active ? Math.max(0, ride.available_seats) : 0),
+        mine: totals.mine + (mine ? 1 : 0),
+      };
+    }, { open: 0, seats: 0, mine: 0 });
+  }, [rides, profile]);
 
   async function handleCreateRide(e: React.FormEvent) {
     e.preventDefault();
@@ -101,6 +136,22 @@ export function RidesView() {
 
       if (!totalSeats || totalSeats <= 0) {
         throw new Error('Informe uma quantidade válida de vagas.');
+      }
+
+      if (totalSeats > 20) {
+        throw new Error('Para mais de 20 vagas, fale com a diretoria para cadastrar o transporte.');
+      }
+
+      if (!form.departureTime) {
+        throw new Error('Informe a data e o horário de saída.');
+      }
+
+      if (new Date(form.departureTime).getTime() <= Date.now()) {
+        throw new Error('O horário da carona precisa estar no futuro.');
+      }
+
+      if (form.departureMapUrl.trim() && !getSafeExternalUrl(form.departureMapUrl.trim())) {
+        throw new Error('Use um link válido do Google Maps, Waze ou outro mapa com HTTPS.');
       }
 
       await createRide({
@@ -135,7 +186,7 @@ export function RidesView() {
   }
 
   async function handleConfirmRide(ride: Ride, completed: boolean) {
-    setSaving(true);
+    setActionRideId(ride.id);
     setError('');
     setSuccess('');
   
@@ -172,14 +223,14 @@ export function RidesView() {
           : 'Erro ao confirmar carona.'
       );
     } finally {
-      setSaving(false);
+      setActionRideId(null);
     }
   }
 
   async function handleJoinRide(ride: Ride) {
     if (!profile) return;
 
-    setSaving(true);
+    setActionRideId(ride.id);
     setError('');
     setSuccess('');
 
@@ -195,12 +246,12 @@ export function RidesView() {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao entrar na carona.');
     } finally {
-      setSaving(false);
+      setActionRideId(null);
     }
   }
 
   async function handleLeaveRide(ride: Ride) {
-    setSaving(true);
+    setActionRideId(ride.id);
     setError('');
     setSuccess('');
 
@@ -212,7 +263,7 @@ export function RidesView() {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao sair da carona.');
     } finally {
-      setSaving(false);
+      setActionRideId(null);
     }
   }
 
@@ -221,7 +272,7 @@ export function RidesView() {
 
     if (!confirmed) return;
 
-    setSaving(true);
+    setActionRideId(ride.id);
     setError('');
     setSuccess('');
 
@@ -233,7 +284,7 @@ export function RidesView() {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao cancelar carona.');
     } finally {
-      setSaving(false);
+      setActionRideId(null);
     }
   }
 
@@ -270,6 +321,12 @@ export function RidesView() {
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
 
+      <section className="rides-overview" aria-label="Resumo das caronas">
+        <div className="card"><Route size={20} /><span>Caronas em aberto</span><strong>{rideMetrics.open}</strong></div>
+        <div className="card"><Users size={20} /><span>Vagas disponíveis</span><strong>{rideMetrics.seats}</strong></div>
+        <div className="card"><Car size={20} /><span>Minhas caronas</span><strong>{rideMetrics.mine}</strong></div>
+      </section>
+
       {showForm && (
         <section className="panel wide ride-form-panel">
           <h3>Oferecer carona</h3>
@@ -279,6 +336,8 @@ export function RidesView() {
               <div>
                 <label>Local de saída</label>
                 <input
+                  required
+                  maxLength={180}
                   value={form.departureLocation}
                   placeholder="Ex: Praça central, igreja, estação..."
                   onChange={(e) =>
@@ -290,6 +349,9 @@ export function RidesView() {
               <div>
                 <label>Link do local de saída</label>
                 <input
+                  type="url"
+                  inputMode="url"
+                  maxLength={500}
                   value={form.departureMapUrl}
                   placeholder="Cole aqui o link do Google Maps ou Waze"
                   onChange={(e) =>
@@ -302,6 +364,7 @@ export function RidesView() {
                 <label>Horário de saída</label>
                 <input
                   type="datetime-local"
+                  required
                   value={form.departureTime}
                   onChange={(e) =>
                     setForm({ ...form, departureTime: e.target.value })
@@ -314,6 +377,8 @@ export function RidesView() {
                 <input
                   type="number"
                   min="1"
+                  max="20"
+                  required
                   value={form.totalSeats}
                   onChange={(e) =>
                     setForm({ ...form, totalSeats: e.target.value })
@@ -324,6 +389,7 @@ export function RidesView() {
               <div>
                 <label>Veículo</label>
                 <input
+                  maxLength={120}
                   value={form.vehicleType}
                   placeholder="Ex: Gol prata, Spin, van..."
                   onChange={(e) =>
@@ -336,6 +402,7 @@ export function RidesView() {
             <div>
               <label>Observações</label>
               <textarea
+                maxLength={1000}
                 value={form.notes}
                 placeholder="Ex: passar na Av. Brasil, levar pouca bagagem..."
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -363,7 +430,7 @@ export function RidesView() {
           className={filter === 'available' ? 'chip active' : 'chip'}
           onClick={() => setFilter('available')}
         >
-          Disponíveis
+          Com vaga
         </button>
 
         <button
@@ -397,15 +464,18 @@ export function RidesView() {
               ride.status === 'available' &&
               ride.available_seats > 0;
 
-            const canLeave = !isDriver && isPassenger && ride.status !== 'cancelled';
-            const canCancel = isDriver && ride.status !== 'cancelled';
+            const canLeave = !isDriver && isPassenger && ['available', 'full'].includes(ride.status);
+            const canCancel = isDriver && ['available', 'full', 'confirmed'].includes(ride.status);
             const canConfirmRide =
-  (isAdmin || isDirector) &&
-  ride.status !== 'cancelled' &&
-  ride.status !== 'completed' &&
-  ride.status !== 'not_completed';
-
-const suggestedPassengerCount = String(ride.passengers?.length || 0);
+              (isAdmin || isDirector) &&
+              ride.status !== 'cancelled' &&
+              ride.status !== 'completed' &&
+              ride.status !== 'not_completed';
+            const suggestedPassengerCount = String(ride.passengers?.length || 0);
+            const occupiedSeats = Math.max(0, Math.min(ride.total_seats, ride.total_seats - ride.available_seats));
+            const occupancyPercent = ride.total_seats > 0 ? Math.round((occupiedSeats / ride.total_seats) * 100) : 0;
+            const mapUrl = getSafeExternalUrl(ride.departure_map_url);
+            const isActing = actionRideId === ride.id;
 
             return (
               <div className="ride-card" key={ride.id}>
@@ -431,8 +501,8 @@ const suggestedPassengerCount = String(ride.passengers?.length || 0);
                     <label>Saída</label>
                     <p>
                       <MapPin size={14} />
-                      {ride.departure_map_url ? (
-                        <a href={ride.departure_map_url} target="_blank" rel="noreferrer">
+                      {mapUrl ? (
+                        <a href={mapUrl} target="_blank" rel="noopener noreferrer">
                           {ride.departure_location}
                         </a>
                       ) : (
@@ -444,6 +514,7 @@ const suggestedPassengerCount = String(ride.passengers?.length || 0);
                   <div>
                     <label>Horário</label>
                     <p>
+                      <CalendarClock size={14} />
                       {ride.departure_time
                         ? new Date(ride.departure_time).toLocaleString('pt-BR')
                         : 'Não informado'}
@@ -466,6 +537,16 @@ const suggestedPassengerCount = String(ride.passengers?.length || 0);
                   </div>
                 </div>
 
+                <div className="ride-occupancy">
+                  <div>
+                    <span>{occupiedSeats} vaga(s) ocupada(s)</span>
+                    <strong>{ride.available_seats} disponível(is)</strong>
+                  </div>
+                  <div className="ride-occupancy-track" aria-label={`${occupancyPercent}% das vagas ocupadas`}>
+                    <i style={{ width: `${occupancyPercent}%` }} />
+                  </div>
+                </div>
+
                 {ride.notes && (
                   <div className="ride-notes">
                     <label>Observações</label>
@@ -474,7 +555,7 @@ const suggestedPassengerCount = String(ride.passengers?.length || 0);
                 )}
 
                 <div className="ride-passengers">
-                  <label>Passageiros</label>
+                  <label>Passageiros ({ride.passengers?.length || 0})</label>
 
                   {ride.passengers && ride.passengers.length > 0 ? (
                     <div className="passenger-list">
@@ -494,11 +575,11 @@ const suggestedPassengerCount = String(ride.passengers?.length || 0);
                     <button
                       type="button"
                       className="approve-button"
-                      disabled={saving}
+                      disabled={Boolean(actionRideId)}
                       onClick={() => handleJoinRide(ride)}
                     >
                       <UserPlus size={16} />
-                      Entrar na carona
+                      {isActing ? 'Entrando...' : 'Entrar na carona'}
                     </button>
                   )}
 
@@ -506,11 +587,11 @@ const suggestedPassengerCount = String(ride.passengers?.length || 0);
                     <button
                       type="button"
                       className="reject-button"
-                      disabled={saving}
+                      disabled={Boolean(actionRideId)}
                       onClick={() => handleLeaveRide(ride)}
                     >
                       <XCircle size={16} />
-                      Sair da carona
+                      {isActing ? 'Saindo...' : 'Sair da carona'}
                     </button>
                   )}
 
@@ -518,11 +599,11 @@ const suggestedPassengerCount = String(ride.passengers?.length || 0);
                     <button
                       type="button"
                       className="reject-button"
-                      disabled={saving}
+                      disabled={Boolean(actionRideId)}
                       onClick={() => handleCancelRide(ride)}
                     >
                       <XCircle size={16} />
-                      Cancelar carona
+                      {isActing ? 'Cancelando...' : 'Cancelar carona'}
                     </button>
                   )}
 
@@ -534,46 +615,25 @@ const suggestedPassengerCount = String(ride.passengers?.length || 0);
                     <span className="ride-passenger-label">Você está nessa carona</span>
                   )}
 
-{canConfirmRide && (
-  <div className="ride-confirm-box">
-    <div>
-      <label>Passageiros confirmados</label>
-      <input
-        type="number"
-        min="0"
-        max={ride.total_seats}
-        value={confirmedCounts[ride.id] ?? suggestedPassengerCount}
-        onChange={(e) =>
-          setConfirmedCounts((prev) => ({
-            ...prev,
-            [ride.id]: e.target.value,
-          }))
-        }
-      />
-      <p className="muted">
-        Pontuação: {(Number(confirmedCounts[ride.id] ?? suggestedPassengerCount) || 0) * 50} pts
-      </p>
-    </div>
-
-    <button
-      type="button"
-      className="approve-button"
-      disabled={saving}
-      onClick={() => handleConfirmRide(ride, true)}
-    >
-      Confirmar concluída
-    </button>
-
-    <button
-      type="button"
-      className="reject-button"
-      disabled={saving}
-      onClick={() => handleConfirmRide(ride, false)}
-    >
-      Não concluída
-    </button>
-  </div>
-)}
+                  {canConfirmRide && (
+                    <div className="ride-confirm-box">
+                      <div>
+                        <label>Passageiros confirmados</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max={ride.total_seats}
+                          value={confirmedCounts[ride.id] ?? suggestedPassengerCount}
+                          onChange={(event) => setConfirmedCounts((current) => ({ ...current, [ride.id]: event.target.value }))}
+                        />
+                        <p className="muted">Pontuação: {(Number(confirmedCounts[ride.id] ?? suggestedPassengerCount) || 0) * 50} pts</p>
+                      </div>
+                      <button type="button" className="approve-button" disabled={Boolean(actionRideId)} onClick={() => handleConfirmRide(ride, true)}>
+                        {isActing ? 'Confirmando...' : 'Confirmar concluída'}
+                      </button>
+                      <button type="button" className="reject-button" disabled={Boolean(actionRideId)} onClick={() => handleConfirmRide(ride, false)}>Não concluída</button>
+                    </div>
+                  )}
 
 {ride.status === 'completed' && (
   <span className="payment-approved-label">
