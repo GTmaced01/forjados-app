@@ -45,6 +45,7 @@ import { processDueAutomatedMessages } from "../services/automatedMessages";
 import { listMyPaymentReceipts } from "../services/payments";
 import { exitNativeApp, registerNativeBackHandler } from "../services/platform";
 import type { AppNotification, PaymentReceipt, RetreatEventSettings, UserProfile } from "../types";
+import { LegalDocumentsView } from "./LegalDocumentsView";
 
 const AdminPanelView = lazy(() => import("./AdminPanelView").then(({ AdminPanelView }) => ({ default: AdminPanelView })));
 const ProfileView = lazy(() => import("./ProfileView").then(({ ProfileView }) => ({ default: ProfileView })));
@@ -61,7 +62,6 @@ const ServiceScaleView = lazy(() => import("./ServiceScaleView").then(({ Service
 const LeaderTeamView = lazy(() => import("./LeaderTeamView").then(({ LeaderTeamView }) => ({ default: LeaderTeamView })));
 const PublicPanelView = lazy(() => import("./PublicPanelView").then(({ PublicPanelView }) => ({ default: PublicPanelView })));
 const ManagePublicPanelView = lazy(() => import("./ManagePublicPanelView").then(({ ManagePublicPanelView }) => ({ default: ManagePublicPanelView })));
-const LegalDocumentsView = lazy(() => import("./LegalDocumentsView").then(({ LegalDocumentsView }) => ({ default: LegalDocumentsView })));
 const NotificationsView = lazy(() => import("./NotificationsView").then(({ NotificationsView }) => ({ default: NotificationsView })));
 const AuditLogView = lazy(() => import("./AuditLogView").then(({ AuditLogView }) => ({ default: AuditLogView })));
 const OfferView = lazy(() => import("./OfferView").then(({ OfferView }) => ({ default: OfferView })));
@@ -290,7 +290,7 @@ export function DashboardView() {
   useEffect(() => {
     let active = true;
 
-    if (!activeEvent?.id) {
+    if (isAdmin || !activeEvent?.id) {
       setCurrentEventReceipts([]);
       return () => { active = false; };
     }
@@ -302,7 +302,7 @@ export function DashboardView() {
       .catch((err) => console.warn("Status financeiro não carregou:", err));
 
     return () => { active = false; };
-  }, [activeEvent?.id, profile?.id]);
+  }, [activeEvent?.id, profile?.id, isAdmin]);
 
   useEffect(() => {
     void nowTick;
@@ -744,15 +744,17 @@ export function DashboardView() {
           </div>
         </header>
 
-        <section className="card forjados-quote-card">
-          <p className="eyebrow">Mensagem central</p>
-          <h3>{FORJADOS_MAIN_MESSAGE}</h3>
-          <p className="muted">
-            O FORJADOS não é sobre pessoas fortes. É sobre pessoas que foram quebradas e encontraram cura em Deus.
-          </p>
-        </section>
+        {!isAdmin && (
+          <section className="card forjados-quote-card">
+            <p className="eyebrow">Mensagem central</p>
+            <h3>{FORJADOS_MAIN_MESSAGE}</h3>
+            <p className="muted">
+              O FORJADOS não é sobre pessoas fortes. É sobre pessoas que foram quebradas e encontraram cura em Deus.
+            </p>
+          </section>
+        )}
 
-        {activeEvent && countdown && (
+        {!isAdmin && activeEvent && countdown && (
           <section className="card countdown-card">
             <div>
               <p className="eyebrow">Próximo FORJADOS</p>
@@ -767,7 +769,7 @@ export function DashboardView() {
           </section>
         )}
 
-        {activeEvent && !currentPaymentApproved && (
+        {!isAdmin && activeEvent && !currentPaymentApproved && (
           <section className="card payment-pending-banner" role="status">
             <div>
               <p className="eyebrow">Inscrição pendente</p>
@@ -778,43 +780,47 @@ export function DashboardView() {
           </section>
         )}
 
-        <section className="cards">
-          <div className="card">
-            <h3>Status da inscrição</h3>
-            <p>{STATUS_LABELS[currentProfile.inscription_status]}</p>
-          </div>
-          <div className="card">
-            <h3>Equipe principal</h3>
-            <p>
-              {currentProfile.primary_team ||
-                currentProfile.sectors?.[0] ||
-                "Não informado"}
-            </p>
-          </div>
-          <div className="card">
-            <h3>Setores</h3>
-            <p>{currentProfile.sectors?.join(", ") || "Não informado"}</p>
-          </div>
-        </section>
-
-        <section className="panel wide forjados-identity-panel">
-          <div className="section-header">
-            <div>
-              <p className="eyebrow">Frases que definem o movimento</p>
-              <h3>Forjados pelo fogo. Guiados pelo Espírito.</h3>
-              <p className="muted">
-                Uma pessoa forjada não é prisioneira do passado. Ela se torna testemunho da graça de Deus.
-              </p>
-            </div>
-          </div>
-          <div className="forjados-phrase-grid">
-            {FORJADOS_DNA_PHRASES.map((phrase) => (
-              <div key={phrase} className="forjados-phrase-item">
-                {phrase}
+        {!isAdmin && (
+          <>
+            <section className="cards">
+              <div className="card">
+                <h3>Status da inscrição</h3>
+                <p>{STATUS_LABELS[currentProfile.inscription_status]}</p>
               </div>
-            ))}
-          </div>
-        </section>
+              <div className="card">
+                <h3>Equipe principal</h3>
+                <p>
+                  {currentProfile.primary_team ||
+                    currentProfile.sectors?.[0] ||
+                    "Não informado"}
+                </p>
+              </div>
+              <div className="card">
+                <h3>Setores</h3>
+                <p>{currentProfile.sectors?.join(", ") || "Não informado"}</p>
+              </div>
+            </section>
+
+            <section className="panel wide forjados-identity-panel">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">Frases que definem o movimento</p>
+                  <h3>Forjados pelo fogo. Guiados pelo Espírito.</h3>
+                  <p className="muted">
+                    Uma pessoa forjada não é prisioneira do passado. Ela se torna testemunho da graça de Deus.
+                  </p>
+                </div>
+              </div>
+              <div className="forjados-phrase-grid">
+                {FORJADOS_DNA_PHRASES.map((phrase) => (
+                  <div key={phrase} className="forjados-phrase-item">
+                    {phrase}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
 
         {canSeeAccessRequests && renderAdminDashboard()}
 
@@ -1045,14 +1051,14 @@ export function DashboardView() {
     if (tab === "notifications") return <NotificationsView />;
     if (tab === "profile") return <ProfileView />;
     if (tab === "inscription") return <InscriptionView />;
-    if (tab === "points") return <PointsView />;
+    if (tab === "points") return <PointsView onOpenStore={() => selectTab("points-store")} />;
     if (tab === "points-store") return <PointsStoreView />;
     if (tab === "offer") return <OfferView />;
     if (tab === "rides") return <RidesView />;
     if (tab === "shirts") return <ShirtsView />;
-    if (tab === "privacy") return <LegalDocumentsView initialTab="privacy" />;
-    if (tab === "terms") return <LegalDocumentsView initialTab="terms" />;
-    if (tab === "rules") return <LegalDocumentsView initialTab="rules" />;
+    if (tab === "privacy") return <LegalDocumentsView initialTab="privacy" onBack={() => selectTab("home")} />;
+    if (tab === "terms") return <LegalDocumentsView initialTab="terms" onBack={() => selectTab("home")} />;
+    if (tab === "rules") return <LegalDocumentsView initialTab="rules" onBack={() => selectTab("home")} />;
     if (tab === "more") return renderMore();
 
     return renderHome();
