@@ -42,7 +42,7 @@ import {
 } from "../services/adminDashboard";
 import { getActiveRetreatEvent, getCountdownParts } from "../services/eventSettings";
 import { processDueAutomatedMessages } from "../services/automatedMessages";
-import { listMyPaymentReceipts } from "../services/payments";
+import { getMyInscriptionOverview, listMyPaymentReceipts } from "../services/payments";
 import { exitNativeApp, registerNativeBackHandler } from "../services/platform";
 import type { AppNotification, PaymentReceipt, RetreatEventSettings, UserProfile } from "../types";
 import { LegalDocumentsView } from "./LegalDocumentsView";
@@ -178,6 +178,7 @@ export function DashboardView() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [activeEvent, setActiveEvent] = useState<RetreatEventSettings | null>(null);
   const [currentEventReceipts, setCurrentEventReceipts] = useState<PaymentReceipt[]>([]);
+  const [willParticipateInActiveEdition, setWillParticipateInActiveEdition] = useState<boolean | null>(null);
   const [popupNotification, setPopupNotification] = useState<AppNotification | null>(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
   const countdown = getCountdownParts(activeEvent?.start_date, nowTick);
@@ -292,12 +293,16 @@ export function DashboardView() {
 
     if (isAdmin || !activeEvent?.id) {
       setCurrentEventReceipts([]);
+      setWillParticipateInActiveEdition(null);
       return () => { active = false; };
     }
 
-    listMyPaymentReceipts()
-      .then((items) => {
-        if (active) setCurrentEventReceipts(items.filter((item) => item.edition_id === activeEvent.id));
+    Promise.all([listMyPaymentReceipts(), getMyInscriptionOverview()])
+      .then(([items, overview]) => {
+        if (active) {
+          setCurrentEventReceipts(items.filter((item) => item.edition_id === activeEvent.id));
+          setWillParticipateInActiveEdition(overview.enrollment?.will_participate ?? null);
+        }
       })
       .catch((err) => console.warn("Status financeiro não carregou:", err));
 
@@ -769,7 +774,18 @@ export function DashboardView() {
           </section>
         )}
 
-        {!isAdmin && activeEvent && !currentPaymentApproved && (
+        {!isAdmin && activeEvent && willParticipateInActiveEdition === null && (
+          <section className="card payment-pending-banner" role="status">
+            <div>
+              <p className="eyebrow">Confirme sua participação</p>
+              <h3>Você irá participar de {activeEvent.title}?</h3>
+              <p className="muted">Responda em Minha Inscrição para liberar o pagamento desta edição.</p>
+            </div>
+            <button type="button" className="primary-button" onClick={() => selectTab("inscription")}>Responder agora</button>
+          </section>
+        )}
+
+        {!isAdmin && activeEvent && willParticipateInActiveEdition === true && !currentPaymentApproved && (
           <section className="card payment-pending-banner" role="status">
             <div>
               <p className="eyebrow">Inscrição pendente</p>
