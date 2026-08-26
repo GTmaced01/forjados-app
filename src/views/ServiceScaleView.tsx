@@ -22,6 +22,7 @@ import {
   listServicePeople,
   listServiceSchedules,
   saveGeneratedScale,
+  syncApprovedProfilesToServiceScale,
   type ScaleGenerationMetrics,
   summarizeGeneratedScale,
   toDatetimeLocalValue,
@@ -103,6 +104,7 @@ export function ServiceScaleView() {
       trail: trail.length,
       activeMen: active.filter((person) => person.gender === 'male').length,
       activeWomen: active.filter((person) => person.gender === 'female').length,
+      linked: people.filter((person) => person.user_id).length,
     };
   }, [people]);
 
@@ -112,6 +114,11 @@ export function ServiceScaleView() {
     try {
       setLoading(true);
       setError('');
+      const syncResult = await withTimeout(
+        syncApprovedProfilesToServiceScale(),
+        10000,
+        'Não foi possível sincronizar os usuários aprovados.'
+      );
       const [peopleData, scheduleData] = await withTimeout(
         Promise.all([
           listServicePeople(),
@@ -122,6 +129,9 @@ export function ServiceScaleView() {
       );
       setPeople(peopleData);
       setSchedules(scheduleData);
+      if (syncResult.inserted > 0) {
+        setSuccess(`${syncResult.inserted} usuário(s) aprovado(s) foram vinculados à escala. Defina o alojamento antes de gerar.`);
+      }
       if (scheduleData.length > 0 && !selectedScheduleId) {
         setSelectedScheduleId(scheduleData[0].id);
       }
@@ -432,6 +442,7 @@ export function ServiceScaleView() {
         <div className="card"><span className="muted">Ativos na escala</span><strong>{stats.active}</strong></div>
         <div className="card"><span className="muted">Homens/Mulheres ativos</span><strong>{stats.activeMen}/{stats.activeWomen}</strong></div>
         <div className="card"><span className="muted">Trilha</span><strong>{stats.trail}</strong></div>
+        <div className="card"><span className="muted">Com notificação</span><strong>{stats.linked}</strong></div>
       </section>
 
       <section className="grid two service-scale-main-grid">
@@ -717,7 +728,7 @@ export function ServiceScaleView() {
         <div className="section-title-row">
           <div>
             <h3>Servos cadastrados</h3>
-            <p className="muted">Use os botões para tirar alguém da escala ou marcar como trilha.</p>
+            <p className="muted">Usuários vinculados recebem a escala no aplicativo. Cadastros manuais continuam válidos, mas não recebem notificação.</p>
           </div>
         </div>
 
@@ -729,12 +740,13 @@ export function ServiceScaleView() {
                 <th>Alojamento</th>
                 <th>Setor</th>
                 <th>Status</th>
+                <th>Notificação</th>
                 <th>Ações</th>
               </tr>
             </thead>
             <tbody>
               {people.length === 0 && (
-                <tr><td colSpan={5}>Nenhuma pessoa cadastrada ainda.</td></tr>
+                <tr><td colSpan={6}>Nenhuma pessoa cadastrada ainda.</td></tr>
               )}
               {people.map((person) => (
                 <tr key={person.id}>
@@ -751,6 +763,11 @@ export function ServiceScaleView() {
                       </span>
                       {person.does_trail && <span className="pill warning">Trilha</span>}
                     </div>
+                  </td>
+                  <td>
+                    <span className={person.user_id ? 'pill success' : 'pill muted-pill'}>
+                      {person.user_id ? 'Conta vinculada' : 'Cadastro manual'}
+                    </span>
                   </td>
                   <td>
                     <div className="table-actions">
