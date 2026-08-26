@@ -5914,3 +5914,589 @@ textarea:focus {
     width: 100%;
   }
 }
+
+/* =========================
+   FORJADOS 2.1R.3 — UX E RESILIÊNCIA
+========================= */
+
+.app-error-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(199, 154, 74, 0.12), transparent 34%),
+    var(--bg);
+}
+
+.app-error-card {
+  width: min(560px, 100%);
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  padding: 34px;
+}
+
+.app-error-card h1 {
+  margin: 0;
+  font-size: clamp(26px, 5vw, 38px);
+}
+
+.app-error-icon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  color: var(--gold);
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-border);
+}
+
+.app-error-actions,
+.legal-back-button,
+.legal-bottom-back,
+.profile-save-bar > div,
+.honor-goal-form-actions,
+.points-product-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.app-error-actions button,
+.legal-back-button,
+.legal-bottom-back,
+.profile-save-bar button,
+.honor-goal-form-actions button,
+.points-product-actions button {
+  justify-content: center;
+  gap: 8px;
+}
+
+.legal-bottom-back {
+  width: fit-content;
+}
+
+.auth-consent-links {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.auth-consent-links button {
+  display: inline;
+  padding: 0;
+  border: 0;
+  color: var(--gold);
+  background: transparent;
+  font: inherit;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.profile-overview {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(280px, 1.2fr) minmax(220px, 0.8fr);
+  align-items: center;
+  gap: 22px;
+  padding: 22px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(199, 154, 74, 0.13), rgba(16, 16, 16, 0.88));
+  border: 1px solid var(--gold-border);
+}
+
+.profile-overview-main,
+.profile-section-title,
+.profile-privacy-note {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profile-overview h3,
+.profile-section-title p,
+.profile-completeness span,
+.profile-privacy-note span,
+.profile-dirty-state {
+  margin: 0;
+}
+
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 20px;
+  color: var(--gold);
+  background: rgba(199, 154, 74, 0.16);
+  border: 1px solid var(--gold-border);
+  font-size: 26px;
+  font-weight: 950;
+}
+
+.profile-completeness {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-completeness > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.profile-completeness strong {
+  color: var(--gold);
+  font-size: 15px;
+}
+
+.profile-progress,
+.honor-goal-progress,
+.ride-occupancy-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.profile-progress i,
+.honor-goal-progress i,
+.ride-occupancy-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #9a6a27, var(--gold));
+}
+
+.profile-privacy-note {
+  padding: 14px;
+  border-radius: 16px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.profile-privacy-note svg,
+.profile-section-title > svg {
+  color: var(--gold);
+  flex: 0 0 auto;
+}
+
+.profile-form-v2 {
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.profile-section-card {
+  padding: 24px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.profile-section-title {
+  align-items: flex-start;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.profile-section-title h3 {
+  font-size: 20px;
+}
+
+.profile-sectors-fieldset {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.profile-sectors-fieldset legend {
+  margin-bottom: 10px;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.profile-sensitive-section {
+  border-color: rgba(77, 138, 196, 0.2);
+  background: linear-gradient(145deg, rgba(77, 138, 196, 0.055), var(--panel));
+}
+
+.profile-sensitive-section textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.profile-form-v2 .field-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.profile-save-bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(17, 17, 17, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(14px);
+}
+
+.profile-dirty-state {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.profile-dirty-state.active {
+  color: var(--gold);
+  font-weight: 850;
+}
+
+.honor-goal-panel,
+.honor-goal-form {
+  display: grid;
+  gap: 20px;
+}
+
+.honor-goal-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  padding: 20px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(199, 154, 74, 0.12), rgba(0, 0, 0, 0.2));
+  border: 1px solid var(--gold-border);
+}
+
+.honor-goal-card.completed {
+  border-color: var(--green-border);
+  background: linear-gradient(135deg, var(--green-soft), rgba(0, 0, 0, 0.2));
+}
+
+.honor-goal-icon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  color: var(--gold);
+  background: rgba(199, 154, 74, 0.13);
+}
+
+.honor-goal-main,
+.honor-goal-empty {
+  display: grid;
+  gap: 14px;
+}
+
+.honor-goal-heading,
+.honor-goal-numbers,
+.honor-goal-complete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.honor-goal-heading span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.honor-goal-heading h4 {
+  margin: 3px 0 0;
+  font-size: 21px;
+}
+
+.honor-goal-heading > strong {
+  color: var(--gold);
+  font-size: 28px;
+}
+
+.honor-goal-numbers {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.honor-goal-numbers b {
+  color: var(--text);
+}
+
+.honor-goal-complete {
+  justify-content: flex-start;
+  padding: 12px 14px;
+  border-radius: 15px;
+  color: var(--green);
+  background: var(--green-soft);
+  font-weight: 850;
+}
+
+.honor-goal-complete button {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  color: var(--gold);
+  background: transparent;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.honor-goal-empty {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  padding: 20px;
+  border: 1px dashed var(--gold-border);
+  border-radius: 20px;
+}
+
+.honor-goal-empty > svg {
+  color: var(--gold);
+}
+
+.honor-goal-empty p {
+  margin: 4px 0 0;
+}
+
+.honor-goal-type-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 6px;
+  border-radius: 17px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.honor-goal-type-switch button {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  color: var(--muted);
+  background: transparent;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.honor-goal-type-switch button.active {
+  color: var(--gold);
+  background: var(--gold-soft);
+  border-color: var(--gold-border);
+}
+
+.honor-goal-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  color: var(--gold);
+  font-size: 12px;
+}
+
+.points-product-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.points-product-actions .primary-button,
+.points-product-actions .secondary-button {
+  width: 100%;
+}
+
+.rides-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.rides-overview .card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.rides-overview svg {
+  color: var(--gold);
+}
+
+.rides-overview span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.rides-overview strong {
+  color: var(--gold);
+  font-size: 26px;
+}
+
+.ride-occupancy {
+  display: grid;
+  gap: 9px;
+}
+
+.ride-occupancy > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ride-occupancy strong {
+  color: var(--gold);
+}
+
+.admin-status-filters .card {
+  display: block;
+  width: 100%;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.admin-status-filters .card:hover,
+.admin-status-filters .card.active {
+  transform: translateY(-2px);
+  border-color: var(--gold-border);
+  background: linear-gradient(145deg, rgba(199, 154, 74, 0.12), var(--panel));
+}
+
+.admin-status-filters .card span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.admin-filters-v2 {
+  grid-template-columns: minmax(260px, 1fr) repeat(3, minmax(160px, 0.32fr));
+}
+
+.admin-results-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: -8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-results-summary button {
+  padding: 0;
+  border: 0;
+  color: var(--gold);
+  background: transparent;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.member-editor {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+@media (max-width: 1050px) {
+  .profile-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-privacy-note {
+    grid-column: 1 / -1;
+  }
+
+  .admin-filters-v2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-filters-v2 .search-box {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .profile-overview,
+  .rides-overview,
+  .admin-filters-v2 {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-privacy-note,
+  .admin-filters-v2 .search-box {
+    grid-column: auto;
+  }
+
+  .profile-completeness > div:first-child,
+  .profile-save-bar,
+  .ride-occupancy > div:first-child {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profile-save-bar {
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  .profile-save-bar > div,
+  .profile-save-bar button,
+  .honor-goal-form-actions,
+  .honor-goal-form-actions button,
+  .app-error-actions,
+  .app-error-actions button {
+    width: 100%;
+  }
+
+  .honor-goal-card {
+    grid-template-columns: 1fr;
+  }
+
+  .honor-goal-type-switch {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .profile-section-card,
+  .honor-goal-card,
+  .app-error-card {
+    padding: 18px;
+  }
+
+  .profile-overview-main {
+    align-items: flex-start;
+  }
+
+  .honor-goal-heading,
+  .honor-goal-numbers {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
