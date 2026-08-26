@@ -259,7 +259,8 @@ export type ServiceScaleGender = 'male' | 'female';
 export interface ServiceScalePerson {
   id: string;
   name: string;
-  gender: ServiceScaleGender;
+  /** Legacy records created from approved profiles may not have an accommodation yet. */
+  gender: ServiceScaleGender | null;
   phone?: string | null;
   sector?: string | null;
   is_active: boolean;
