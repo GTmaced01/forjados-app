@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Eye, Gift, RefreshCw, ShoppingBag, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, Gift, RefreshCw, ShoppingBag, Target, X } from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
+import { saveProductHonorGoal } from '../services/honorGoals';
 import {
   formatRedemptionStatus,
   getPrimaryProductImage,
@@ -33,6 +34,7 @@ export function PointsStoreView() {
 
   const [loading, setLoading] = useState(true);
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
+  const [settingGoalId, setSettingGoalId] = useState<string | null>(null);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -108,6 +110,22 @@ export function PointsStoreView() {
       setError(err instanceof Error ? err.message : 'Erro ao resgatar produto.');
     } finally {
       setRedeemingId(null);
+    }
+  }
+
+  async function handleSetGoal(product: PointsStoreProduct) {
+    setSettingGoalId(product.id);
+    setError('');
+    setSuccess('');
+
+    try {
+      await saveProductHonorGoal(product.id);
+      setSuccess(`“${product.name}” agora é sua meta de honra. Acompanhe o progresso em Honra.`);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Erro ao definir meta de honra.');
+    } finally {
+      setSettingGoalId(null);
     }
   }
 
@@ -202,19 +220,26 @@ export function PointsStoreView() {
                       <span>Estoque: {product.stock}</span>
                     </div>
 
-                    <button
-                      className="primary-button"
-                      type="button"
-                      disabled={!canRedeem || isRedeeming}
-                      onClick={() => handleRedeem(product)}
-                    >
-                      <ShoppingBag size={16} />
-                      {isRedeeming
-                        ? 'Resgatando...'
-                        : canRedeem
-                        ? 'Resgatar'
-                        : 'Honra insuficiente'}
-                    </button>
+                    <div className="points-product-actions">
+                      <button
+                        className="primary-button"
+                        type="button"
+                        disabled={!canRedeem || isRedeeming || settingGoalId === product.id}
+                        onClick={() => handleRedeem(product)}
+                      >
+                        <ShoppingBag size={16} />
+                        {isRedeeming ? 'Resgatando...' : canRedeem ? 'Resgatar' : 'Honra insuficiente'}
+                      </button>
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        disabled={settingGoalId === product.id || isRedeeming}
+                        onClick={() => handleSetGoal(product)}
+                      >
+                        <Target size={16} />
+                        {settingGoalId === product.id ? 'Definindo...' : 'Quero este item'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
