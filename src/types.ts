@@ -80,6 +80,29 @@ export interface PaymentReceipt {
   updated_at: string;
 }
 
+export interface InscriptionOverview {
+  participation_count: number;
+  participation_count_is_manual: boolean;
+  edition: {
+    id: string;
+    title: string;
+    starts_at: string;
+    ends_at?: string | null;
+    location?: string | null;
+    amount: number;
+    status: 'draft' | 'scheduled' | 'open' | 'closed' | 'finished' | 'cancelled';
+    is_active: boolean;
+  } | null;
+  enrollment: {
+    id: string;
+    enrollment_status: 'pending' | 'approved' | 'rejected' | 'exempt';
+    payment_status: 'pending' | 'approved' | 'rejected' | 'exempt';
+    paid_at?: string | null;
+    will_participate: boolean | null;
+    participation_responded_at?: string | null;
+  } | null;
+}
+
 export type ShirtOrderStatus =
   | 'cart'
   | 'waiting_payment'
@@ -258,6 +281,7 @@ export type ServiceScaleGender = 'male' | 'female';
 
 export interface ServiceScalePerson {
   id: string;
+  user_id?: string | null;
   name: string;
   /** Legacy records created from approved profiles may not have an accommodation yet. */
   gender: ServiceScaleGender | null;
@@ -285,8 +309,19 @@ export interface GeneratedScaleSlot {
   slotNumber: number;
   startAt: string;
   endAt: string;
+  menRequired: number;
+  womenRequired: number;
   men: ServiceScalePerson[];
   women: ServiceScalePerson[];
+}
+
+export interface ServiceScaleSlotRequirement {
+  slotNumber: number;
+  startAt: string;
+  endAt: string;
+  menRequired: number;
+  womenRequired: number;
+  enabled: boolean;
 }
 
 export interface ServiceScaleSchedule {
