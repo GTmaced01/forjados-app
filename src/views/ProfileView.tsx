@@ -97,15 +97,15 @@ export function ProfileView() {
 
   const canEditMemberSince = isAdmin || isDirector;
   const completenessChecks = [
-    form.display_name,
-    form.phone,
-    form.birth_date,
-    form.city,
-    form.neighborhood,
-    form.primary_team,
-    form.sectors.length > 0 ? 'ok' : '',
-    form.emergency_contact_name,
-    form.emergency_contact_phone,
+    form.display_name.trim().length >= 3,
+    onlyDigits(form.phone).length >= 10,
+    Boolean(form.birth_date),
+    Boolean(form.city.trim()),
+    Boolean(form.neighborhood.trim()),
+    Boolean(form.primary_team),
+    form.sectors.length > 0,
+    Boolean(form.emergency_contact_name.trim()),
+    onlyDigits(form.emergency_contact_phone).length >= 10,
   ];
   const completedFields = completenessChecks.filter(Boolean).length;
   const completeness = Math.round((completedFields / completenessChecks.length) * 100);
