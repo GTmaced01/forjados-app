@@ -6,9 +6,11 @@ import type {
   ServiceScaleGender,
   ServiceScalePerson,
   ServiceScaleSchedule,
+  ServiceScaleSlotRequirement,
 } from '../types';
 import {
   buildGeneratedScale,
+  buildScaleSlotRequirements,
   createServicePerson,
   deleteServicePerson,
   deleteServiceSchedule,
@@ -76,6 +78,7 @@ export function ServiceScaleView() {
   const [personForm, setPersonForm] = useState<PersonForm>(initialPersonForm);
   const [editingPersonId, setEditingPersonId] = useState<string | null>(null);
   const [config, setConfig] = useState<ServiceScaleConfig>(initialConfig);
+  const [slotRequirements, setSlotRequirements] = useState<ServiceScaleSlotRequirement[]>([]);
   const [generatedSlots, setGeneratedSlots] = useState<GeneratedScaleSlot[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [generationValid, setGenerationValid] = useState(false);
@@ -163,6 +166,39 @@ export function ServiceScaleView() {
 
   function updateConfig<K extends keyof ServiceScaleConfig>(key: K, value: ServiceScaleConfig[K]) {
     setConfig((current) => ({ ...current, [key]: value }));
+    if (key === 'startAt' || key === 'endAt' || key === 'shiftMinutes') {
+      setSlotRequirements([]);
+    }
+    invalidateGeneratedScale();
+  }
+
+  function handlePrepareSlots() {
+    setError('');
+    setSuccess('');
+    const normalizedConfig = {
+      ...config,
+      startAt: normalizeDatetimeLocal(config.startAt),
+      endAt: normalizeDatetimeLocal(config.endAt),
+    };
+    const slots = buildScaleSlotRequirements(normalizedConfig);
+    if (slots.length === 0 || slots.length > 1000) {
+      setError(slots.length > 1000
+        ? 'O período gera mais de 1.000 horários. Reduza o período ou aumente a duração.'
+        : 'Revise o início, o fim e a duração antes de montar os horários.');
+      return;
+    }
+    setSlotRequirements(slots);
+    invalidateGeneratedScale();
+    setSuccess(`${slots.length} faixa(s) preparada(s). Ajuste a quantidade necessária em cada horário.`);
+  }
+
+  function updateSlotRequirement(
+    slotNumber: number,
+    patch: Partial<Pick<ServiceScaleSlotRequirement, 'enabled' | 'menRequired' | 'womenRequired'>>
+  ) {
+    setSlotRequirements((current) => current.map((slot) => (
+      slot.slotNumber === slotNumber ? { ...slot, ...patch } : slot
+    )));
     invalidateGeneratedScale();
   }
 
@@ -282,7 +318,7 @@ export function ServiceScaleView() {
       endAt: normalizeDatetimeLocal(config.endAt),
     };
 
-    const result = buildGeneratedScale(people, normalizedConfig);
+    const result = buildGeneratedScale(people, normalizedConfig, slotRequirements);
     setGeneratedSlots(result.slots);
     setWarnings(result.warnings);
     setGenerationValid(result.isValid);
@@ -305,7 +341,7 @@ export function ServiceScaleView() {
       startAt: normalizeDatetimeLocal(config.startAt),
       endAt: normalizeDatetimeLocal(config.endAt),
     };
-    const validation = buildGeneratedScale(people, normalizedConfig);
+    const validation = buildGeneratedScale(people, normalizedConfig, slotRequirements);
     if (!validation.isValid || validation.slots.length === 0) {
       setWarnings(validation.warnings);
       setGenerationValid(false);
@@ -319,7 +355,16 @@ export function ServiceScaleView() {
       const schedule = await saveGeneratedScale({ config: normalizedConfig, slots: validation.slots, status: 'published' });
       setSchedules((current) => [schedule, ...current]);
       setSelectedScheduleId(schedule.id);
-      setSuccess('Escala salva/publicada com sucesso.');
+      const linkedUsers = new Set(
+        validation.slots.flatMap((slot) => [...slot.men, ...slot.women])
+          .map((person) => person.user_id)
+          .filter(Boolean)
+      ).size;
+      setSuccess(
+        linkedUsers > 0
+          ? `Escala publicada. ${linkedUsers} pessoa(s) com conta vinculada receberam a escala por notificação.`
+          : 'Escala publicada. As pessoas cadastradas manualmente não têm conta vinculada para receber notificação.'
+      );
     } catch (err) {
       setError(`Não foi possível salvar a escala. Detalhe: ${formatSupabaseError(err)}`);
     } finally {
@@ -490,7 +535,7 @@ export function ServiceScaleView() {
 
         <div className="card">
           <h3>Configuração do serviço</h3>
-          <p className="muted">Exemplo: dia 1 às 18:00 até dia 3 às 18:00, com serviço de 90 minutos.</p>
+          <p className="muted">Defina o período, monte os horários e informe quantas pessoas serão necessárias em cada faixa.</p>
 
           <div className="form">
             <div>
@@ -538,7 +583,7 @@ export function ServiceScaleView() {
                 />
               </div>
               <div>
-                <label>Homens por turno</label>
+                <label>Padrão masculino</label>
                 <input
                   type="number"
                   min="0"
@@ -549,7 +594,7 @@ export function ServiceScaleView() {
                 />
               </div>
               <div>
-                <label>Mulheres por turno</label>
+                <label>Padrão feminino</label>
                 <input
                   type="number"
                   min="0"
@@ -587,9 +632,10 @@ export function ServiceScaleView() {
             </div>
 
             <div className="service-action-row">
-              <button type="button" className="primary-button" onClick={handleGenerateScale}>Gerar escala</button>
+              <button type="button" className="secondary-button" onClick={handlePrepareSlots}>1. Montar horários</button>
+              <button type="button" className="primary-button" onClick={handleGenerateScale} disabled={slotRequirements.length === 0}>2. Gerar escala</button>
               <button type="button" className="secondary-button" onClick={handleSaveScale} disabled={savingSchedule || !generationValid || generatedSlots.length === 0}>
-                {savingSchedule ? 'Salvando...' : 'Salvar/Publicar'}
+                {savingSchedule ? 'Salvando...' : '3. Salvar/Publicar'}
               </button>
               <button type="button" className="secondary-button" onClick={handleExportGenerated} disabled={generatedSlots.length === 0}>
                 Exportar CSV
@@ -598,6 +644,74 @@ export function ServiceScaleView() {
           </div>
         </div>
       </section>
+
+      {slotRequirements.length > 0 && (
+        <section className="card service-slot-planner">
+          <div className="section-title-row">
+            <div>
+              <h3>Necessidade por horário</h3>
+              <p className="muted">Desative horários sem pessoas no alojamento. Nos demais, use inclusive apenas 1 pessoa quando for suficiente.</p>
+            </div>
+            <span className="pill success">
+              {slotRequirements.filter((slot) => slot.enabled && slot.menRequired + slot.womenRequired > 0).length} horário(s) ativo(s)
+            </span>
+          </div>
+          <div className="table-wrap">
+            <table className="data-table service-slot-planner-table">
+              <thead>
+                <tr>
+                  <th>Data e horário</th>
+                  <th>Há pessoas no alojamento?</th>
+                  <th>Masculino</th>
+                  <th>Feminino</th>
+                </tr>
+              </thead>
+              <tbody>
+                {slotRequirements.map((slot) => (
+                  <tr key={`${slot.slotNumber}-${slot.startAt}`} className={slot.enabled ? '' : 'service-slot-disabled'}>
+                    <td>
+                      <strong>{formatDateTime(slot.startAt)}</strong>
+                      <small>até {formatDateTime(slot.endAt)}</small>
+                    </td>
+                    <td>
+                      <label className="service-slot-toggle">
+                        <input
+                          type="checkbox"
+                          checked={slot.enabled}
+                          onChange={(event) => updateSlotRequirement(slot.slotNumber, { enabled: event.target.checked })}
+                        />
+                        <span>{slot.enabled ? 'Sim, escalar' : 'Não escalar'}</span>
+                      </label>
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        aria-label={`Quantidade masculina em ${formatDateTime(slot.startAt)}`}
+                        disabled={!slot.enabled}
+                        value={slot.menRequired}
+                        onChange={(event) => updateSlotRequirement(slot.slotNumber, { menRequired: Number(event.target.value) })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        aria-label={`Quantidade feminina em ${formatDateTime(slot.startAt)}`}
+                        disabled={!slot.enabled}
+                        value={slot.womenRequired}
+                        onChange={(event) => updateSlotRequirement(slot.slotNumber, { womenRequired: Number(event.target.value) })}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <section className="card">
         <div className="section-title-row">
@@ -761,8 +875,8 @@ function ScaleTable({ slots }: { slots: GeneratedScaleSlot[] }) {
               <td><strong>#{slot.slotNumber}</strong></td>
               <td>{formatDateTime(slot.startAt)}</td>
               <td>{formatDateTime(slot.endAt)}</td>
-              <td>{slot.men.map((person) => person.name).join(' / ') || '-'}</td>
-              <td>{slot.women.map((person) => person.name).join(' / ') || '-'}</td>
+              <td><strong>{slot.menRequired}:</strong> {slot.men.map((person) => person.name).join(' / ') || '-'}</td>
+              <td><strong>{slot.womenRequired}:</strong> {slot.women.map((person) => person.name).join(' / ') || '-'}</td>
             </tr>
           ))}
         </tbody>
