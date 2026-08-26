@@ -48,14 +48,15 @@ export async function upsertActiveRetreatEvent(params: {
   location?: string;
   registration_fee: number;
   registration_open: boolean;
-}) {
-  const { error } = await supabase.rpc('forjados_upsert_active_edition_v1', {
+}, options: { createNew?: boolean } = {}) {
+  const { error } = await supabase.rpc('forjados_save_active_edition_v2', {
     p_title: params.title,
     p_starts_at: params.start_date,
     p_ends_at: params.end_date || null,
     p_location: params.location || '',
     p_registration_amount: params.registration_fee,
     p_registration_open: params.registration_open,
+    p_create_new: options.createNew === true,
   });
 
   if (error) throw error;
