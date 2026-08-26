@@ -223,6 +223,18 @@ export interface PointsStoreProduct {
   updated_at: string;
 }
 
+export type HonorGoalType = 'custom' | 'product';
+
+export interface HonorGoal {
+  user_id: string;
+  goal_type: HonorGoalType;
+  title: string;
+  target_points: number;
+  product_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type PointsRedemptionStatus =
   | 'pending'
   | 'delivered'
