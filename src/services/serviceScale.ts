@@ -71,6 +71,17 @@ export async function listServicePeople(): Promise<ServiceScalePerson[]> {
   return (data || []).map((person: Record<string, unknown>) => normalizeServiceScalePerson(person));
 }
 
+export async function syncApprovedProfilesToServiceScale(): Promise<{ inserted: number; updated: number }> {
+  const { data, error } = await supabase.rpc('forjados_sync_service_scale_profiles_v1');
+  if (error) throw error;
+
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    inserted: Number(result?.inserted_count || 0),
+    updated: Number(result?.updated_count || 0),
+  };
+}
+
 export async function createServicePerson(params: {
   name: string;
   gender: ServiceScaleGender;
@@ -453,6 +464,7 @@ export function toDatetimeLocalValue(date: Date): string {
 }
 
 export async function ensureProfileInServiceScale(params: {
+  userId: string;
   displayName: string;
   phone?: string;
   sectors?: string[];
@@ -464,13 +476,14 @@ export async function ensureProfileInServiceScale(params: {
   const { data: existing, error: existingError } = await supabase
     .from(PEOPLE_TABLE)
     .select('id')
-    .eq('name', name)
+    .eq('user_id', params.userId)
     .maybeSingle();
 
   if (existingError) throw existingError;
   if (existing) return;
 
   const { error } = await supabase.from(PEOPLE_TABLE).insert({
+    user_id: params.userId,
     name,
     display_name: name,
     gender: 'male',
