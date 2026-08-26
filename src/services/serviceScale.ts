@@ -12,6 +12,42 @@ const PEOPLE_TABLE = 'service_scale_people';
 const SCHEDULES_TABLE = 'service_scale_schedules';
 const ASSIGNMENTS_TABLE = 'service_scale_assignments';
 
+export interface ScaleGenerationMetrics {
+  totalSlots: number;
+  expectedAssignments: number;
+  generatedAssignments: number;
+  activeMen: number;
+  activeWomen: number;
+  incompleteActivePeople: number;
+}
+
+export interface ScaleGenerationResult {
+  slots: GeneratedScaleSlot[];
+  warnings: string[];
+  isValid: boolean;
+  metrics: ScaleGenerationMetrics;
+}
+
+function isServiceScaleGender(value: unknown): value is ServiceScaleGender {
+  return value === 'male' || value === 'female';
+}
+
+function normalizeServiceScalePerson(value: Record<string, unknown>): ServiceScalePerson {
+  const displayName = typeof value.display_name === 'string' ? value.display_name.trim() : '';
+  const name = typeof value.name === 'string' ? value.name.trim() : '';
+
+  return {
+    ...(value as unknown as ServiceScalePerson),
+    id: String(value.id || ''),
+    name: displayName || name || 'Pessoa sem nome',
+    gender: isServiceScaleGender(value.gender) ? value.gender : null,
+    phone: typeof value.phone === 'string' ? value.phone : null,
+    sector: typeof value.sector === 'string' ? value.sector : null,
+    is_active: value.is_active !== false,
+    does_trail: value.does_trail === true,
+  };
+}
+
 export function formatSupabaseError(error: unknown): string {
   if (!error) return 'Erro desconhecido.';
   if (typeof error === 'string') return error;
@@ -31,7 +67,7 @@ export async function listServicePeople(): Promise<ServiceScalePerson[]> {
     .order('name', { ascending: true });
 
   if (error) throw error;
-  return (data || []) as ServiceScalePerson[];
+  return (data || []).map((person: Record<string, unknown>) => normalizeServiceScalePerson(person));
 }
 
 export async function createServicePerson(params: {
@@ -45,6 +81,7 @@ export async function createServicePerson(params: {
 }): Promise<ServiceScalePerson> {
   const payload = {
     name: params.name.trim(),
+    display_name: params.name.trim(),
     gender: params.gender,
     phone: params.phone?.trim() || null,
     sector: params.sector?.trim() || null,
@@ -60,7 +97,7 @@ export async function createServicePerson(params: {
     .single();
 
   if (error) throw error;
-  return data as ServiceScalePerson;
+  return normalizeServiceScalePerson(data as Record<string, unknown>);
 }
 
 export async function updateServicePerson(
@@ -69,6 +106,7 @@ export async function updateServicePerson(
 ): Promise<ServiceScalePerson> {
   const payload = {
     ...params,
+    ...(params.name !== undefined ? { display_name: params.name.trim() } : {}),
     updated_at: new Date().toISOString(),
   };
 
@@ -80,7 +118,7 @@ export async function updateServicePerson(
     .single();
 
   if (error) throw error;
-  return data as ServiceScalePerson;
+  return normalizeServiceScalePerson(data as Record<string, unknown>);
 }
 
 export async function deleteServicePerson(id: string): Promise<void> {
@@ -116,32 +154,9 @@ export async function saveGeneratedScale(params: {
   slots: GeneratedScaleSlot[];
   status?: 'draft' | 'published';
 }): Promise<ServiceScaleSchedule> {
-  const { data: userData } = await supabase.auth.getUser();
-
-  const { data: schedule, error: scheduleError } = await supabase
-    .from(SCHEDULES_TABLE)
-    .insert({
-      title: params.config.title,
-      start_at: params.config.startAt,
-      end_at: params.config.endAt,
-      shift_minutes: params.config.shiftMinutes,
-      men_per_shift: params.config.menPerShift,
-      women_per_shift: params.config.womenPerShift,
-      min_rest_minutes: params.config.minRestMinutes,
-      avoid_consecutive: params.config.avoidConsecutive,
-      status: params.status || 'published',
-      created_by: userData.user?.id || null,
-    })
-    .select('*')
-    .single();
-
-  if (scheduleError) throw scheduleError;
-
-  const rows = params.slots.flatMap((slot) => {
+  const assignments = params.slots.flatMap((slot) => {
     const men = slot.men.map((person) => ({
-      schedule_id: schedule.id,
       person_id: person.id,
-      person_name: person.name,
       gender: person.gender,
       slot_number: slot.slotNumber,
       slot_start: slot.startAt,
@@ -150,9 +165,7 @@ export async function saveGeneratedScale(params: {
     }));
 
     const women = slot.women.map((person) => ({
-      schedule_id: schedule.id,
       person_id: person.id,
-      person_name: person.name,
       gender: person.gender,
       slot_number: slot.slotNumber,
       slot_start: slot.startAt,
@@ -163,12 +176,24 @@ export async function saveGeneratedScale(params: {
     return [...men, ...women];
   });
 
-  if (rows.length > 0) {
-    const { error: assignmentsError } = await supabase.from(ASSIGNMENTS_TABLE).insert(rows);
-    if (assignmentsError) throw assignmentsError;
-  }
+  const { data, error } = await supabase.rpc('forjados_save_service_scale_v1', {
+    p_config: {
+      title: params.config.title.trim(),
+      start_at: params.config.startAt,
+      end_at: params.config.endAt,
+      shift_minutes: params.config.shiftMinutes,
+      men_per_shift: params.config.menPerShift,
+      women_per_shift: params.config.womenPerShift,
+      min_rest_minutes: params.config.minRestMinutes,
+      avoid_consecutive: params.config.avoidConsecutive,
+      status: params.status || 'published',
+    },
+    p_assignments: assignments,
+  });
 
-  return schedule as ServiceScaleSchedule;
+  if (error) throw error;
+  if (!data) throw new Error('O banco não retornou a escala salva.');
+  return (Array.isArray(data) ? data[0] : data) as ServiceScaleSchedule;
 }
 
 export async function deleteServiceSchedule(id: string): Promise<void> {
@@ -179,51 +204,87 @@ export async function deleteServiceSchedule(id: string): Promise<void> {
 export function buildGeneratedScale(
   people: ServiceScalePerson[],
   config: ServiceScaleConfig
-): { slots: GeneratedScaleSlot[]; warnings: string[] } {
+): ScaleGenerationResult {
   const warnings: string[] = [];
   const start = new Date(config.startAt);
   const end = new Date(config.endAt);
-  const shiftMs = config.shiftMinutes * 60 * 1000;
-
-  if (!config.title.trim()) warnings.push('Informe um nome para a escala/evento.');
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return { slots: [], warnings: ['Data/hora inicial ou final inválida.'] };
-  }
-  if (end <= start) return { slots: [], warnings: ['A data final precisa ser maior que a data inicial.'] };
-  if (config.shiftMinutes < 15) warnings.push('A duração do serviço precisa ter pelo menos 15 minutos.');
-
+  const numericValues = [
+    config.shiftMinutes,
+    config.menPerShift,
+    config.womenPerShift,
+    config.minRestMinutes,
+  ];
+  const hasInvalidNumber = numericValues.some((value) => !Number.isFinite(value) || !Number.isInteger(value));
   const activePeople = people.filter((person) => person.is_active && !person.does_trail);
+  const incompleteActivePeople = activePeople.filter((person) => !isServiceScaleGender(person.gender));
   const men = activePeople.filter((person) => person.gender === 'male');
   const women = activePeople.filter((person) => person.gender === 'female');
+  const isDateRangeValid = !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end > start;
+  const totalSlots = isDateRangeValid && Number.isFinite(config.shiftMinutes) && config.shiftMinutes > 0
+    ? Math.ceil((end.getTime() - start.getTime()) / (config.shiftMinutes * 60 * 1000))
+    : 0;
+  const metrics: ScaleGenerationMetrics = {
+    totalSlots,
+    expectedAssignments: totalSlots * (Math.max(0, config.menPerShift || 0) + Math.max(0, config.womenPerShift || 0)),
+    generatedAssignments: 0,
+    activeMen: men.length,
+    activeWomen: women.length,
+    incompleteActivePeople: incompleteActivePeople.length,
+  };
 
+  if (!config.title.trim()) warnings.push('Informe um nome para a escala/evento.');
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) warnings.push('Data/hora inicial ou final inválida.');
+  else if (end <= start) warnings.push('A data final precisa ser maior que a data inicial.');
+  if (hasInvalidNumber) warnings.push('Use números inteiros válidos na configuração da escala.');
+  if (config.shiftMinutes < 15 || config.shiftMinutes > 720) warnings.push('A duração do serviço deve ficar entre 15 minutos e 12 horas.');
+  if (config.menPerShift < 0 || config.womenPerShift < 0) warnings.push('A quantidade por alojamento não pode ser negativa.');
+  if (config.minRestMinutes < 0 || config.minRestMinutes > 1440) warnings.push('O descanso mínimo deve ficar entre 0 e 1.440 minutos.');
+  if (config.menPerShift + config.womenPerShift < 1) warnings.push('Informe pelo menos uma pessoa por turno.');
+  if (totalSlots > 1000) warnings.push('O período gera turnos demais. Reduza o período ou aumente a duração do serviço.');
+
+  if (incompleteActivePeople.length > 0) {
+    warnings.push(`${incompleteActivePeople.length} pessoa(s) ativa(s) ainda precisa(m) de alojamento definido. Edite o cadastro antes de gerar.`);
+  }
   if (men.length < config.menPerShift) {
-    warnings.push(`Há apenas ${men.length} homem(ns) disponível(is), mas a escala pede ${config.menPerShift} por turno.`);
+    warnings.push(`Há apenas ${men.length} homem(ns) ativo(s), mas a escala pede ${config.menPerShift} por turno.`);
   }
   if (women.length < config.womenPerShift) {
-    warnings.push(`Há apenas ${women.length} mulher(es) disponível(is), mas a escala pede ${config.womenPerShift} por turno.`);
+    warnings.push(`Há apenas ${women.length} mulher(es) ativa(s), mas a escala pede ${config.womenPerShift} por turno.`);
   }
 
+  const uniqueWarnings = () => [...new Set(warnings)];
+  const hasBlockingWarning = warnings.length > 0;
+  if (hasBlockingWarning || totalSlots === 0 || totalSlots > 1000) {
+    return { slots: [], warnings: uniqueWarnings(), isValid: false, metrics };
+  }
+
+  const shiftMs = config.shiftMinutes * 60 * 1000;
   const counts = new Map<string, number>();
   const lastEnd = new Map<string, number>();
   const previousSlotIds = new Set<string>();
   people.forEach((person) => counts.set(person.id, 0));
 
-  function choose(candidates: ServiceScalePerson[], amount: number, slotStart: number): ServiceScalePerson[] {
+  function choose(candidates: ServiceScalePerson[], amount: number, slotStart: number, label: string): ServiceScalePerson[] {
     if (amount <= 0) return [];
     if (candidates.length === 0) return [];
 
     const withRest = candidates.filter((person) => {
       const last = lastEnd.get(person.id);
-      if (!last) return true;
+      if (last === undefined) return true;
       const restedMinutes = (slotStart - last) / 60000;
       return restedMinutes >= config.minRestMinutes;
     });
 
-    let pool = withRest.length >= amount ? withRest : candidates;
+    let pool = withRest;
+    if (withRest.length < amount) {
+      warnings.push(`O turno que começa às ${new Date(slotStart).toLocaleString('pt-BR')} precisa reutilizar ${label} antes do descanso mínimo; considere cadastrar mais pessoas ou reduzir o descanso.`);
+      pool = candidates;
+    }
 
     if (config.avoidConsecutive) {
       const notPrevious = pool.filter((person) => !previousSlotIds.has(person.id));
       if (notPrevious.length >= amount) pool = notPrevious;
+      else warnings.push(`O descanso foi respeitado, mas não foi possível evitar serviço consecutivo no turno que começa às ${new Date(slotStart).toLocaleString('pt-BR')}.`);
     }
 
     return [...pool]
@@ -244,14 +305,24 @@ export function buildGeneratedScale(
 
   while (cursor < end.getTime()) {
     const slotEnd = Math.min(cursor + shiftMs, end.getTime());
-    const selectedMen = choose(men, config.menPerShift, cursor);
-    const selectedWomen = choose(women, config.womenPerShift, cursor);
+    const selectedMen = choose(men, config.menPerShift, cursor, 'homens');
+    const selectedWomen = choose(women, config.womenPerShift, cursor, 'mulheres');
     const selected = [...selectedMen, ...selectedWomen];
+
+    if (selectedMen.length !== config.menPerShift || selectedWomen.length !== config.womenPerShift) {
+      return {
+        slots: [],
+        warnings: uniqueWarnings(),
+        isValid: false,
+        metrics: { ...metrics, generatedAssignments: metrics.generatedAssignments + selected.length },
+      };
+    }
 
     selected.forEach((person) => {
       counts.set(person.id, (counts.get(person.id) || 0) + 1);
       lastEnd.set(person.id, slotEnd);
     });
+    metrics.generatedAssignments += selected.length;
 
     previousSlotIds.clear();
     selected.forEach((person) => previousSlotIds.add(person.id));
@@ -268,7 +339,7 @@ export function buildGeneratedScale(
     slotNumber += 1;
   }
 
-  return { slots, warnings };
+  return { slots, warnings: uniqueWarnings(), isValid: true, metrics };
 }
 
 export function summarizeGeneratedScale(slots: GeneratedScaleSlot[]): Record<string, number> {
@@ -340,6 +411,7 @@ export async function ensureProfileInServiceScale(params: {
 
   const { error } = await supabase.from(PEOPLE_TABLE).insert({
     name,
+    display_name: name,
     gender: 'male',
     phone: params.phone || null,
     sector: params.sectors?.[0] || null,
