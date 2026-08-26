@@ -31,6 +31,10 @@ function getDepartureTimestamp(value?: string | null) {
   return Number.isFinite(timestamp) ? timestamp : Number.POSITIVE_INFINITY;
 }
 
+function hasRideDeparted(value?: string | null) {
+  return getDepartureTimestamp(value) <= Date.now();
+}
+
 export function RidesView() {
   const { profile, isAdmin, isDirector } = useAuth();
 
@@ -84,7 +88,7 @@ export function RidesView() {
       if (!profile) return false;
 
       if (filter === 'available') {
-        return ride.status === 'available' && ride.available_seats > 0;
+        return ride.status === 'available' && ride.available_seats > 0 && !hasRideDeparted(ride.departure_time);
       }
 
       if (filter === 'mine') {
@@ -98,8 +102,8 @@ export function RidesView() {
 
       return true;
     }).sort((first, second) => {
-      const firstActive = ['available', 'full', 'confirmed'].includes(first.status) ? 0 : 1;
-      const secondActive = ['available', 'full', 'confirmed'].includes(second.status) ? 0 : 1;
+      const firstActive = ['available', 'full', 'confirmed'].includes(first.status) && !hasRideDeparted(first.departure_time) ? 0 : 1;
+      const secondActive = ['available', 'full', 'confirmed'].includes(second.status) && !hasRideDeparted(second.departure_time) ? 0 : 1;
       if (firstActive !== secondActive) return firstActive - secondActive;
       return getDepartureTimestamp(first.departure_time) - getDepartureTimestamp(second.departure_time);
     });
@@ -108,7 +112,7 @@ export function RidesView() {
   const rideMetrics = useMemo(() => {
     if (!profile) return { open: 0, seats: 0, mine: 0 };
     return rides.reduce((totals, ride) => {
-      const active = ['available', 'full', 'confirmed'].includes(ride.status);
+      const active = ['available', 'full', 'confirmed'].includes(ride.status) && !hasRideDeparted(ride.departure_time);
       const mine = ride.driver_id === profile.id || ride.passengers?.some((passenger) => passenger.passenger_id === profile.id);
       return {
         open: totals.open + (active ? 1 : 0),
@@ -458,14 +462,17 @@ export function RidesView() {
             const isPassenger = ride.passengers?.some(
               (passenger) => passenger.passenger_id === profile.id
             );
+            const rideHasDeparted = hasRideDeparted(ride.departure_time);
+            const isExpiredActiveRide = rideHasDeparted && ['available', 'full', 'confirmed'].includes(ride.status);
             const canJoin =
               !isDriver &&
               !isPassenger &&
               ride.status === 'available' &&
-              ride.available_seats > 0;
+              ride.available_seats > 0 &&
+              !rideHasDeparted;
 
-            const canLeave = !isDriver && isPassenger && ['available', 'full'].includes(ride.status);
-            const canCancel = isDriver && ['available', 'full', 'confirmed'].includes(ride.status);
+            const canLeave = !isDriver && isPassenger && ['available', 'full'].includes(ride.status) && !rideHasDeparted;
+            const canCancel = isDriver && ['available', 'full', 'confirmed'].includes(ride.status) && !rideHasDeparted;
             const canConfirmRide =
               (isAdmin || isDirector) &&
               ride.status !== 'cancelled' &&
@@ -491,8 +498,8 @@ export function RidesView() {
                     </div>
                   </div>
 
-                  <span className={`ride-status ${ride.status}`}>
-                    {formatRideStatus(ride.status)}
+                  <span className={`ride-status ${isExpiredActiveRide ? 'expired' : ride.status}`}>
+                    {isExpiredActiveRide ? 'Horário encerrado' : formatRideStatus(ride.status)}
                   </span>
                 </div>
 
@@ -571,6 +578,12 @@ export function RidesView() {
                 </div>
 
                 <div className="ride-actions">
+                  {isExpiredActiveRide && (
+                    <p className="ride-expired-notice">
+                      Esta carona não aceita mais entradas. A diretoria pode registrar se ela foi concluída.
+                    </p>
+                  )}
+
                   {canJoin && (
                     <button
                       type="button"
@@ -635,17 +648,17 @@ export function RidesView() {
                     </div>
                   )}
 
-{ride.status === 'completed' && (
-  <span className="payment-approved-label">
-    Carona concluída · {ride.confirmed_passenger_count || 0} passageiro(s) · Honra lançada
-  </span>
-)}
+                  {ride.status === 'completed' && (
+                    <span className="payment-approved-label">
+                      Carona concluída · {ride.confirmed_passenger_count || 0} passageiro(s) · Honra lançada
+                    </span>
+                  )}
 
-{ride.status === 'not_completed' && (
-  <span className="payment-rejected-label">
-    Carona marcada como não concluída
-  </span>
-)}
+                  {ride.status === 'not_completed' && (
+                    <span className="payment-rejected-label">
+                      Carona marcada como não concluída
+                    </span>
+                  )}
                 </div>
               </div>
             );
