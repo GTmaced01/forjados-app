@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarClock, Car, MapPin, Plus, RefreshCw, Route, UserPlus, Users, XCircle } from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
+import { AdminHistoryDeleteButton } from '../components/AdminHistoryDeleteButton';
 import {
   cancelRide,
   confirmRideCompletion,
@@ -658,6 +659,18 @@ export function RidesView() {
                     <span className="payment-rejected-label">
                       Carona marcada como não concluída
                     </span>
+                  )}
+
+                  {isAdmin && (
+                    <AdminHistoryDeleteButton
+                      entityType="rides"
+                      entityId={ride.id}
+                      itemLabel={`a carona de ${ride.driver_name}`}
+                      onDeleted={() => {
+                        setRides((current) => current.filter((item) => item.id !== ride.id));
+                        setSuccess('Carona retirada do histórico e honra relacionada recalculada.');
+                      }}
+                    />
                   )}
                 </div>
               </div>
