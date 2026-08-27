@@ -33,6 +33,7 @@ export async function listMyPaymentReceipts(): Promise<PaymentReceipt[]> {
     .select('*')
     .eq('user_id', userData.user.id)
     .eq('type', 'inscription')
+    .is('deleted_at', null)
     .order('uploaded_at', { ascending: false });
 
   if (error) throw error;
@@ -96,6 +97,7 @@ export async function listAllPaymentReceipts(): Promise<PaymentReceipt[]> {
   const { data, error } = await supabase
     .from('payment_receipts')
     .select('*')
+    .is('deleted_at', null)
     .order('uploaded_at', { ascending: false });
 
   if (error) throw error;
