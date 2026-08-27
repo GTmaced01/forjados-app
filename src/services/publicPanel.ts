@@ -36,6 +36,7 @@ export async function listPublishedPublicPanelItems(): Promise<PublicPanelItem[]
         .from('public_panel_items')
         .select('*')
         .eq('is_active', true)
+        .is('deleted_at', null)
         .order('is_pinned', { ascending: false })
         .order('publish_at', { ascending: false }),
       'Não foi possível carregar o painel público.'
@@ -58,6 +59,7 @@ export async function listAllPublicPanelItems(): Promise<PublicPanelItem[]> {
     supabase
       .from('public_panel_items')
       .select('*')
+      .is('deleted_at', null)
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false }),
     'Não foi possível carregar os avisos.'
@@ -116,15 +118,6 @@ export async function updatePublicPanelItem(params: {
       })
       .eq('id', params.id),
     'Não foi possível atualizar o aviso.'
-  );
-
-  if (error) throw error;
-}
-
-export async function deletePublicPanelItem(id: string) {
-  const { error } = await safeRequest(
-    supabase.from('public_panel_items').delete().eq('id', id),
-    'Não foi possível excluir o aviso.'
   );
 
   if (error) throw error;
