@@ -183,6 +183,7 @@ export async function listMyShirtOrders(): Promise<
     .from('shirt_orders')
     .select('*, items:shirt_order_items(*)')
     .eq('user_id', userData.user.id)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -338,6 +339,7 @@ export async function listAllShirtOrders(): Promise<
   const { data, error } = await supabase
     .from('shirt_orders')
     .select('*, items:shirt_order_items(*)')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
