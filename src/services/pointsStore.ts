@@ -285,6 +285,7 @@ export async function listMyPointsRedemptions(): Promise<PointsRedemption[]> {
         .from('points_redemptions')
         .select('*')
         .eq('user_id', userData.user.id)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false }),
       'Não foi possível carregar seus resgates.'
     );
@@ -303,6 +304,7 @@ export async function listAllPointsRedemptions(): Promise<PointsRedemption[]> {
       supabase
         .from('points_redemptions')
         .select('*')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false }),
       'Não foi possível carregar todos os resgates.'
     );
