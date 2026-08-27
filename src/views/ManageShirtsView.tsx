@@ -14,6 +14,8 @@ import {
 import { withTimeout } from '../services/safeAsync';
 import { STORAGE_BUCKETS, uploadPublicImage } from '../services/storage';
 import { getPrivateDocumentUrl } from '../services/privateStorage';
+import { AdminHistoryDeleteButton } from '../components/AdminHistoryDeleteButton';
+import { useAuth } from '../components/AuthProvider';
 import type { Shirt, ShirtOrder, ShirtOrderItem, ShirtOrderStatus } from '../types';
 
 type EditingShirt = {
@@ -69,6 +71,7 @@ function shirtImageStyle(image?: { position_x?: number; position_y?: number }) {
 }
 
 export function ManageShirtsView() {
+  const { isAdmin } = useAuth();
   const [shirts, setShirts] = useState<Shirt[]>([]);
   const [orders, setOrders] = useState<Array<ShirtOrder & { items?: ShirtOrderItem[] }>>([]);
 
@@ -840,6 +843,18 @@ export function ManageShirtsView() {
                           >
                             Cancelar
                           </button>
+                        )}
+
+                        {isAdmin && (
+                          <AdminHistoryDeleteButton
+                            entityType="shirt_orders"
+                            entityId={order.id}
+                            itemLabel={`o pedido #${order.id.slice(0, 8).toUpperCase()}`}
+                            onDeleted={async () => {
+                              await loadData();
+                              setSuccess('Pedido retirado do histórico; estoque reservado foi recalculado.');
+                            }}
+                          />
                         )}
                       </div>
                     </div>
