@@ -142,6 +142,7 @@ export async function listServiceSchedules(): Promise<ServiceScaleSchedule[]> {
   const { data, error } = await supabase
     .from(SCHEDULES_TABLE)
     .select('*')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -211,11 +212,6 @@ export async function saveGeneratedScale(params: {
   if (error) throw error;
   if (!data) throw new Error('O banco não retornou a escala salva.');
   return (Array.isArray(data) ? data[0] : data) as ServiceScaleSchedule;
-}
-
-export async function deleteServiceSchedule(id: string): Promise<void> {
-  const { error } = await supabase.from(SCHEDULES_TABLE).delete().eq('id', id);
-  if (error) throw error;
 }
 
 export function buildGeneratedScale(
