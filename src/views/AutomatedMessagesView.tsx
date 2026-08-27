@@ -3,8 +3,11 @@ import { CalendarClock, RefreshCw, Send, XCircle } from 'lucide-react';
 import { PRIMARY_TEAMS } from '../constants';
 import { cancelAutomatedMessage, createAutomatedMessage, getAutomatedMessagesCronStatus, listAutomatedMessages, processDueAutomatedMessages } from '../services/automatedMessages';
 import type { AutomatedMessage, AutomatedMessageTarget } from '../types';
+import { AdminHistoryDeleteButton } from '../components/AdminHistoryDeleteButton';
+import { useAuth } from '../components/AuthProvider';
 
 export function AutomatedMessagesView() {
+  const { isAdmin } = useAuth();
   const [items, setItems] = useState<AutomatedMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -154,6 +157,7 @@ export function AutomatedMessagesView() {
                 <div className={`receipt-status ${item.status === 'sent' ? 'approved' : item.status === 'cancelled' || item.status === 'failed' ? 'rejected' : 'pending'}`}>{item.status}</div>
               </div>
               {item.status === 'scheduled' && <button className="reject-button" disabled={saving} onClick={() => cancel(item.id)}><XCircle size={16} />Cancelar</button>}
+              {isAdmin && <AdminHistoryDeleteButton entityType="automated_messages" entityId={item.id} itemLabel={`a mensagem “${item.title}”`} onDeleted={async () => { await load(); setSuccess('Mensagem retirada do histórico e preservada na auditoria.'); }} />}
             </div>
           ))}
           {!loading && items.length === 0 && <p className="muted">Nenhuma mensagem programada.</p>}
