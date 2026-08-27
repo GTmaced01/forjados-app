@@ -219,6 +219,7 @@ export interface PointTransaction {
   source_type?: string;
   source_id?: string | null;
   created_at: string;
+  deleted_at?: string | null;
 }
 
 export interface PointsStoreProductImage {
@@ -338,6 +339,7 @@ export interface ServiceScaleSchedule {
   created_by?: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
 }
 
 export interface ServiceScaleAssignment {
@@ -428,6 +430,7 @@ export interface AutomatedMessage {
   last_error?: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
 }
 
 export interface RetreatEventSettings {
