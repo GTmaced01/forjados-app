@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Edit, ImagePlus, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { Edit, ImagePlus, Plus, RefreshCw, Search } from 'lucide-react';
 import { STORAGE_BUCKETS, uploadPublicImage } from '../services/storage';
 import {
   createPublicPanelItem,
-  deletePublicPanelItem,
   formatPanelCategory,
   listAllPublicPanelItems,
   updatePublicPanelItem,
 } from '../services/publicPanel';
+import { AdminHistoryDeleteButton } from '../components/AdminHistoryDeleteButton';
+import { useAuth } from '../components/AuthProvider';
 import { getErrorMessage } from '../services/safeAsync';
 import type { PublicPanelCategory, PublicPanelItem } from '../types';
 
@@ -31,6 +32,7 @@ const emptyForm: PanelForm = {
 };
 
 export function ManagePublicPanelView() {
+  const { isAdmin } = useAuth();
   const [items, setItems] = useState<PublicPanelItem[]>([]);
   const [form, setForm] = useState<PanelForm>(emptyForm);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -114,20 +116,6 @@ export function ManagePublicPanelView() {
     }
   }
 
-  async function handleDelete(item: PublicPanelItem) {
-    if (!window.confirm(`Excluir o aviso "${item.title}"?`)) return;
-    setError('');
-    setSuccess('');
-    try {
-      await deletePublicPanelItem(item.id);
-      setSuccess('Aviso excluído.');
-      await loadData();
-    } catch (err) {
-      console.error(err);
-      setError(getErrorMessage(err, 'Erro ao excluir aviso.'));
-    }
-  }
-
   return (
     <div className="manage-public-panel-page">
       <div className="admin-header">
@@ -178,7 +166,7 @@ export function ManagePublicPanelView() {
                   <div className="manage-product-card" key={item.id}>
                     <div className="manage-product-image">{item.image_url ? <img src={item.image_url} alt={item.title} loading="lazy" decoding="async" /> : formatPanelCategory(item.category)}</div>
                     <div className="manage-product-info"><h4>{item.title}</h4><p className="muted">{item.content}</p><p className={item.is_active ? 'active-text' : 'inactive-text'}>{item.is_active ? 'Publicado' : 'Oculto'} {item.is_pinned ? '· Fixado' : ''}</p></div>
-                    <div className="manage-redemption-actions"><button className="secondary-button" type="button" onClick={() => startEdit(item)}><Edit size={16}/>Editar</button><button className="reject-button" type="button" onClick={() => handleDelete(item)}><Trash2 size={16}/>Excluir</button></div>
+                    <div className="manage-redemption-actions"><button className="secondary-button" type="button" onClick={() => startEdit(item)}><Edit size={16}/>Editar</button>{isAdmin && <AdminHistoryDeleteButton entityType="public_panel_items" entityId={item.id} itemLabel={`a publicação “${item.title}”`} onDeleted={async () => { await loadData(); setSuccess('Publicação retirada do mural e registrada na auditoria.'); }} />}</div>
                   </div>
                 ))}
               </div>
