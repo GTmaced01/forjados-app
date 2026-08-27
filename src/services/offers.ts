@@ -73,6 +73,7 @@ export async function listMyOffers(): Promise<Offer[]> {
     .from('offers')
     .select('*')
     .eq('user_id', userData.user.id)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -83,6 +84,7 @@ export async function listAllOffers(): Promise<Offer[]> {
   const { data, error } = await supabase
     .from('offers')
     .select('*')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;

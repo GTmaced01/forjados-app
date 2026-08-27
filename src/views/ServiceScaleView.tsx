@@ -13,7 +13,6 @@ import {
   buildScaleSlotRequirements,
   createServicePerson,
   deleteServicePerson,
-  deleteServiceSchedule,
   downloadTextFile,
   exportScaleCsv,
   formatDateTime,
@@ -29,6 +28,8 @@ import {
   updateServicePerson,
 } from '../services/serviceScale';
 import { withTimeout } from '../services/safeAsync';
+import { AdminHistoryDeleteButton } from '../components/AdminHistoryDeleteButton';
+import { useAuth } from '../components/AuthProvider';
 
 const now = new Date();
 const defaultStart = new Date(now);
@@ -72,6 +73,7 @@ function genderLabel(gender: ServiceScaleGender | null) {
 }
 
 export function ServiceScaleView() {
+  const { isAdmin } = useAuth();
   const [people, setPeople] = useState<ServiceScalePerson[]>([]);
   const [schedules, setSchedules] = useState<ServiceScaleSchedule[]>([]);
   const [selectedScheduleId, setSelectedScheduleId] = useState('');
@@ -382,22 +384,6 @@ export function ServiceScaleView() {
     }
   }
 
-  async function handleDeleteSchedule(scheduleId: string) {
-    const confirmed = window.confirm('Remover essa escala salva?');
-    if (!confirmed) return;
-
-    try {
-      await deleteServiceSchedule(scheduleId);
-      const nextSchedules = schedules.filter((schedule) => schedule.id !== scheduleId);
-      setSchedules(nextSchedules);
-      setSelectedScheduleId(nextSchedules[0]?.id || '');
-      setSelectedAssignments([]);
-      setSuccess('Escala removida.');
-    } catch (err) {
-      setError(`Não foi possível remover a escala. Detalhe: ${formatSupabaseError(err)}`);
-    }
-  }
-
   function handleExportGenerated() {
     if (generatedSlots.length === 0) return;
     downloadTextFile('escala-servico-alojamento.csv', exportScaleCsv(generatedSlots));
@@ -437,7 +423,7 @@ export function ServiceScaleView() {
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
 
-      <section className="admin-stats">
+      <section className="admin-stats service-scale-stats">
         <div className="card"><span className="muted">Pessoas</span><strong>{stats.total}</strong></div>
         <div className="card"><span className="muted">Ativos na escala</span><strong>{stats.active}</strong></div>
         <div className="card"><span className="muted">Homens/Mulheres ativos</span><strong>{stats.activeMen}/{stats.activeWomen}</strong></div>
@@ -680,11 +666,11 @@ export function ServiceScaleView() {
               <tbody>
                 {slotRequirements.map((slot) => (
                   <tr key={`${slot.slotNumber}-${slot.startAt}`} className={slot.enabled ? '' : 'service-slot-disabled'}>
-                    <td>
+                    <td data-label="Data e horário">
                       <strong>{formatDateTime(slot.startAt)}</strong>
                       <small>até {formatDateTime(slot.endAt)}</small>
                     </td>
-                    <td>
+                    <td data-label="Há pessoas?">
                       <label className="service-slot-toggle">
                         <input
                           type="checkbox"
@@ -694,7 +680,7 @@ export function ServiceScaleView() {
                         <span>{slot.enabled ? 'Sim, escalar' : 'Não escalar'}</span>
                       </label>
                     </td>
-                    <td>
+                    <td data-label="Masculino">
                       <input
                         type="number"
                         min="0"
@@ -705,7 +691,7 @@ export function ServiceScaleView() {
                         onChange={(event) => updateSlotRequirement(slot.slotNumber, { menRequired: Number(event.target.value) })}
                       />
                     </td>
-                    <td>
+                    <td data-label="Feminino">
                       <input
                         type="number"
                         min="0"
@@ -733,7 +719,7 @@ export function ServiceScaleView() {
         </div>
 
         <div className="table-wrap">
-          <table className="data-table">
+          <table className="data-table service-people-table">
             <thead>
               <tr>
                 <th>Nome</th>
@@ -750,13 +736,13 @@ export function ServiceScaleView() {
               )}
               {people.map((person) => (
                 <tr key={person.id}>
-                  <td>
+                  <td data-label="Nome">
                     <strong>{person.name}</strong>
                     {person.phone && <small>{person.phone}</small>}
                   </td>
-                  <td>{genderLabel(person.gender)}</td>
-                  <td>{person.sector || '-'}</td>
-                  <td>
+                  <td data-label="Alojamento">{genderLabel(person.gender)}</td>
+                  <td data-label="Setor">{person.sector || '-'}</td>
+                  <td data-label="Status">
                     <div className="status-stack">
                       <span className={person.is_active && !person.does_trail ? 'pill success' : 'pill muted-pill'}>
                         {person.is_active && !person.does_trail ? 'Ativo' : 'Fora da escala'}
@@ -764,12 +750,12 @@ export function ServiceScaleView() {
                       {person.does_trail && <span className="pill warning">Trilha</span>}
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Notificação">
                     <span className={person.user_id ? 'pill success' : 'pill muted-pill'}>
                       {person.user_id ? 'Conta vinculada' : 'Cadastro manual'}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Ações">
                     <div className="table-actions">
                       <button type="button" className="secondary-button" onClick={() => beginEditPerson(person)}>
                         Editar
@@ -841,10 +827,20 @@ export function ServiceScaleView() {
             <h3>Escalas publicadas</h3>
             <p className="muted">Aqui ficam as escalas já publicadas no Supabase.</p>
           </div>
-          {selectedSchedule && (
-            <button type="button" className="reject-button" onClick={() => handleDeleteSchedule(selectedSchedule.id)}>
-              Remover escala selecionada
-            </button>
+          {selectedSchedule && isAdmin && (
+            <AdminHistoryDeleteButton
+              entityType="service_scale_schedules"
+              entityId={selectedSchedule.id}
+              itemLabel={`a escala “${selectedSchedule.title}”`}
+              buttonLabel="Excluir escala selecionada"
+              onDeleted={() => {
+                const nextSchedules = schedules.filter((schedule) => schedule.id !== selectedSchedule.id);
+                setSchedules(nextSchedules);
+                setSelectedScheduleId(nextSchedules[0]?.id || '');
+                setSelectedAssignments([]);
+                setSuccess('Escala retirada do histórico e preservada na auditoria.');
+              }}
+            />
           )}
         </div>
 
@@ -889,11 +885,11 @@ function ScaleTable({ slots }: { slots: GeneratedScaleSlot[] }) {
         <tbody>
           {slots.map((slot) => (
             <tr key={slot.slotNumber}>
-              <td><strong>#{slot.slotNumber}</strong></td>
-              <td>{formatDateTime(slot.startAt)}</td>
-              <td>{formatDateTime(slot.endAt)}</td>
-              <td><strong>{slot.menRequired}:</strong> {slot.men.map((person) => person.name).join(' / ') || '-'}</td>
-              <td><strong>{slot.womenRequired}:</strong> {slot.women.map((person) => person.name).join(' / ') || '-'}</td>
+              <td data-label="Turno"><strong>#{slot.slotNumber}</strong></td>
+              <td data-label="Início">{formatDateTime(slot.startAt)}</td>
+              <td data-label="Fim">{formatDateTime(slot.endAt)}</td>
+              <td data-label="Alojamento masculino"><strong>{slot.menRequired}:</strong> {slot.men.map((person) => person.name).join(' / ') || '-'}</td>
+              <td data-label="Alojamento feminino"><strong>{slot.womenRequired}:</strong> {slot.women.map((person) => person.name).join(' / ') || '-'}</td>
             </tr>
           ))}
         </tbody>
@@ -939,11 +935,11 @@ function SavedAssignmentsTable({
           <tbody>
             {slots.map((slot) => (
               <tr key={slot.slotNumber}>
-                <td><strong>#{slot.slotNumber}</strong></td>
-                <td>{slot.startAt ? formatDateTime(slot.startAt) : '-'}</td>
-                <td>{slot.endAt ? formatDateTime(slot.endAt) : '-'}</td>
-                <td>{slot.men.join(' / ') || '-'}</td>
-                <td>{slot.women.join(' / ') || '-'}</td>
+                <td data-label="Turno"><strong>#{slot.slotNumber}</strong></td>
+                <td data-label="Início">{slot.startAt ? formatDateTime(slot.startAt) : '-'}</td>
+                <td data-label="Fim">{slot.endAt ? formatDateTime(slot.endAt) : '-'}</td>
+                <td data-label="Alojamento masculino">{slot.men.join(' / ') || '-'}</td>
+                <td data-label="Alojamento feminino">{slot.women.join(' / ') || '-'}</td>
               </tr>
             ))}
           </tbody>

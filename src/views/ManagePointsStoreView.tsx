@@ -24,6 +24,8 @@ import {
   updatePointsRedemptionStatus,
 } from '../services/pointsStore';
 import { getErrorMessage, withTimeout } from '../services/safeAsync';
+import { AdminHistoryDeleteButton } from '../components/AdminHistoryDeleteButton';
+import { useAuth } from '../components/AuthProvider';
 import type { PointsRedemption, PointsStoreProduct } from '../types';
 
 type ProductForm = {
@@ -68,6 +70,7 @@ function productImageStyle(image?: { position_x?: number; position_y?: number })
 }
 
 export function ManagePointsStoreView() {
+  const { isAdmin } = useAuth();
   const [products, setProducts] = useState<PointsStoreProduct[]>([]);
   const [redemptions, setRedemptions] = useState<PointsRedemption[]>([]);
   const [form, setForm] = useState<ProductForm>(emptyForm);
@@ -498,7 +501,7 @@ export function ManagePointsStoreView() {
             {loading ? <p className="muted">Carregando resgates...</p> : filteredRedemptions.length === 0 ? <p className="muted">Nenhum resgate encontrado.</p> : (
               <div className="manage-redemptions-list">{filteredRedemptions.map((redemption) => {
                 const isSaving = savingRedemptionId === redemption.id;
-                return <div className="manage-redemption-card" key={redemption.id}><div><h4>{redemption.product_name}</h4><p className="muted">Membro: {redemption.user_name}</p><p className="muted">{redemption.user_email || 'E-mail não informado'}</p><p className="muted">{new Date(redemption.created_at).toLocaleString('pt-BR')}</p></div><div className="manage-redemption-info"><strong>{redemption.points_cost} pts</strong><span className={`redemption-status ${redemption.status}`}>{formatRedemptionStatus(redemption.status)}</span></div><div className="manage-redemption-actions">{redemption.status !== 'delivered' && <button className="approve-button" type="button" disabled={isSaving} onClick={() => handleUpdateRedemptionStatus(redemption.id, 'delivered')}><CheckCircle size={16} />Marcar entregue</button>}{redemption.status !== 'cancelled' && redemption.status !== 'delivered' && <button className="reject-button" type="button" disabled={isSaving} onClick={() => handleUpdateRedemptionStatus(redemption.id, 'cancelled')}><XCircle size={16} />Cancelar</button>}{redemption.status === 'delivered' && <span className="payment-approved-label"><CheckCircle size={16} />Entregue</span>}</div></div>;
+                return <div className="manage-redemption-card" key={redemption.id}><div><h4>{redemption.product_name}</h4><p className="muted">Membro: {redemption.user_name}</p><p className="muted">{redemption.user_email || 'E-mail não informado'}</p><p className="muted">{new Date(redemption.created_at).toLocaleString('pt-BR')}</p></div><div className="manage-redemption-info"><strong>{redemption.points_cost} pts</strong><span className={`redemption-status ${redemption.status}`}>{formatRedemptionStatus(redemption.status)}</span></div><div className="manage-redemption-actions">{redemption.status !== 'delivered' && <button className="approve-button" type="button" disabled={isSaving} onClick={() => handleUpdateRedemptionStatus(redemption.id, 'delivered')}><CheckCircle size={16} />Marcar entregue</button>}{redemption.status !== 'cancelled' && redemption.status !== 'delivered' && <button className="reject-button" type="button" disabled={isSaving} onClick={() => handleUpdateRedemptionStatus(redemption.id, 'cancelled')}><XCircle size={16} />Cancelar</button>}{redemption.status === 'delivered' && <span className="payment-approved-label"><CheckCircle size={16} />Entregue</span>}{isAdmin && <AdminHistoryDeleteButton entityType="points_redemptions" entityId={redemption.id} itemLabel={`o resgate de ${redemption.product_name}`} onDeleted={async () => { await loadData(); setSuccess('Resgate retirado do histórico; honra e estoque foram recalculados.'); }} />}</div></div>;
               })}</div>
             )}
           </section>

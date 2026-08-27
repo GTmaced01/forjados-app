@@ -30,6 +30,7 @@ export async function listMyPointTransactions(): Promise<PointTransaction[]> {
         .from('point_transactions')
         .select('*')
         .eq('user_id', userData.user.id)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false }),
       'Não foi possível carregar seu histórico de pontos.'
     );
@@ -49,7 +50,7 @@ export async function listAllPointTransactions(): Promise<PointTransaction[]> {
       'Não foi possível carregar o histórico geral de pontos.'
     );
 
-    if (!error) return (data || []) as PointTransaction[];
+    if (!error) return ((data || []) as PointTransaction[]).filter((item) => !('deleted_at' in item) || !item.deleted_at);
 
     throw error;
   } catch (rpcError) {
@@ -60,6 +61,7 @@ export async function listAllPointTransactions(): Promise<PointTransaction[]> {
         supabase
           .from('point_transactions')
           .select('*')
+          .is('deleted_at', null)
           .order('created_at', { ascending: false }),
         'Não foi possível carregar o histórico geral de pontos.'
       );

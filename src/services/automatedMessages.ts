@@ -5,6 +5,7 @@ export async function listAutomatedMessages(): Promise<AutomatedMessage[]> {
   const { data, error } = await supabase
     .from('automated_messages')
     .select('*')
+    .is('deleted_at', null)
     .order('scheduled_at', { ascending: false });
 
   if (error) throw error;

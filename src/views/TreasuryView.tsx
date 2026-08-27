@@ -8,11 +8,14 @@ import {
 import { exportTreasuryWorkbook } from '../services/exporters';
 import { formatOfferMethod, formatOfferStatus, listAllOffers, updateOfferStatus } from '../services/offers';
 import { getPrivateDocumentUrl } from '../services/privateStorage';
+import { AdminHistoryDeleteButton } from '../components/AdminHistoryDeleteButton';
+import { useAuth } from '../components/AuthProvider';
 import type { Offer, PaymentReceipt } from '../types';
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
 
 export function TreasuryView() {
+  const { isAdmin } = useAuth();
   const mountedRef = useRef(true);
 
   const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
@@ -354,6 +357,17 @@ export function TreasuryView() {
     Pagamento recusado
   </span>
 )}
+                {isAdmin && (
+                  <AdminHistoryDeleteButton
+                    entityType="payment_receipts"
+                    entityId={receipt.id}
+                    itemLabel={`o comprovante de ${receipt.user_name || 'usuário'}`}
+                    onDeleted={async () => {
+                      await loadReceipts();
+                      setSuccess('Comprovante retirado do histórico e inscrição relacionada recalculada.');
+                    }}
+                  />
+                )}
               </div>
             </div>
           );
@@ -397,6 +411,7 @@ export function TreasuryView() {
                     {(offer.proof_path || offer.proof_url) && <button type="button" className="secondary-button" onClick={() => void handleOpenReceipt(offer.proof_path, offer.proof_url)}>Abrir comprovante</button>}
                     {offer.status !== 'approved' && <button className="approve-button" disabled={isSaving} onClick={() => handleUpdateOfferStatus(offer, 'approved')}>Aprovar</button>}
                     {offer.status !== 'rejected' && <button className="reject-button" disabled={isSaving} onClick={() => handleUpdateOfferStatus(offer, 'rejected')}>Recusar</button>}
+                    {isAdmin && <AdminHistoryDeleteButton entityType="offers" entityId={offer.id} itemLabel={`a oferta de ${offer.user_name || 'usuário'}`} onDeleted={async () => { await loadReceipts(); setSuccess('Oferta retirada do histórico e preservada na auditoria.'); }} />}
                   </div>
                 </div>
               );
