@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, CheckCircle, RefreshCw, Smartphone, XCircle } from 'lucide-react';
+import { Bell, BellRing, CheckCircle, RefreshCw, Smartphone, XCircle } from 'lucide-react';
 import {
   listMyNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
+  sendMyPushTest,
 } from '../services/notifications';
 import { getErrorMessage } from '../services/safeAsync';
 import {
@@ -22,6 +23,7 @@ export function NotificationsView() {
   const [error, setError] = useState('');
   const [pushStatus, setPushStatus] = useState<PushSubscriptionStatus | null>(null);
   const [pushLoading, setPushLoading] = useState(false);
+  const [pushSuccess, setPushSuccess] = useState('');
 
   async function loadPushStatus() {
     try {
@@ -94,6 +96,7 @@ export function NotificationsView() {
   async function handleEnablePush() {
     setPushLoading(true);
     setError('');
+    setPushSuccess('');
 
     try {
       await subscribeToPushNotifications();
@@ -109,6 +112,7 @@ export function NotificationsView() {
   async function handleDisablePush() {
     setPushLoading(true);
     setError('');
+    setPushSuccess('');
 
     try {
       await unsubscribeFromPushNotifications();
@@ -116,6 +120,22 @@ export function NotificationsView() {
     } catch (err) {
       console.error(err);
       setError(getErrorMessage(err, 'Erro ao desativar notificações push.'));
+    } finally {
+      setPushLoading(false);
+    }
+  }
+
+  async function handleTestPush() {
+    setPushLoading(true);
+    setError('');
+    setPushSuccess('');
+
+    try {
+      await sendMyPushTest();
+      setPushSuccess('Teste agendado. A notificação deve chegar em até 1 minuto.');
+    } catch (err) {
+      console.error(err);
+      setError(getErrorMessage(err, 'Erro ao testar notificações push.'));
     } finally {
       setPushLoading(false);
     }
@@ -156,6 +176,7 @@ export function NotificationsView() {
       </div>
 
       {error && <div className="alert error">{error}</div>}
+      {pushSuccess && <div className="alert success" role="status">{pushSuccess}</div>}
 
       <section className="panel wide notifications-summary">
         <div className="notification-big-icon">
@@ -184,21 +205,32 @@ export function NotificationsView() {
         </div>
         <div className="push-panel-actions">
           {pushStatus?.state === 'subscribed' ? (
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={handleDisablePush}
-              disabled={pushLoading}
-            >
-              <XCircle size={16} />
-              Desativar
-            </button>
+            <>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={handleTestPush}
+                disabled={pushLoading}
+              >
+                <BellRing size={16} />
+                {pushLoading ? 'Enviando...' : 'Enviar teste'}
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={handleDisablePush}
+                disabled={pushLoading}
+              >
+                <XCircle size={16} />
+                Desativar
+              </button>
+            </>
           ) : (
             <button
               type="button"
               className="primary-button"
               onClick={handleEnablePush}
-              disabled={pushLoading || pushStatus?.state === 'unsupported' || pushStatus?.state === 'missing-public-key' || pushStatus?.permission === 'denied'}
+              disabled={pushLoading || pushStatus?.state === 'unsupported' || pushStatus?.state === 'missing-public-key' || pushStatus?.state === 'invalid-public-key' || pushStatus?.permission === 'denied'}
             >
               <Bell size={16} />
               {pushLoading ? 'Ativando...' : 'Ativar push'}

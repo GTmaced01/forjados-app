@@ -1,8 +1,13 @@
 import { supabase } from './supabase';
+import {
+  normalizeVapidPublicKey,
+  vapidPublicKeyToUint8Array,
+} from './vapid';
 
 export type PushPermissionState =
   | 'unsupported'
   | 'missing-public-key'
+  | 'invalid-public-key'
   | 'default'
   | 'granted'
   | 'denied'
@@ -13,26 +18,17 @@ export type PushSubscriptionStatus = {
   supported: boolean;
   permission: NotificationPermission | 'unsupported';
   hasPublicKey: boolean;
+  publicKeyStatus: 'valid' | 'missing' | 'invalid';
   isSubscribed: boolean;
   state: PushPermissionState;
 };
 
-const WEB_PUSH_PUBLIC_KEY = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY as string | undefined;
+const RAW_WEB_PUSH_PUBLIC_KEY = import.meta.env.VITE_WEB_PUSH_PUBLIC_KEY as string | undefined;
+const WEB_PUSH_PUBLIC_KEY = normalizeVapidPublicKey(RAW_WEB_PUSH_PUBLIC_KEY);
 
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = `${base64String}${padding}`
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let index = 0; index < rawData.length; index += 1) {
-    outputArray[index] = rawData.charCodeAt(index);
-  }
-
-  return outputArray;
+function getPublicKeyStatus(): PushSubscriptionStatus['publicKeyStatus'] {
+  if (!RAW_WEB_PUSH_PUBLIC_KEY?.trim()) return 'missing';
+  return WEB_PUSH_PUBLIC_KEY ? 'valid' : 'invalid';
 }
 
 export function isPushSupported() {
@@ -63,18 +59,22 @@ export async function getPushSubscriptionStatus(): Promise<PushSubscriptionStatu
       supported: false,
       permission: 'unsupported',
       hasPublicKey: Boolean(WEB_PUSH_PUBLIC_KEY),
+      publicKeyStatus: getPublicKeyStatus(),
       isSubscribed: false,
       state: 'unsupported',
     };
   }
+
+  const publicKeyStatus = getPublicKeyStatus();
 
   if (!WEB_PUSH_PUBLIC_KEY) {
     return {
       supported: true,
       permission: Notification.permission,
       hasPublicKey: false,
+      publicKeyStatus,
       isSubscribed: false,
-      state: 'missing-public-key',
+      state: publicKeyStatus === 'missing' ? 'missing-public-key' : 'invalid-public-key',
     };
   }
 
@@ -86,6 +86,7 @@ export async function getPushSubscriptionStatus(): Promise<PushSubscriptionStatu
     supported: true,
     permission,
     hasPublicKey: true,
+    publicKeyStatus: 'valid',
     isSubscribed: Boolean(subscription),
     state: subscription
       ? 'subscribed'
@@ -97,7 +98,11 @@ export async function getPushSubscriptionStatus(): Promise<PushSubscriptionStatu
 
 export async function subscribeToPushNotifications() {
   if (!WEB_PUSH_PUBLIC_KEY) {
-    throw new Error('Chave pública VAPID não configurada. Confira VITE_WEB_PUSH_PUBLIC_KEY.');
+    throw new Error(
+      getPublicKeyStatus() === 'missing'
+        ? 'Chave pública de notificações não configurada.'
+        : 'A chave pública de notificações está em formato inválido.'
+    );
   }
 
   const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -116,7 +121,7 @@ export async function subscribeToPushNotifications() {
   if (!subscription) {
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(WEB_PUSH_PUBLIC_KEY),
+      applicationServerKey: vapidPublicKeyToUint8Array(WEB_PUSH_PUBLIC_KEY),
     });
   }
 
@@ -129,21 +134,12 @@ export async function subscribeToPushNotifications() {
     throw new Error('Assinatura push inválida. Tente ativar novamente.');
   }
 
-  const { error } = await supabase
-    .from('web_push_subscriptions')
-    .upsert(
-      {
-        user_id: userData.user.id,
-        endpoint,
-        p256dh,
-        auth,
-        subscription: subscriptionJson,
-        user_agent: navigator.userAgent,
-        is_active: true,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'endpoint' }
-    );
+  const { error } = await supabase.rpc('forjados_register_push_subscription', {
+    p_endpoint: endpoint,
+    p_p256dh: p256dh,
+    p_auth: auth,
+    p_user_agent: navigator.userAgent,
+  });
 
   if (error) throw error;
 
@@ -175,7 +171,8 @@ export async function unsubscribeFromPushNotifications() {
 
 export function formatPushStatus(status: PushSubscriptionStatus) {
   if (!status.supported) return 'Este navegador não suporta push.';
-  if (!status.hasPublicKey) return 'Chave VAPID não configurada.';
+  if (status.publicKeyStatus === 'missing') return 'Chave de notificações não configurada.';
+  if (status.publicKeyStatus === 'invalid') return 'Configuração de notificações inválida.';
   if (status.state === 'subscribed') return 'Notificações push ativas.';
   if (status.permission === 'denied') return 'Permissão bloqueada no navegador.';
   if (status.permission === 'granted') return 'Permissão concedida, mas assinatura não ativa.';

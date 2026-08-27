@@ -100,3 +100,17 @@ export async function countUnreadNotifications(): Promise<number> {
     return 0;
   }
 }
+
+export async function sendMyPushTest() {
+  try {
+    const { data, error } = await safeRequest(
+      supabase.rpc('forjados_send_test_push_notification'),
+      'Não foi possível agendar a notificação de teste.'
+    );
+
+    if (error) throw error;
+    return data as string;
+  } catch (error) {
+    throw friendly(error, 'Erro ao testar notificação push.');
+  }
+}
