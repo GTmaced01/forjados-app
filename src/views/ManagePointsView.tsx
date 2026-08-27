@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { MinusCircle, PlusCircle, RefreshCw, Search } from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
+import { AdminHistoryDeleteButton } from '../components/AdminHistoryDeleteButton';
 import {
   formatPointSource,
   grantPointsManual,
@@ -213,7 +214,21 @@ export function ManagePointsView() {
                       <p className="muted">Membro: {item.member_id || item.user_id} · {formatPointSource(item.source_type)}</p>
                       {item.granted_by_name && <p className="muted">Lançado por: {item.granted_by_name}</p>}
                     </div>
-                    <strong className={item.amount >= 0 ? 'points-positive' : 'points-negative'}>{item.amount > 0 ? '+' : ''}{item.amount} pts</strong>
+                    <div className="point-transaction-admin-actions">
+                      <strong className={item.amount >= 0 ? 'points-positive' : 'points-negative'}>{item.amount > 0 ? '+' : ''}{item.amount} pts</strong>
+                      {isAdmin && (
+                        <AdminHistoryDeleteButton
+                          entityType="point_transactions"
+                          entityId={item.id}
+                          itemLabel="este lançamento de honra"
+                          buttonLabel="Excluir"
+                          onDeleted={async () => {
+                            await Promise.all([loadData(), reloadProfile()]);
+                            setSuccess('Lançamento retirado do histórico e saldo recalculado.');
+                          }}
+                        />
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
