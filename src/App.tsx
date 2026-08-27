@@ -6,6 +6,7 @@ import { PwaStatus } from './components/PwaStatus';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { initialPasswordRecovery, supabase } from './services/supabase';
 import { isPasswordRecoveryUrl } from './services/authRecovery';
+import { PushPermissionPrompt } from './components/PushPermissionPrompt';
 
 const RegistrationView = lazy(() =>
   import('./views/RegistrationView').then(({ RegistrationView }) => ({ default: RegistrationView })),
@@ -49,16 +50,19 @@ function AppContent() {
 
   if (!profile) {
     return (
-      <div className="page-center">
-        <div className="panel center auth-recovery-panel">
-          <h1>FORJADOS</h1>
-          <p className="muted">{authError || 'Não foi possível carregar seu perfil automaticamente.'}</p>
-          <div className="auth-recovery-actions">
-            <button className="primary-button" type="button" onClick={reloadProfile}>Tentar novamente</button>
-            <button className="secondary-button" type="button" onClick={() => { window.location.href = '/'; }}>Atualizar página</button>
+      <>
+        <div className="page-center">
+          <div className="panel center auth-recovery-panel">
+            <h1>FORJADOS</h1>
+            <p className="muted">{authError || 'Não foi possível carregar seu perfil automaticamente.'}</p>
+            <div className="auth-recovery-actions">
+              <button className="primary-button" type="button" onClick={reloadProfile}>Tentar novamente</button>
+              <button className="secondary-button" type="button" onClick={() => { window.location.href = '/'; }}>Atualizar página</button>
+            </div>
           </div>
         </div>
-      </div>
+        <PushPermissionPrompt userId={user.id} />
+      </>
     );
   }
 
@@ -72,10 +76,20 @@ function AppContent() {
     !profile.sectors ||
     profile.sectors.length === 0;
 
-  if (profileIncomplete) return <RegistrationView />;
-  if (!isAdmin && profile.inscription_status !== 'approved') return <WaitingView />;
+  const content = profileIncomplete ? (
+    <RegistrationView />
+  ) : !isAdmin && profile.inscription_status !== 'approved' ? (
+    <WaitingView />
+  ) : (
+    <DashboardView />
+  );
 
-  return <DashboardView />;
+  return (
+    <>
+      {content}
+      <PushPermissionPrompt userId={user.id} />
+    </>
+  );
 }
 
 function AppGate() {
