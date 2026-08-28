@@ -7135,3 +7135,664 @@ textarea:focus {
     gap: 6px;
   }
 }
+
+/* =========================
+   FORJADOS 2.1R7 — CATÁLOGOS, CRONOGRAMA E LEITURA
+========================= */
+
+.auth-request-access {
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+}
+
+.auth-legal-links a,
+.auth-consent-links a,
+.terms a {
+  color: var(--gold);
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth-legal-links a {
+  font-size: 11px;
+}
+
+.catalog-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(170px, auto) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.catalog-search {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 13px;
+  color: var(--muted);
+  border-radius: 15px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.catalog-search input {
+  min-width: 0;
+  border: 0;
+  padding-inline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.catalog-toolbar select,
+.catalog-cart-button {
+  min-height: 48px;
+}
+
+.catalog-cart-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 14px;
+  color: var(--gold);
+  font-weight: 900;
+  border: 1px solid var(--gold-border);
+  border-radius: 15px;
+  background: var(--gold-soft);
+}
+
+.catalog-cart-button span {
+  min-width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  color: var(--bg);
+  background: var(--gold);
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.catalog-count {
+  margin: 2px 0 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.shirt-image,
+.points-product-image {
+  position: relative;
+}
+
+.catalog-photo-count {
+  position: absolute;
+  right: 9px;
+  bottom: 9px;
+  padding: 5px 8px;
+  color: #fff;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.66);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.inscription-page,
+.shirts-page,
+.points-store-page,
+.notifications-page,
+.profile-page,
+.event-schedule-page,
+.inscription-page > *,
+.shirts-page > *,
+.points-store-page > *,
+.notifications-page > *,
+.profile-page > *,
+.event-schedule-page > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.inscription-page p,
+.inscription-page h3,
+.inscription-page strong,
+.receipt-item,
+.order-card,
+.notification-receipt-card {
+  overflow-wrap: anywhere;
+}
+
+.file-upload-box.disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.file-upload-box.disabled input {
+  cursor: not-allowed;
+}
+
+.profile-completeness-alert {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  color: #ffcc80;
+  border: 1px solid rgba(255, 183, 77, 0.24);
+  border-radius: 13px;
+  background: rgba(255, 152, 0, 0.08);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.profile-completeness-alert strong {
+  color: #ffd49a;
+  font-size: 11px;
+}
+
+.notification-receipts-panel,
+.notification-receipts-list {
+  display: grid;
+  gap: 14px;
+}
+
+.notification-receipts-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  color: var(--gold);
+  border: 1px solid var(--gold-border);
+  border-radius: 999px;
+  background: var(--gold-soft);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.notification-receipt-card {
+  display: grid;
+  grid-template-columns: auto minmax(160px, 0.8fr) minmax(220px, 1.2fr) auto;
+  align-items: center;
+  gap: 13px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.notification-receipt-card > div:not(.receipt-read-state):not(.read-receipt-badge) {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.notification-receipt-card span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.receipt-read-state {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.receipt-read-state.read {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.read-receipt-badge {
+  padding: 8px 10px;
+  color: var(--muted);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  font-size: 10px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.read-receipt-badge.read {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.event-schedule-page,
+.schedule-days,
+.schedule-timeline,
+.schedule-editor {
+  display: grid;
+  gap: 18px;
+}
+
+.schedule-wide-field {
+  grid-column: 1 / -1;
+}
+
+.schedule-wide-field textarea {
+  min-height: 105px;
+  resize: vertical;
+}
+
+.schedule-publish-toggle {
+  align-self: center;
+}
+
+.schedule-day {
+  display: grid;
+  gap: 13px;
+}
+
+.schedule-day > h3 {
+  margin: 0;
+  color: var(--gold);
+  font-size: 15px;
+  text-transform: capitalize;
+}
+
+.schedule-timeline {
+  position: relative;
+  padding-left: 18px;
+}
+
+.schedule-timeline::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: linear-gradient(var(--gold), rgba(199, 154, 74, 0.08));
+}
+
+.schedule-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--panel);
+}
+
+.schedule-item::before {
+  content: '';
+  position: absolute;
+  left: -19px;
+  top: 27px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--bg);
+  border-radius: 999px;
+  background: var(--gold);
+}
+
+.schedule-item.draft {
+  border-style: dashed;
+  opacity: 0.84;
+}
+
+.schedule-time,
+.schedule-item-main,
+.schedule-meta,
+.schedule-actions {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.schedule-time {
+  align-content: start;
+  grid-template-columns: auto 1fr;
+  color: var(--gold);
+}
+
+.schedule-time span {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.schedule-item-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.schedule-item-heading span,
+.schedule-item-heading b {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: var(--gold);
+  background: var(--gold-soft);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.schedule-item-heading b {
+  color: var(--yellow);
+  background: var(--yellow-soft);
+}
+
+.schedule-item h4,
+.schedule-item p {
+  margin: 0;
+}
+
+.schedule-meta {
+  grid-template-columns: repeat(3, minmax(0, auto));
+  justify-content: start;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.schedule-meta span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.schedule-actions {
+  align-content: start;
+}
+
+.schedule-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 12px;
+}
+
+.schedule-empty {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.schedule-empty svg {
+  color: var(--gold);
+}
+
+@media (max-width: 860px) {
+  .catalog-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(140px, 0.5fr);
+  }
+
+  .catalog-cart-button {
+    grid-column: 1 / -1;
+  }
+
+  .notification-receipt-card,
+  .schedule-item {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .auth-page {
+    align-items: flex-start;
+    padding: max(18px, env(safe-area-inset-top)) 14px 26px;
+  }
+
+  .auth-card {
+    padding: 24px 18px;
+  }
+
+  .auth-card .brand {
+    margin-bottom: 20px;
+  }
+
+  .auth-card .form h2 {
+    font-size: clamp(22px, 7vw, 28px);
+  }
+
+  .catalog-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(118px, 0.62fr);
+  }
+
+  .catalog-toolbar select {
+    min-width: 0;
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+
+  .catalog-search input {
+    font-size: 13px;
+  }
+
+  .shirts-page,
+  .points-store-page,
+  .inscription-page,
+  .notifications-page,
+  .profile-page,
+  .event-schedule-page {
+    width: 100%;
+    padding-bottom: calc(94px + env(safe-area-inset-bottom));
+    overflow-x: clip;
+  }
+
+  .shirt-grid,
+  .points-products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+  }
+
+  .points-store-page > .panel.wide,
+  .shirts-page > .panel.wide {
+    padding: 14px;
+  }
+
+  .shirt-card,
+  .points-product-card {
+    min-width: 0;
+    border-radius: 14px;
+  }
+
+  .shirt-card .product-gallery-thumbs,
+  .points-product-card .product-gallery-thumbs,
+  .shirt-card .open-photo-badge,
+  .points-product-card .open-photo-badge {
+    display: none;
+  }
+
+  .shirt-info,
+  .points-product-info {
+    min-width: 0;
+    gap: 7px;
+    padding: 10px;
+  }
+
+  .shirt-info h4,
+  .points-product-info h4 {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    min-height: 34px;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .shirt-info > p,
+  .points-product-info > p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .shirt-info strong,
+  .points-product-meta strong {
+    font-size: 17px;
+  }
+
+  .points-product-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .shirt-info label,
+  .points-product-meta span {
+    font-size: 10px;
+  }
+
+  .shirt-info select {
+    min-width: 0;
+    height: 40px;
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .shirt-info .primary-button,
+  .points-product-actions .primary-button,
+  .points-product-actions .secondary-button {
+    min-height: 42px;
+    gap: 5px;
+    padding: 9px 7px;
+    letter-spacing: 0.5px;
+    font-size: 9px;
+  }
+
+  .cart-panel {
+    scroll-margin-top: 92px;
+  }
+
+  .points-store-balance {
+    padding: 18px;
+  }
+
+  .points-store-balance svg {
+    width: 38px;
+  }
+
+  .inscription-grid,
+  .inscription-payment-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .inscription-card,
+  .inscription-page .panel.wide,
+  .participation-question {
+    min-width: 0;
+    padding: 18px;
+    overflow: hidden;
+  }
+
+  .inscription-card strong {
+    font-size: clamp(22px, 7vw, 28px);
+  }
+
+  .participation-answer,
+  .participation-answer button,
+  .receipt-upload-form,
+  .receipt-upload-form button,
+  .receipt-link {
+    width: 100%;
+    max-width: none;
+  }
+
+  .file-upload-box {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .receipt-item,
+  .order-card-detailed {
+    min-width: 0;
+    grid-template-columns: 1fr !important;
+    align-items: stretch;
+  }
+
+  .receipt-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .receipt-status {
+    justify-self: start;
+  }
+
+  .profile-completeness-alert {
+    margin-top: 2px;
+  }
+
+  .notification-receipt-card {
+    align-items: start;
+  }
+
+  .read-receipt-badge {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .schedule-wide-field {
+    grid-column: auto;
+  }
+
+  .schedule-timeline {
+    padding-left: 14px;
+  }
+
+  .schedule-item {
+    gap: 14px;
+    padding: 17px;
+  }
+
+  .schedule-item::before {
+    left: -15px;
+  }
+
+  .schedule-time {
+    grid-template-columns: auto auto 1fr;
+    justify-content: start;
+  }
+
+  .schedule-time span {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .catalog-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-cart-button {
+    grid-column: auto;
+  }
+
+  .shirt-grid,
+  .points-products-grid {
+    gap: 7px !important;
+  }
+
+  .shirt-info,
+  .points-product-info {
+    padding: 8px;
+  }
+}

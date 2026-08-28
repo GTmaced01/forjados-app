@@ -10,7 +10,10 @@ import {
 } from '../services/auth';
 import type { UserRole } from '../types';
 import { PrivacyContent, RulesContent, TermsContent } from './LegalDocumentsView';
-import { FORJADOS_MAIN_MESSAGE } from '../constants';
+import {
+  OFFICIAL_PRIVACY_POLICY_URL,
+  OFFICIAL_RESPONSIBILITY_TERM_URL,
+} from '../constants';
 import {
   assertStrongPassword,
   getPasswordRequirements,
@@ -205,13 +208,11 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
         <div className="brand">
           <h1>FORJADOS</h1>
           <p>CURADOS PARA CURAR</p>
-          <small>{FORJADOS_MAIN_MESSAGE}</small>
         </div>
 
         {mode === 'login' && (
           <form onSubmit={handleLogin} className="form">
-            <h2>Acessar aplicativo</h2>
-            <p className="muted">Entre para acompanhar sua inscrição, equipe, avisos e organização do retiro.</p>
+            <h2>Você é um FORJADO? Então prove!</h2>
             {error && <div className="alert error">{error}</div>}
             {success && <div className="alert success">{success}</div>}
 
@@ -223,14 +224,14 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
             <PasswordField id="login-password" label="Senha" value={password} onChange={setPassword} autoComplete="current-password" placeholder="Sua senha" />
 
             <button className="primary-button" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
+            <button className="secondary-button auth-request-access" type="button" onClick={() => changeMode('register')}>Solicitar Acesso</button>
             <div className="auth-links">
               <button type="button" onClick={() => changeMode('forgot')}>Esqueci minha senha</button>
-              <button type="button" onClick={() => changeMode('register')}>Solicitar acesso</button>
             </div>
             <div className="auth-legal-links">
               <button type="button" onClick={() => openLegal('rules')}>Regras do Retiro</button>
-              <button type="button" onClick={() => openLegal('privacy')}>Política de Privacidade</button>
-              <button type="button" onClick={() => openLegal('terms')}>Termo de Responsabilidade</button>
+              <a href={OFFICIAL_PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">Política de Privacidade</a>
+              <a href={OFFICIAL_RESPONSIBILITY_TERM_URL} target="_blank" rel="noreferrer">Termo de Responsabilidade</a>
             </div>
           </form>
         )}
@@ -272,9 +273,9 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
                 <p className="auth-consent-links">
                   Leia antes de aceitar:{' '}
                   <button type="button" onClick={() => openLegal('rules')}>Regras do Retiro</button>,{' '}
-                  <button type="button" onClick={() => openLegal('privacy')}>Política de Privacidade</button>{' '}
+                  <a href={OFFICIAL_PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">Política de Privacidade</a>{' '}
                   e{' '}
-                  <button type="button" onClick={() => openLegal('terms')}>Termo de Responsabilidade</button>.
+                  <a href={OFFICIAL_RESPONSIBILITY_TERM_URL} target="_blank" rel="noreferrer">Termo de Responsabilidade</a>.
                 </p>
               </div>
             </div>
@@ -283,8 +284,8 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
             <div className="auth-links"><button type="button" onClick={() => changeMode('login')}>Já tenho conta</button></div>
             <div className="auth-legal-links">
               <button type="button" onClick={() => openLegal('rules')}>Regras do Retiro</button>
-              <button type="button" onClick={() => openLegal('privacy')}>Política de Privacidade</button>
-              <button type="button" onClick={() => openLegal('terms')}>Termo de Responsabilidade</button>
+              <a href={OFFICIAL_PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">Política de Privacidade</a>
+              <a href={OFFICIAL_RESPONSIBILITY_TERM_URL} target="_blank" rel="noreferrer">Termo de Responsabilidade</a>
             </div>
           </form>
         )}

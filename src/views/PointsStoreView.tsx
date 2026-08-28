@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Eye, Gift, RefreshCw, ShoppingBag, Target, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, Gift, RefreshCw, Search, ShoppingBag, Target, X } from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
 import { saveProductHonorGoal } from '../services/honorGoals';
 import {
@@ -30,6 +30,8 @@ export function PointsStoreView() {
   const [products, setProducts] = useState<PointsStoreProduct[]>([]);
   const [redemptions, setRedemptions] = useState<PointsRedemption[]>([]);
   const [selectedImageByProduct, setSelectedImageByProduct] = useState<Record<string, number>>({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'points-asc' | 'points-desc' | 'name'>('points-asc');
   const [lightbox, setLightbox] = useState<{ product: PointsStoreProduct; index: number } | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -68,8 +70,20 @@ export function PointsStoreView() {
   }, []);
 
   const availableProducts = useMemo(() => {
-    return products.filter((product) => product.stock > 0);
-  }, [products]);
+    const normalizedSearch = searchTerm.trim().toLocaleLowerCase('pt-BR');
+    return products
+      .filter((product) => product.stock > 0)
+      .filter((product) => (
+        !normalizedSearch
+        || product.name.toLocaleLowerCase('pt-BR').includes(normalizedSearch)
+        || (product.description || '').toLocaleLowerCase('pt-BR').includes(normalizedSearch)
+      ))
+      .sort((first, second) => {
+        if (sortBy === 'points-desc') return second.points_cost - first.points_cost;
+        if (sortBy === 'name') return first.name.localeCompare(second.name, 'pt-BR');
+        return first.points_cost - second.points_cost;
+      });
+  }, [products, searchTerm, sortBy]);
 
   const lightboxImages = lightbox ? getProductImages(lightbox.product) : [];
   const lightboxImage = lightboxImages[lightbox?.index || 0];
@@ -164,12 +178,23 @@ export function PointsStoreView() {
       </section>
 
       <section className="panel wide">
-        <h3>Recompensas disponíveis</h3>
+        <div className="catalog-toolbar">
+          <label className="catalog-search" htmlFor="honor-product-search">
+            <Search size={17} />
+            <input id="honor-product-search" type="search" placeholder="Buscar recompensas" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
+          </label>
+          <select aria-label="Ordenar recompensas" value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}>
+            <option value="points-asc">Menor pontuação</option>
+            <option value="points-desc">Maior pontuação</option>
+            <option value="name">Nome</option>
+          </select>
+        </div>
+        <p className="catalog-count">{availableProducts.length} recompensa{availableProducts.length === 1 ? '' : 's'} encontrada{availableProducts.length === 1 ? '' : 's'}</p>
 
         {loading ? (
           <p className="muted">Carregando recompensas...</p>
         ) : availableProducts.length === 0 ? (
-          <p className="muted">Nenhuma recompensa disponível no momento.</p>
+          <p className="muted">{products.some((product) => product.stock > 0) ? 'Nenhuma recompensa corresponde à sua busca.' : 'Nenhuma recompensa disponível no momento.'}</p>
         ) : (
           <div className="points-products-grid">
             {availableProducts.map((product) => {
@@ -193,6 +218,7 @@ export function PointsStoreView() {
                       <Gift size={42} />
                     )}
                     {selectedImage && <span className="open-photo-badge"><Eye size={14} /> Ver foto</span>}
+                    {productImages.length > 1 && <span className="catalog-photo-count">{selectedIndex + 1}/{productImages.length}</span>}
                   </button>
 
                   {productImages.length > 1 && (

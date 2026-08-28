@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, BellRing, CheckCircle, RefreshCw, Smartphone, XCircle } from 'lucide-react';
+import { Bell, BellRing, CheckCircle, Eye, RefreshCw, Smartphone, UsersRound, XCircle } from 'lucide-react';
+import { useAuth } from '../components/AuthProvider';
 import {
   listMyNotifications,
+  listNotificationReceipts,
   markAllNotificationsAsRead,
   markNotificationAsRead,
   sendMyPushTest,
@@ -14,10 +16,13 @@ import {
   unsubscribeFromPushNotifications,
   type PushSubscriptionStatus,
 } from '../services/pushNotifications';
-import type { AppNotification } from '../types';
+import type { AppNotification, NotificationReceipt } from '../types';
 
 export function NotificationsView() {
+  const { isAdmin, isDirector } = useAuth();
+  const canSeeReadReceipts = isAdmin || isDirector;
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [readReceipts, setReadReceipts] = useState<NotificationReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -39,8 +44,12 @@ export function NotificationsView() {
     setError('');
 
     try {
-      const data = await listMyNotifications();
+      const [data, receiptData] = await Promise.all([
+        listMyNotifications(),
+        canSeeReadReceipts ? listNotificationReceipts() : Promise.resolve([]),
+      ]);
       setNotifications(data);
+      setReadReceipts(receiptData);
       await loadPushStatus();
     } catch (err) {
       console.error(err);
@@ -52,7 +61,7 @@ export function NotificationsView() {
 
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [canSeeReadReceipts]);
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.is_read).length,
@@ -67,7 +76,7 @@ export function NotificationsView() {
       await markNotificationAsRead(notificationId);
       setNotifications((items) =>
         items.map((item) =>
-          item.id === notificationId ? { ...item, is_read: true } : item
+          item.id === notificationId ? { ...item, is_read: true, read_at: new Date().toISOString() } : item
         )
       );
     } catch (err) {
@@ -84,7 +93,8 @@ export function NotificationsView() {
 
     try {
       await markAllNotificationsAsRead();
-      setNotifications((items) => items.map((item) => ({ ...item, is_read: true })));
+      const readAt = new Date().toISOString();
+      setNotifications((items) => items.map((item) => ({ ...item, is_read: true, read_at: item.read_at || readAt })));
     } catch (err) {
       console.error(err);
       setError(getErrorMessage(err, 'Erro ao limpar notificações.'));
@@ -283,6 +293,46 @@ export function NotificationsView() {
           </div>
         )}
       </section>
+
+      {canSeeReadReceipts && (
+        <section className="panel wide notification-receipts-panel">
+          <div className="section-title-row">
+            <div>
+              <p className="eyebrow">Confirmação de leitura</p>
+              <h3>Quem recebeu e leu os avisos</h3>
+              <p className="muted">O horário é registrado quando o usuário marca a notificação como lida.</p>
+            </div>
+            <span className="notification-receipts-count"><UsersRound size={16} />{readReceipts.length} registros</span>
+          </div>
+
+          {readReceipts.length === 0 ? (
+            <p className="muted">Ainda não há confirmações registradas.</p>
+          ) : (
+            <div className="notification-receipts-list">
+              {readReceipts.map((receipt) => (
+                <article className="notification-receipt-card" key={receipt.id}>
+                  <div className={receipt.is_read ? 'receipt-read-state read' : 'receipt-read-state'}>
+                    {receipt.is_read ? <Eye size={16} /> : <Bell size={16} />}
+                  </div>
+                  <div>
+                    <strong>{receipt.recipient_name}</strong>
+                    <span>{receipt.recipient_email}</span>
+                  </div>
+                  <div>
+                    <strong>{receipt.title}</strong>
+                    <span>{new Date(receipt.created_at).toLocaleString('pt-BR')}</span>
+                  </div>
+                  <div className={receipt.is_read ? 'read-receipt-badge read' : 'read-receipt-badge'}>
+                    {receipt.is_read
+                      ? `Lida${receipt.read_at ? ` em ${new Date(receipt.read_at).toLocaleString('pt-BR')}` : ''}`
+                      : 'Ainda não lida'}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

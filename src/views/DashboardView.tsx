@@ -67,6 +67,7 @@ const AuditLogView = lazy(() => import("./AuditLogView").then(({ AuditLogView })
 const OfferView = lazy(() => import("./OfferView").then(({ OfferView }) => ({ default: OfferView })));
 const AutomatedMessagesView = lazy(() => import("./AutomatedMessagesView").then(({ AutomatedMessagesView }) => ({ default: AutomatedMessagesView })));
 const EventSettingsView = lazy(() => import("./EventSettingsView").then(({ EventSettingsView }) => ({ default: EventSettingsView })));
+const EventScheduleView = lazy(() => import("./EventScheduleView").then(({ EventScheduleView }) => ({ default: EventScheduleView })));
 
 function ModuleLoading() {
   return (
@@ -99,6 +100,7 @@ type Tab =
   | "audit-log"
   | "automated-messages"
   | "event-settings"
+  | "schedule"
   | "privacy"
   | "terms"
   | "rules"
@@ -126,6 +128,7 @@ const VALID_TABS: Tab[] = [
   "audit-log",
   "automated-messages",
   "event-settings",
+  "schedule",
   "privacy",
   "terms",
   "rules",
@@ -349,6 +352,7 @@ export function DashboardView() {
       tab === "points" ||
       tab === "notifications" ||
       tab === "points-store" ||
+      tab === "schedule" ||
       tab === "offer" ||
       tab === "rides" ||
       tab === "shirts" ||
@@ -506,7 +510,7 @@ export function DashboardView() {
         label: "Aprovar acessos",
         value: pendingAccess,
         description: "Novas pessoas aguardando entrada no app.",
-        tab: "home" as Tab,
+        tab: "admin" as Tab,
         disabled: false,
       },
       {
@@ -938,6 +942,7 @@ export function DashboardView() {
     const memberItems: Array<{ label: string; tab: Tab; visible?: boolean }> = [
       { label: "Minha Identidade", tab: "profile" },
       { label: "Minha Inscrição", tab: "inscription" },
+      { label: "Cronograma", tab: "schedule" },
       { label: `Notificações${unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}`, tab: "notifications" },
       { label: "Loja de Honra", tab: "points-store" },
       { label: "Fazer Oferta", tab: "offer" },
@@ -1053,6 +1058,7 @@ export function DashboardView() {
     if (tab === "audit-log" && canSeeAuditLog) return <AuditLogView />;
     if (tab === "automated-messages" && canManagePublicPanel) return <AutomatedMessagesView />;
     if (tab === "event-settings" && canManagePublicPanel) return <EventSettingsView />;
+    if (tab === "schedule") return <EventScheduleView />;
     if (tab === "treasury" && canManageTreasury) return <TreasuryView />;
     if (tab === "manage-points" && canManagePoints) return <ManagePointsView />;
     if (tab === "manage-shirts" && canManageShirts) return <ManageShirtsView />;
@@ -1119,6 +1125,13 @@ export function DashboardView() {
               onClick={() => selectTab("public-panel")}
             >
               Mural da Forja
+            </button>
+            <button
+              type="button"
+              className={tab === "schedule" ? "active" : ""}
+              onClick={() => selectTab("schedule")}
+            >
+              Cronograma
             </button>
             <button
               type="button"

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import {
   FORJADOS_MAIN_MESSAGE,
+  OFFICIAL_PRIVACY_POLICY_URL,
+  OFFICIAL_RESPONSIBILITY_TERM_URL,
   PRIMARY_TEAMS,
   SECTORS,
   SHIRT_SIZES,
@@ -190,8 +192,8 @@ export function RegistrationView() {
 
         <div className="terms">
           <label><input type="checkbox" required checked={form.retreatRules} onChange={(e) => setForm({ ...form, retreatRules: e.target.checked })} />Li e aceito as Regras do Retiro, preservando o ambiente de cuidado, sigilo, respeito e restauração.</label>
-          <label><input type="checkbox" required checked={form.privacyPolicy} onChange={(e) => setForm({ ...form, privacyPolicy: e.target.checked })} />Li e aceito a Política de Privacidade do aplicativo FORJADOS.</label>
-          <label><input type="checkbox" required checked={form.responsibilityTerm} onChange={(e) => setForm({ ...form, responsibilityTerm: e.target.checked })} />Li e aceito o Termo de Responsabilidade e declaro que os dados informados são verdadeiros.</label>
+          <label><input type="checkbox" required checked={form.privacyPolicy} onChange={(e) => setForm({ ...form, privacyPolicy: e.target.checked })} /><span>Li e aceito a <a href={OFFICIAL_PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">Política de Privacidade</a> do FORJADOS.</span></label>
+          <label><input type="checkbox" required checked={form.responsibilityTerm} onChange={(e) => setForm({ ...form, responsibilityTerm: e.target.checked })} /><span>Li e aceito o <a href={OFFICIAL_RESPONSIBILITY_TERM_URL} target="_blank" rel="noreferrer">Termo de Responsabilidade</a> e declaro que os dados informados são verdadeiros.</span></label>
           <label><input type="checkbox" required checked={form.spiritualCommitment} onChange={(e) => setForm({ ...form, spiritualCommitment: e.target.checked })} />Reconheço o propósito do FORJADOS e me comprometo a cooperar com um ambiente de perdão, honra, cura e amor.</label>
         </div>
 
