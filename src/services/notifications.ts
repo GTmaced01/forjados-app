@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { withTimeout } from './safeAsync';
-import type { AppNotification } from '../types';
+import type { AppNotification, NotificationReceipt } from '../types';
 
 const TIMEOUT = 10000;
 
@@ -112,5 +112,21 @@ export async function sendMyPushTest() {
     return data as string;
   } catch (error) {
     throw friendly(error, 'Erro ao testar notificação push.');
+  }
+}
+
+export async function listNotificationReceipts(limit = 250): Promise<NotificationReceipt[]> {
+  try {
+    const { data, error } = await safeRequest(
+      supabase.rpc('forjados_list_notification_receipts_v1', {
+        p_limit: Math.min(500, Math.max(1, limit)),
+      }),
+      'Não foi possível carregar as confirmações de leitura.'
+    );
+
+    if (error) throw error;
+    return (data || []) as NotificationReceipt[];
+  } catch (error) {
+    throw friendly(error, 'Erro ao carregar confirmações de leitura.');
   }
 }

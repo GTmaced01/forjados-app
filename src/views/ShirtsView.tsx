@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Eye, Minus, Plus, ShoppingCart, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, Minus, Plus, Search, ShoppingCart, Trash2, X } from 'lucide-react';
 import { SHIRT_SIZES } from '../constants';
 import { useAuth } from '../components/AuthProvider';
 import {
@@ -40,6 +40,8 @@ export function ShirtsView() {
   const { profile } = useAuth();
 
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'recent' | 'price-asc' | 'price-desc' | 'name'>('recent');
   const [selectedImageByShirt, setSelectedImageByShirt] = useState<Record<string, number>>({});
   const [lightbox, setLightbox] = useState<{ shirt: Shirt; index: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,6 +100,27 @@ export function ShirtsView() {
       return total + Number(item.shirt.price) * item.quantity;
     }, 0);
   }, [cart]);
+
+  const cartItemsCount = useMemo(
+    () => cart.reduce((total, item) => total + item.quantity, 0),
+    [cart]
+  );
+
+  const catalogShirts = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLocaleLowerCase('pt-BR');
+    const filtered = shirts.filter((shirt) => (
+      !normalizedSearch
+      || shirt.name.toLocaleLowerCase('pt-BR').includes(normalizedSearch)
+      || (shirt.description || '').toLocaleLowerCase('pt-BR').includes(normalizedSearch)
+    ));
+
+    return [...filtered].sort((first, second) => {
+      if (sortBy === 'price-asc') return Number(first.price) - Number(second.price);
+      if (sortBy === 'price-desc') return Number(second.price) - Number(first.price);
+      if (sortBy === 'name') return first.name.localeCompare(second.name, 'pt-BR');
+      return new Date(second.created_at).getTime() - new Date(first.created_at).getTime();
+    });
+  }, [searchTerm, shirts, sortBy]);
 
   const lightboxImages = lightbox ? getShirtImages(lightbox.shirt) : [];
   const lightboxImage = lightboxImages[lightbox?.index || 0];
@@ -280,21 +303,36 @@ export function ShirtsView() {
 
       <section className="shirts-layout">
         <div className="shirts-list">
-          <h3>Camisas disponíveis</h3>
+          <div className="catalog-toolbar">
+            <label className="catalog-search" htmlFor="shirt-search">
+              <Search size={17} />
+              <input id="shirt-search" type="search" placeholder="Buscar camisas" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
+            </label>
+            <select aria-label="Ordenar camisas" value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)}>
+              <option value="recent">Mais recentes</option>
+              <option value="price-asc">Menor preço</option>
+              <option value="price-desc">Maior preço</option>
+              <option value="name">Nome</option>
+            </select>
+            <button type="button" className="catalog-cart-button" onClick={() => document.getElementById('shirt-cart')?.scrollIntoView({ behavior: 'smooth' })}>
+              <ShoppingCart size={17} /> Carrinho {cartItemsCount > 0 && <span>{cartItemsCount}</span>}
+            </button>
+          </div>
+          <p className="catalog-count">{catalogShirts.length} produto{catalogShirts.length === 1 ? '' : 's'} encontrado{catalogShirts.length === 1 ? '' : 's'}</p>
           {loading ? (
             <div className="panel center">
               <div className="loader"></div>
               <p className="muted">Carregando camisas...</p>
             </div>
-          ) : shirts.length === 0 ? (
+          ) : catalogShirts.length === 0 ? (
             <div className="panel center">
               <p className="muted">
-                Nenhuma camisa cadastrada ainda.
+                {shirts.length === 0 ? 'Nenhuma camisa cadastrada ainda.' : 'Nenhuma camisa corresponde à sua busca.'}
               </p>
             </div>
           ) : (
             <div className="shirt-grid">
-              {shirts.map((shirt) => {
+              {catalogShirts.map((shirt) => {
                 const shirtImages = getShirtImages(shirt);
                 const selectedIndex = selectedImageByShirt[shirt.id] || 0;
                 const selectedImage = shirtImages[selectedIndex] || getPrimaryShirtImage(shirt);
@@ -314,6 +352,7 @@ export function ShirtsView() {
                         <span>FORJADOS</span>
                       )}
                       {selectedImage && <span className="open-photo-badge"><Eye size={14} /> Ver foto</span>}
+                      {shirtImages.length > 1 && <span className="catalog-photo-count">{selectedIndex + 1}/{shirtImages.length}</span>}
                     </button>
 
                     {shirtImages.length > 1 && (
@@ -371,7 +410,7 @@ export function ShirtsView() {
           )}
         </div>
 
-        <aside className="cart-panel">
+        <aside className="cart-panel" id="shirt-cart">
           <h3>Carrinho</h3>
 
           {cart.length === 0 ? (

@@ -248,8 +248,11 @@ export function InscriptionView() {
           <section className="panel wide receipt-upload-panel">
             <div><h3>Enviar comprovante</h3><p className="muted">PNG, JPG, JPEG ou PDF, até 8MB. O arquivo ficará privado.</p></div>
             <form onSubmit={handleUpload} className="receipt-upload-form">
-              <input type="file" accept="image/png,image/jpeg,image/jpg,application/pdf" disabled={!canUpload} onChange={(event) => setSelectedFile(event.target.files?.[0] || null)} />
-              {selectedFile && <p className="muted">Arquivo selecionado: <strong>{selectedFile.name}</strong></p>}
+              <label className={`file-upload-box ${!canUpload ? 'disabled' : ''}`}>
+                <Upload size={18} />
+                <span>{selectedFile?.name || 'Escolher comprovante'}</span>
+                <input type="file" aria-label="Escolher comprovante" accept="image/png,image/jpeg,image/jpg,application/pdf" disabled={!canUpload} onChange={(event) => setSelectedFile(event.target.files?.[0] || null)} />
+              </label>
               {activeEdition.status !== 'open' && <p className="muted">As inscrições não estão abertas neste momento.</p>}
               {hasLockedReceipt && <p className="muted">Esta edição já possui comprovante em análise ou aprovado.</p>}
               <button className="primary-button upload-button" disabled={uploading || !canUpload}><Upload size={16} />{uploading ? 'Enviando...' : 'Enviar comprovante'}</button>

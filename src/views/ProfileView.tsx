@@ -96,17 +96,19 @@ export function ProfileView() {
   if (!profile) return null;
 
   const canEditMemberSince = isAdmin || isDirector;
-  const completenessChecks = [
-    form.display_name.trim().length >= 3,
-    onlyDigits(form.phone).length >= 10,
-    Boolean(form.birth_date),
-    Boolean(form.city.trim()),
-    Boolean(form.neighborhood.trim()),
-    Boolean(form.primary_team),
-    form.sectors.length > 0,
-    Boolean(form.emergency_contact_name.trim()),
-    onlyDigits(form.emergency_contact_phone).length >= 10,
+  const essentialFields = [
+    { label: 'nome completo', complete: form.display_name.trim().length >= 3 },
+    { label: 'WhatsApp com DDD', complete: onlyDigits(form.phone).length >= 10 },
+    { label: 'data de nascimento', complete: Boolean(form.birth_date) },
+    { label: 'cidade', complete: Boolean(form.city.trim()) },
+    { label: 'bairro', complete: Boolean(form.neighborhood.trim()) },
+    { label: 'equipe principal', complete: Boolean(form.primary_team) },
+    { label: 'pelo menos um setor', complete: form.sectors.length > 0 },
+    { label: 'nome do contato de emergência', complete: Boolean(form.emergency_contact_name.trim()) },
+    { label: 'telefone válido do contato de emergência', complete: onlyDigits(form.emergency_contact_phone).length >= 10 },
   ];
+  const completenessChecks = essentialFields.map((field) => field.complete);
+  const incompleteFields = essentialFields.filter((field) => !field.complete).map((field) => field.label);
   const completedFields = completenessChecks.filter(Boolean).length;
   const completeness = Math.round((completedFields / completenessChecks.length) * 100);
 
@@ -222,6 +224,12 @@ export function ProfileView() {
           <div className="profile-progress" aria-label={`Cadastro ${completeness}% completo`}>
             <i style={{ width: `${completeness}%` }} />
           </div>
+          {incompleteFields.length > 0 && (
+            <div className="profile-completeness-alert" role="alert">
+              <strong>Complete seu cadastro:</strong>
+              <span>{incompleteFields.join(', ')}.</span>
+            </div>
+          )}
         </div>
         <div className="profile-privacy-note">
           <ShieldCheck size={20} />

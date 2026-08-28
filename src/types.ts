@@ -378,8 +378,55 @@ export interface AppNotification {
   message?: string;
   type?: string;
   is_read: boolean;
+  read_at?: string | null;
   created_at: string;
 }
+
+export interface NotificationReceipt {
+  id: string;
+  title: string;
+  message?: string | null;
+  type?: string | null;
+  is_read: boolean;
+  read_at?: string | null;
+  created_at: string;
+  recipient_id: string;
+  recipient_name: string;
+  recipient_email: string;
+  recipient_role: UserRole;
+}
+
+export type EventScheduleActivityType =
+  | 'activity'
+  | 'worship'
+  | 'meal'
+  | 'service'
+  | 'transport'
+  | 'break'
+  | 'other';
+
+export interface EventScheduleItem {
+  id: string;
+  edition_id: string;
+  title: string;
+  description?: string | null;
+  starts_at: string;
+  ends_at?: string | null;
+  location?: string | null;
+  activity_type: EventScheduleActivityType;
+  team_names: string[];
+  responsible?: string | null;
+  is_published: boolean;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
+export type EventScheduleItemInput = Omit<
+  EventScheduleItem,
+  'id' | 'created_by' | 'created_at' | 'updated_at' | 'deleted_at'
+>;
 
 export interface AuditLog {
   id: string;

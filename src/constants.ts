@@ -57,6 +57,12 @@ export const SKILLS = [
 export const FORJADOS_MAIN_MESSAGE =
   'A forja não era para te destruir. Era para te transformar.';
 
+export const OFFICIAL_PRIVACY_POLICY_URL =
+  'https://forjados-site-theta.vercel.app/politica-de-privacidade';
+
+export const OFFICIAL_RESPONSIBILITY_TERM_URL =
+  'https://forjados-site-theta.vercel.app/termo-de-ciencia';
+
 export const FORJADOS_DNA_PHRASES = [
   'A dor não definiu quem eu sou.',
   'O fogo não me destruiu. Me forjou.',
