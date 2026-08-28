@@ -1135,6 +1135,13 @@ export function DashboardView() {
             </button>
             <button
               type="button"
+              className={tab === "notifications" ? "active" : ""}
+              onClick={() => selectTab("notifications")}
+            >
+              Notificações{unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}
+            </button>
+            <button
+              type="button"
               className={tab === "profile" ? "active" : ""}
               onClick={() => selectTab("profile")}
             >

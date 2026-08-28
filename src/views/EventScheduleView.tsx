@@ -51,6 +51,13 @@ function toLocalInput(value?: string | null) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }
 
+function addMinutesToLocalInput(value: string, minutes: number) {
+  if (!value) return '';
+  const date = new Date(value);
+  date.setMinutes(date.getMinutes() + minutes);
+  return toLocalInput(date.toISOString());
+}
+
 function formatDay(value: string) {
   return new Intl.DateTimeFormat('pt-BR', {
     weekday: 'long',
@@ -115,15 +122,25 @@ export function EventScheduleView() {
   }, [visibleItems]);
 
   function startNewItem() {
+    const startsAt = toLocalInput(edition?.start_date);
     setEditingId(null);
     setForm({
       ...emptyForm,
-      starts_at: toLocalInput(edition?.start_date),
-      ends_at: toLocalInput(edition?.start_date),
+      starts_at: startsAt,
+      ends_at: addMinutesToLocalInput(startsAt, 60),
     });
     setShowForm(true);
     setError('');
     setSuccess('');
+  }
+
+  function handleStartChange(startsAt: string) {
+    const currentEndIsValid = form.ends_at && new Date(form.ends_at) > new Date(startsAt);
+    setForm({
+      ...form,
+      starts_at: startsAt,
+      ends_at: currentEndIsValid ? form.ends_at : addMinutesToLocalInput(startsAt, 60),
+    });
   }
 
   function startEditing(item: EventScheduleItem) {
@@ -236,8 +253,8 @@ export function EventScheduleView() {
           <form className="grid two" onSubmit={handleSubmit}>
             <div><label htmlFor="schedule-title">Atividade</label><input id="schedule-title" required maxLength={160} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
             <div><label htmlFor="schedule-type">Tipo</label><select id="schedule-type" value={form.activity_type} onChange={(e) => setForm({ ...form, activity_type: e.target.value as EventScheduleActivityType })}>{Object.entries(ACTIVITY_LABELS).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></div>
-            <div><label htmlFor="schedule-start">Início</label><input id="schedule-start" type="datetime-local" required value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} /></div>
-            <div><label htmlFor="schedule-end">Término</label><input id="schedule-end" type="datetime-local" value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} /></div>
+            <div><label htmlFor="schedule-start">Início</label><input id="schedule-start" type="datetime-local" required value={form.starts_at} onChange={(e) => handleStartChange(e.target.value)} /></div>
+            <div><label htmlFor="schedule-end">Término</label><input id="schedule-end" type="datetime-local" min={form.starts_at || undefined} value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} /></div>
             <div><label htmlFor="schedule-location">Local</label><input id="schedule-location" maxLength={180} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></div>
             <div><label htmlFor="schedule-responsible">Responsável</label><input id="schedule-responsible" maxLength={180} value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
             <div className="schedule-wide-field"><label htmlFor="schedule-teams">Equipes escaladas</label><input id="schedule-teams" placeholder="Ex.: Louvor, Mídia, Recepção" value={form.teams} onChange={(e) => setForm({ ...form, teams: e.target.value })} /><p className="field-hint">Separe as equipes por vírgula.</p></div>
