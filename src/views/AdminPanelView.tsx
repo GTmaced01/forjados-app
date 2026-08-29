@@ -15,6 +15,7 @@ import {
 import { PRIMARY_TEAMS, ROLE_LABELS, SECTORS, STATUS_LABELS } from '../constants';
 import {
   adminDeleteProfile,
+  adminUpdateMemberSince,
   adminUpdateProfile,
   adminUpdateRetreatCount,
   approveProfile,
@@ -63,13 +64,21 @@ export function AdminPanelView() {
   }
 
   async function handleAttendanceChange(record: AttendanceRecord, status: AttendanceStatus) {
-    const note = status === 'absent' || status === 'excused'
-      ? window.prompt('Observação sobre a ausência (opcional):', record.attendance_notes || '') ?? record.attendance_notes ?? ''
-      : record.attendance_notes || '';
+    let note = '';
+    if (status === 'absent' || status === 'excused') {
+      const promptedNote = window.prompt(
+        'Observação sobre a ausência (opcional):',
+        record.attendance_notes || ''
+      );
+      if (promptedNote === null) return;
+      note = promptedNote;
+    }
+
     setSavingId(record.user_id);
     setError('');
+    setSuccess('');
     try {
-      await updateAttendance(record.participation_id, status, note);
+      await updateAttendance(record.user_id, record.edition_id, status, note);
       await loadProfiles(true);
       setSuccess(`Presença de ${record.user_name} atualizada para “${ATTENDANCE_LABELS[status]}”.`);
     } catch (err) {
@@ -247,6 +256,26 @@ export function AdminPanelView() {
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao atualizar retiros.');
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function handleMemberSinceChange(profile: UserProfile, value: string) {
+    const memberSince = value || null;
+    if ((profile.member_since || null) === memberSince) return;
+
+    setSavingId(profile.id);
+    setError('');
+    setSuccess('');
+
+    try {
+      await adminUpdateMemberSince({ userId: profile.id, memberSince });
+      await loadProfiles(true);
+      setSuccess(`Data “Membro desde” de ${profile.display_name} atualizada.`);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar a data de membro.');
     } finally {
       setSavingId(null);
     }
@@ -464,6 +493,18 @@ export function AdminPanelView() {
                       disabled={isSaving}
                       onChange={(e) => handleRetreatCountChange(profile, e.target.value)}
                     />
+                  </div>
+
+                  <div>
+                    <label htmlFor={`member-since-${profile.id}`}>Membro desde</label>
+                    <input
+                      id={`member-since-${profile.id}`}
+                      type="date"
+                      value={profile.member_since || ''}
+                      disabled={isSaving}
+                      onChange={(event) => void handleMemberSinceChange(profile, event.target.value)}
+                    />
+                    <small>Esta data aparece em “Minha Identidade”.</small>
                   </div>
 
                   {attendanceRecord && (
