@@ -1,4 +1,4 @@
-const SW_VERSION = 'forjados-pwa-v9-2-1r1-auth-recovery';
+const SW_VERSION = 'forjados-pwa-v10-2-1r8-offline-shell';
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 const APP_SHELL_CACHE = `${SW_VERSION}-shell`;
 
@@ -6,8 +6,9 @@ const APP_SHELL = [
   '/',
   '/offline.html',
   '/manifest.webmanifest',
+  '/favicon.svg',
   '/favicon.png',
-  '/favicon.ico',
+  '/icons.svg',
   '/logo-forjados.png',
   '/og-image.jpg',
   '/icons/icon-192.png',
@@ -19,7 +20,9 @@ const APP_SHELL = [
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(APP_SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL))
+    caches.open(APP_SHELL_CACHE).then((cache) =>
+      Promise.allSettled(APP_SHELL.map((url) => cache.add(url)))
+    )
   );
 });
 
@@ -55,17 +58,27 @@ function shouldIgnore(event, url) {
   return false;
 }
 
+async function fetchWithTimeout(request, timeoutMs = 3500) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(request, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function networkFirst(request) {
   const cache = await caches.open(RUNTIME_CACHE);
 
   try {
-    const response = await fetch(request);
+    const response = await fetchWithTimeout(request);
     if (response && response.ok) {
       cache.put(request, response.clone());
     }
     return response;
   } catch (error) {
-    const cached = await cache.match(request);
+    const cached = await cache.match(request) || await caches.match('/');
     if (cached) return cached;
     return caches.match('/offline.html');
   }
@@ -82,7 +95,7 @@ async function staleWhileRevalidate(request) {
       }
       return response;
     })
-    .catch(() => cached);
+    .catch(() => cached || new Response('', { status: 503, statusText: 'Offline' }));
 
   return cached || fetchPromise;
 }

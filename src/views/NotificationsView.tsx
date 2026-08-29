@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, BellRing, CheckCircle, Eye, RefreshCw, Smartphone, UsersRound, XCircle } from 'lucide-react';
+import { Bell, BellRing, CheckCircle, Eye, Pin, PinOff, RefreshCw, Smartphone, Trash2, UsersRound, XCircle } from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
 import {
   listMyNotifications,
   listNotificationReceipts,
+  clearMyNotificationHistory,
+  clearNotificationReceiptHistory,
   markAllNotificationsAsRead,
   markNotificationAsRead,
   sendMyPushTest,
+  toggleNotificationPin,
 } from '../services/notifications';
 import { getErrorMessage } from '../services/safeAsync';
 import {
@@ -103,6 +106,49 @@ export function NotificationsView() {
     }
   }
 
+  async function handleTogglePin(notification: AppNotification) {
+    setSaving(true);
+    setError('');
+    try {
+      await toggleNotificationPin(notification.id, !notification.is_pinned);
+      await loadNotifications();
+    } catch (err) {
+      setError(getErrorMessage(err, 'Erro ao fixar notificação.'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleClearHistory() {
+    if (!window.confirm('Arquivar notificações já lidas? Avisos não lidos e fixados serão preservados.')) return;
+    setSaving(true);
+    setError('');
+    try {
+      const count = await clearMyNotificationHistory();
+      setPushSuccess(`${count} notificação(ões) arquivada(s).`);
+      await loadNotifications();
+    } catch (err) {
+      setError(getErrorMessage(err, 'Erro ao limpar histórico.'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleClearReceipts() {
+    if (!window.confirm('Arquivar as confirmações já lidas? Registros ainda não lidos e fixados serão preservados.')) return;
+    setSaving(true);
+    setError('');
+    try {
+      const count = await clearNotificationReceiptHistory();
+      setPushSuccess(`${count} confirmação(ões) arquivada(s).`);
+      await loadNotifications();
+    } catch (err) {
+      setError(getErrorMessage(err, 'Erro ao limpar confirmações.'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleEnablePush() {
     setPushLoading(true);
     setError('');
@@ -181,6 +227,10 @@ export function NotificationsView() {
           >
             <CheckCircle size={16} />
             Marcar lidas
+          </button>
+
+          <button className="secondary-button" type="button" onClick={handleClearHistory} disabled={saving}>
+            <Trash2 size={16} /> Limpar histórico
           </button>
         </div>
       </div>
@@ -262,11 +312,7 @@ export function NotificationsView() {
           <div className="notifications-list">
             {notifications.map((notification) => (
               <article
-                className={
-                  notification.is_read
-                    ? 'notification-card'
-                    : 'notification-card unread'
-                }
+                className={`notification-card${notification.is_read ? '' : ' unread'}${notification.is_pinned ? ' pinned' : ''}`}
                 key={notification.id}
               >
                 <div className="notification-status-dot" />
@@ -278,16 +324,23 @@ export function NotificationsView() {
                   </span>
                 </div>
 
-                {!notification.is_read && (
+                <div className="notification-card-actions">
                   <button
-                    className="secondary-button"
+                    className="icon-button notification-pin-button"
                     type="button"
                     disabled={saving}
-                    onClick={() => handleMarkOne(notification.id)}
+                    aria-label={notification.is_pinned ? 'Desafixar notificação' : 'Fixar notificação'}
+                    title={notification.is_pinned ? 'Desafixar' : 'Fixar no topo'}
+                    onClick={() => handleTogglePin(notification)}
                   >
-                    Marcar lida
+                    {notification.is_pinned ? <PinOff size={17} /> : <Pin size={17} />}
                   </button>
-                )}
+                  {!notification.is_read && (
+                    <button className="secondary-button" type="button" disabled={saving} onClick={() => handleMarkOne(notification.id)}>
+                      Marcar lida
+                    </button>
+                  )}
+                </div>
               </article>
             ))}
           </div>
@@ -302,7 +355,12 @@ export function NotificationsView() {
               <h3>Quem recebeu e leu os avisos</h3>
               <p className="muted">O horário é registrado quando o usuário marca a notificação como lida.</p>
             </div>
-            <span className="notification-receipts-count"><UsersRound size={16} />{readReceipts.length} registros</span>
+            <div className="notification-receipts-actions">
+              <span className="notification-receipts-count"><UsersRound size={16} />{readReceipts.length} registros</span>
+              <button type="button" className="secondary-button" onClick={handleClearReceipts} disabled={saving}>
+                <Trash2 size={15} /> Limpar histórico
+              </button>
+            </div>
           </div>
 
           {readReceipts.length === 0 ? (

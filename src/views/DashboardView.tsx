@@ -54,6 +54,7 @@ const TreasuryView = lazy(() => import("./TreasuryView").then(({ TreasuryView })
 const ShirtsView = lazy(() => import("./ShirtsView").then(({ ShirtsView }) => ({ default: ShirtsView })));
 const ManageShirtsView = lazy(() => import("./ManageShirtsView").then(({ ManageShirtsView }) => ({ default: ManageShirtsView })));
 const RidesView = lazy(() => import("./RidesView").then(({ RidesView }) => ({ default: RidesView })));
+const ManageRidesView = lazy(() => import("./ManageRidesView").then(({ ManageRidesView }) => ({ default: ManageRidesView })));
 const PointsView = lazy(() => import("./PointsView").then(({ PointsView }) => ({ default: PointsView })));
 const ManagePointsView = lazy(() => import("./ManagePointsView").then(({ ManagePointsView }) => ({ default: ManagePointsView })));
 const PointsStoreView = lazy(() => import("./PointsStoreView").then(({ PointsStoreView }) => ({ default: PointsStoreView })));
@@ -94,6 +95,7 @@ type Tab =
   | "manage-shirts"
   | "manage-points-store"
   | "manage-public-panel"
+  | "manage-rides"
   | "service-scale"
   | "treasury"
   | "admin"
@@ -122,6 +124,7 @@ const VALID_TABS: Tab[] = [
   "manage-shirts",
   "manage-points-store",
   "manage-public-panel",
+  "manage-rides",
   "service-scale",
   "treasury",
   "admin",
@@ -191,6 +194,7 @@ export function DashboardView() {
   const canManagePointsStore = isAdmin || isDirector;
   const canManagePublicPanel = isAdmin || isDirector;
   const canManageServiceScale = isAdmin || isDirector;
+  const canManageRides = isAdmin || isDirector;
   const canManageTreasury = isAdmin || isTreasury;
   const canSeeAdminPanel = isAdmin;
   const canSeeAuditLog = isAdmin || isDirector;
@@ -203,6 +207,7 @@ export function DashboardView() {
     canManagePointsStore ||
     canManagePublicPanel ||
     canManageServiceScale ||
+    canManageRides ||
     canManageTreasury ||
     canSeeAdminPanel ||
     canSeeAuditLog;
@@ -365,6 +370,7 @@ export function DashboardView() {
       (tab === "manage-shirts" && canManageShirts) ||
       (tab === "manage-points-store" && canManagePointsStore) ||
       (tab === "manage-public-panel" && canManagePublicPanel) ||
+      (tab === "manage-rides" && canManageRides) ||
       (tab === "service-scale" && canManageServiceScale) ||
       (tab === "treasury" && canManageTreasury) ||
       (tab === "admin" && canSeeAdminPanel) ||
@@ -987,6 +993,7 @@ export function DashboardView() {
         tab: "service-scale",
         visible: canManageServiceScale,
       },
+      { label: "Gerenciar Caronas", tab: "manage-rides", visible: canManageRides },
       { label: "Tesouraria", tab: "treasury", visible: canManageTreasury },
       { label: "Mensagens Automáticas", tab: "automated-messages", visible: canManagePublicPanel },
       { label: "Configurar FORJADOS", tab: "event-settings", visible: canManagePublicPanel },
@@ -1068,6 +1075,7 @@ export function DashboardView() {
       return <ManagePublicPanelView />;
     if (tab === "service-scale" && canManageServiceScale)
       return <ServiceScaleView />;
+    if (tab === "manage-rides" && canManageRides) return <ManageRidesView />;
     if (tab === "leader-team" && canSeeLeaderTeam) return <LeaderTeamView />;
     if (tab === "public-panel") return <PublicPanelView />;
     if (tab === "notifications") return <NotificationsView />;
@@ -1285,6 +1293,15 @@ export function DashboardView() {
                   onClick={() => selectTab("service-scale")}
                 >
                   Escala de Serviço
+                </button>
+              )}
+              {canManageRides && (
+                <button
+                  type="button"
+                  className={tab === "manage-rides" ? "active" : ""}
+                  onClick={() => selectTab("manage-rides")}
+                >
+                  Gerenciar Caronas
                 </button>
               )}
               {canManageTreasury && (

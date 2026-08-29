@@ -1,16 +1,49 @@
 import { supabase } from './supabase';
-import type { Ride } from '../types';
+import type { Ride, RideSettings } from '../types';
+import { isOfflineError, readOfflineData, saveOfflineData } from './offlineCache';
 
 export async function listRides(): Promise<Ride[]> {
-  const { data, error } = await supabase
-    .from('rides')
-    .select('*, passengers:ride_passengers(*)')
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('rides')
+      .select('*, passengers:ride_passengers(*)')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    const rides = (data || []) as Ride[];
+    saveOfflineData('rides', rides);
+    return rides;
+  } catch (error) {
+    const cached = readOfflineData<Ride[]>('rides');
+    if (cached && isOfflineError(error)) return cached;
+    throw error;
+  }
+}
 
+export async function getRideSettings(): Promise<RideSettings> {
+  try {
+    const { data, error } = await supabase.from('ride_settings').select('*').eq('singleton', true).single();
+    if (error) throw error;
+    const settings = data as RideSettings;
+    saveOfflineData('ride_settings', settings);
+    return settings;
+  } catch (error) {
+    const cached = readOfflineData<RideSettings>('ride_settings');
+    if (cached && isOfflineError(error)) return cached;
+    throw error;
+  }
+}
+
+export async function updateRideSettings(input: Omit<RideSettings, 'singleton' | 'updated_at'>): Promise<RideSettings> {
+  const { data, error } = await supabase.rpc('forjados_update_ride_settings_v1', {
+    p_points_mode: input.points_mode,
+    p_points_per_passenger: input.points_per_passenger,
+    p_fixed_points: input.fixed_points,
+    p_event_address: input.event_address,
+    p_event_map_url: input.event_map_url,
+  });
   if (error) throw error;
-
-  return (data || []) as Ride[];
+  return data as RideSettings;
 }
 
 export async function createRide(params: {

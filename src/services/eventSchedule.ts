@@ -1,15 +1,29 @@
 import { supabase } from './supabase';
-import type { EventScheduleItem, EventScheduleItemInput } from '../types';
+import type { EventScheduleItem, EventScheduleItemInput, SchedulePersonOption } from '../types';
+import { isOfflineError, readOfflineData, saveOfflineData } from './offlineCache';
 
 export async function listEventScheduleItems(): Promise<EventScheduleItem[]> {
-  const { data, error } = await supabase
-    .from('event_schedule_items')
-    .select('*')
-    .is('deleted_at', null)
-    .order('starts_at', { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from('event_schedule_items')
+      .select('*')
+      .is('deleted_at', null)
+      .order('starts_at', { ascending: true });
+    if (error) throw error;
+    const items = (data || []) as EventScheduleItem[];
+    saveOfflineData('event_schedule', items);
+    return items;
+  } catch (error) {
+    const cached = readOfflineData<EventScheduleItem[]>('event_schedule');
+    if (cached && isOfflineError(error)) return cached;
+    throw error;
+  }
+}
 
+export async function listSchedulePeople(): Promise<SchedulePersonOption[]> {
+  const { data, error } = await supabase.rpc('forjados_list_schedule_people_v1');
   if (error) throw error;
-  return (data || []) as EventScheduleItem[];
+  return (data || []) as SchedulePersonOption[];
 }
 
 export async function saveEventScheduleItem(
@@ -26,6 +40,7 @@ export async function saveEventScheduleItem(
     activity_type: input.activity_type,
     team_names: input.team_names,
     responsible: (input.responsible || '').trim(),
+    responsible_id: input.responsible_id || null,
     is_published: input.is_published,
   };
 

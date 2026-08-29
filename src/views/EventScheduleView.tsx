@@ -14,12 +14,15 @@ import { getActiveRetreatEvent } from '../services/eventSettings';
 import {
   archiveEventScheduleItem,
   listEventScheduleItems,
+  listSchedulePeople,
   saveEventScheduleItem,
 } from '../services/eventSchedule';
+import { PRIMARY_TEAMS } from '../constants';
 import type {
   EventScheduleActivityType,
   EventScheduleItem,
   RetreatEventSettings,
+  SchedulePersonOption,
 } from '../types';
 
 const ACTIVITY_LABELS: Record<EventScheduleActivityType, string> = {
@@ -39,8 +42,8 @@ const emptyForm = {
   ends_at: '',
   location: '',
   activity_type: 'activity' as EventScheduleActivityType,
-  teams: '',
-  responsible: '',
+  teams: [] as string[],
+  responsible_id: '',
   is_published: false,
 };
 
@@ -79,6 +82,7 @@ export function EventScheduleView() {
   const canManage = isAdmin || isDirector;
   const [edition, setEdition] = useState<RetreatEventSettings | null>(null);
   const [items, setItems] = useState<EventScheduleItem[]>([]);
+  const [people, setPeople] = useState<SchedulePersonOption[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -91,12 +95,14 @@ export function EventScheduleView() {
     setLoading(true);
     setError('');
     try {
-      const [activeEdition, schedule] = await Promise.all([
+      const [activeEdition, schedule, peopleOptions] = await Promise.all([
         getActiveRetreatEvent(),
         listEventScheduleItems(),
+        canManage ? listSchedulePeople() : Promise.resolve([]),
       ]);
       setEdition(activeEdition);
       setItems(schedule);
+      setPeople(peopleOptions);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível carregar o cronograma.');
     } finally {
@@ -152,8 +158,8 @@ export function EventScheduleView() {
       ends_at: toLocalInput(item.ends_at),
       location: item.location || '',
       activity_type: item.activity_type,
-      teams: item.team_names.join(', '),
-      responsible: item.responsible || '',
+      teams: item.team_names,
+      responsible_id: item.responsible_id || '',
       is_published: item.is_published,
     });
     setShowForm(true);
@@ -182,11 +188,9 @@ export function EventScheduleView() {
         ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
         location: form.location,
         activity_type: form.activity_type,
-        team_names: form.teams
-          .split(',')
-          .map((team) => team.trim())
-          .filter(Boolean),
-        responsible: form.responsible,
+        team_names: form.teams,
+        responsible_id: form.responsible_id || null,
+        responsible: people.find((person) => person.user_id === form.responsible_id)?.display_name || '',
         is_published: form.is_published,
       }, editingId || undefined);
 
@@ -256,8 +260,27 @@ export function EventScheduleView() {
             <div><label htmlFor="schedule-start">Início</label><input id="schedule-start" type="datetime-local" required value={form.starts_at} onChange={(e) => handleStartChange(e.target.value)} /></div>
             <div><label htmlFor="schedule-end">Término</label><input id="schedule-end" type="datetime-local" min={form.starts_at || undefined} value={form.ends_at} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} /></div>
             <div><label htmlFor="schedule-location">Local</label><input id="schedule-location" maxLength={180} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></div>
-            <div><label htmlFor="schedule-responsible">Responsável</label><input id="schedule-responsible" maxLength={180} value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} /></div>
-            <div className="schedule-wide-field"><label htmlFor="schedule-teams">Equipes escaladas</label><input id="schedule-teams" placeholder="Ex.: Louvor, Mídia, Recepção" value={form.teams} onChange={(e) => setForm({ ...form, teams: e.target.value })} /><p className="field-hint">Separe as equipes por vírgula.</p></div>
+            <div>
+              <label htmlFor="schedule-responsible">Responsável</label>
+              <select id="schedule-responsible" value={form.responsible_id} onChange={(e) => setForm({ ...form, responsible_id: e.target.value })}>
+                <option value="">Sem responsável definido</option>
+                {people.map((person) => <option value={person.user_id} key={person.user_id}>{person.display_name}{person.primary_team ? ` · ${person.primary_team}` : ''}</option>)}
+              </select>
+            </div>
+            <fieldset className="schedule-wide-field schedule-team-selector">
+              <legend>Equipes escaladas</legend>
+              <div className="chips">
+                {PRIMARY_TEAMS.map((team) => (
+                  <button
+                    type="button"
+                    className={form.teams.includes(team) ? 'chip active' : 'chip'}
+                    aria-pressed={form.teams.includes(team)}
+                    key={team}
+                    onClick={() => setForm({ ...form, teams: form.teams.includes(team) ? form.teams.filter((item) => item !== team) : [...form.teams, team] })}
+                  >{team}</button>
+                ))}
+              </div>
+            </fieldset>
             <div className="schedule-wide-field"><label htmlFor="schedule-description">Orientações</label><textarea id="schedule-description" maxLength={2000} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
             <label className="auth-terms-consent schedule-publish-toggle"><input type="checkbox" checked={form.is_published} onChange={(e) => setForm({ ...form, is_published: e.target.checked })} /><span>Publicar para todos os usuários</span></label>
             <button className="primary-button" disabled={saving}>{saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Adicionar atividade'}</button>

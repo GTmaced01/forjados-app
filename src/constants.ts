@@ -15,6 +15,7 @@ export const SECTORS = [
   'Transporte',
   'Comunicação',
   'Apoio',
+  'Segurança',
   'Outro',
 ];
 

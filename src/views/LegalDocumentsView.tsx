@@ -1,153 +1,78 @@
 import { ArrowLeft } from 'lucide-react';
-import {
-  FORJADOS_IDENTITY_TEXT,
-  FORJADOS_MAIN_MESSAGE,
-  FORJADOS_RULES,
-} from '../constants';
+import { FORJADOS_IDENTITY_TEXT, FORJADOS_MAIN_MESSAGE, FORJADOS_RULES } from '../constants';
 
-type LegalDocumentsTab = 'privacy' | 'terms' | 'rules';
+export type LegalDocumentsTab = 'privacy' | 'terms' | 'rules';
+type Props = { initialTab?: LegalDocumentsTab; onBack?: () => void };
+type Section = { title: string; paragraphs?: string[]; items?: string[]; subsections?: Section[] };
 
-type LegalDocumentsViewProps = {
-  initialTab?: LegalDocumentsTab;
-  onBack?: () => void;
-};
+const PRIVACY_SECTIONS: Section[] = [
+  { title: '1. Quem somos', paragraphs: ['O Projeto FORJADOS é uma experiência cristã de imersão espiritual, emocional e vivencial, vinculada à Igreja Evangélica Sal da Terra — IEST, voltada ao fortalecimento espiritual, amadurecimento cristão, restauração de vidas, desenvolvimento de responsabilidade pessoal e transformação através de princípios cristãos.', 'Para fins desta Política, o Projeto FORJADOS poderá ser chamado de FORJADOS, projeto, organização, equipe organizadora ou nós.'] },
+  { title: '2. Quais dados coletamos', paragraphs: ['Para realização da inscrição, organização do evento, comunicação com os participantes e segurança durante o Projeto FORJADOS, poderão ser coletados os seguintes dados:'], items: ['Nome completo;', 'CPF;', 'Data de nascimento;', 'Foto de identificação;', 'Telefone, WhatsApp e e-mail;', 'Endereço, cidade e estado, quando informados;', 'Igreja ou congregação;', 'Tamanho da camisa;', 'Comprovante de pagamento;', 'Informações relacionadas à participação no evento;', 'Alergias, restrições alimentares, medicamentos contínuos, condições de saúde relevantes e limitações físicas;', 'Contato de emergência;', 'Nome do responsável legal e documento de autorização, quando se tratar de participante menor de idade;', 'Autorizações e aceites realizados eletronicamente no formulário;', 'Autorização de uso de imagem, voz e depoimentos, quando concedida pelo participante.'], subsections: [{ title: '', paragraphs: ['O site também poderá coletar informações técnicas básicas de navegação, como data e horário de acesso, endereço IP, tipo de navegador, dispositivo utilizado e segurança do sistema.'] }] },
+  { title: '3. Dados pessoais sensíveis', paragraphs: ['Algumas informações fornecidas pelo participante poderão ser consideradas dados pessoais sensíveis, especialmente aquelas relacionadas à saúde, medicamentos, alergias, restrições alimentares e condições físicas ou emocionais.', 'Esses dados serão utilizados exclusivamente para segurança dos participantes, prevenção de riscos, atendimento emergencial, organização adequada das atividades e cuidado básico durante o evento.', 'A organização buscará limitar o acesso dessas informações apenas às pessoas autorizadas e diretamente envolvidas no cuidado, segurança e administração do projeto.'] },
+  { title: '4. Para quais finalidades utilizamos os dados', items: ['Realizar e validar inscrições;', 'Identificar participantes;', 'Confirmar pagamentos;', 'Organizar listas internas;', 'Controlar acesso ao evento;', 'Organizar alimentação, logística e estrutura;', 'Confeccionar materiais e camisas;', 'Prestar suporte ao participante;', 'Entrar em contato quando necessário;', 'Enviar informações relacionadas ao projeto;', 'Garantir segurança durante as atividades;', 'Acionar contatos de emergência;', 'Registrar aceite de termos e autorizações;', 'Cumprir obrigações legais, administrativas e de segurança;', 'Melhorar a experiência de utilização do site e dos sistemas utilizados pelo projeto.'], paragraphs: ['O tratamento dos dados poderá ocorrer com base no consentimento do participante, cumprimento de obrigação legal, proteção da vida, garantia da segurança dos participantes e legítimo interesse da organização, nos termos da legislação aplicável.'] },
+  { title: '5. Uso de imagem, voz e depoimentos', paragraphs: ['O uso de imagem, voz, vídeos, fotografias ou depoimentos do participante para divulgação pública do Projeto FORJADOS somente ocorrerá mediante autorização específica, separada e opcional.', 'Essa autorização poderá abranger redes sociais, vídeos institucionais, fotografias, testemunhos, materiais de divulgação, apresentações e campanhas relacionadas ao projeto.', 'A não autorização do uso de imagem não impedirá a participação do inscrito no evento, salvo registros internos necessários para identificação, segurança e organização.'] },
+  { title: '6. Compartilhamento de dados', paragraphs: ['Os dados pessoais dos participantes não serão vendidos, alugados ou comercializados.', 'O acesso aos dados será restrito à equipe organizadora e às pessoas autorizadas que necessitem dessas informações para organização, administração, segurança, logística, comunicação, suporte operacional e atendimento emergencial.', 'Em situações necessárias, informações poderão ser compartilhadas com equipe de apoio, prestadores de serviço essenciais, plataformas tecnológicas utilizadas pelo projeto, serviços médicos ou emergenciais e autoridades públicas, quando houver obrigação legal ou necessidade de segurança.'] },
+  { title: '7. Plataformas e serviços utilizados', paragraphs: ['Para funcionamento do site, armazenamento das inscrições, comunicação e operação do Projeto FORJADOS, poderão ser utilizadas plataformas e serviços digitais de terceiros, incluindo hospedagem de site, banco de dados, armazenamento de arquivos, autenticação, plataformas de pagamento, ferramentas de comunicação e sistemas administrativos.', 'Entre essas ferramentas poderão estar serviços como Supabase, Vercel, WhatsApp, plataformas de pagamento e outras ferramentas necessárias para operação do projeto.', 'Cada serviço poderá possuir suas próprias políticas de privacidade e segurança. Embora a organização adote medidas razoáveis de proteção, nenhum sistema eletrônico é totalmente livre de riscos.'] },
+  { title: '8. Armazenamento e retenção dos dados', paragraphs: ['Os dados pessoais serão armazenados apenas pelo período necessário para cumprimento das finalidades desta Política, incluindo organização do projeto, segurança dos participantes, controle administrativo, prestação de contas, histórico organizacional e cumprimento de obrigações legais e regulatórias.', 'Após o período necessário, os dados poderão ser excluídos, anonimizados ou mantidos apenas quando houver justificativa legal, administrativa ou legítima para sua conservação.'] },
+  { title: '9. Segurança dos dados', paragraphs: ['A organização buscará adotar medidas razoáveis de segurança para proteger os dados pessoais contra acesso não autorizado, perda, alteração indevida, divulgação não autorizada, destruição ou uso inadequado.', 'O acesso aos dados será limitado às pessoas autorizadas e diretamente envolvidas na administração, organização, segurança e operação do Projeto FORJADOS.'] },
+  { title: '10. Participação de menores de idade', paragraphs: ['A participação no Projeto FORJADOS é destinada preferencialmente a maiores de 18 anos.', 'Nos casos autorizados pela organização, menores de idade somente poderão participar mediante autorização formal do responsável legal e envio da documentação exigida.', 'Os dados dos menores serão utilizados exclusivamente para fins relacionados à inscrição, participação, organização, segurança e cumprimento das responsabilidades do projeto.'] },
+  { title: '11. Cookies e dados de navegação', paragraphs: ['O site poderá utilizar cookies ou tecnologias semelhantes para melhorar a navegação, garantir funcionamento adequado do sistema, realizar análises de acesso, reforçar medidas de segurança e armazenar preferências do usuário.', 'O participante poderá configurar seu navegador para bloquear ou remover cookies, ciente de que determinadas funcionalidades do site poderão ser afetadas.'] },
+  { title: '12. Links externos', paragraphs: ['O site poderá conter links para redes sociais, plataformas de pagamento, aplicativos de comunicação ou serviços externos.', 'O Projeto FORJADOS não se responsabiliza pelas práticas de privacidade, conteúdo, funcionamento ou segurança de serviços mantidos por terceiros.'] },
+  { title: '13. Direitos do titular dos dados', paragraphs: ['Nos termos da Lei Geral de Proteção de Dados Pessoais — LGPD, o titular dos dados poderá solicitar, quando aplicável:'], items: ['Confirmação da existência de tratamento de dados;', 'Acesso aos dados pessoais;', 'Correção de informações incompletas, inexatas ou desatualizadas;', 'Informações sobre uso e compartilhamento de dados;', 'Anonimização, bloqueio ou exclusão de dados;', 'Revogação de consentimentos concedidos;', 'Informações sobre possibilidade de não fornecer consentimento e suas consequências.'], subsections: [{ title: '', paragraphs: ['As solicitações poderão ser analisadas conforme limites legais, operacionais e obrigações aplicáveis.'] }] },
+  { title: '14. Revogação do consentimento', paragraphs: ['O participante poderá solicitar a revogação de consentimentos anteriormente concedidos, especialmente relacionados ao uso de imagem, voz e depoimentos.', 'A revogação não invalidará tratamentos realizados anteriormente com base em consentimento válido, mas impedirá novos tratamentos relacionados ao consentimento revogado, quando tecnicamente e administrativamente possível.'] },
+  { title: '15. Canal de contato', paragraphs: ['Para dúvidas, solicitações, correções ou assuntos relacionados ao tratamento de dados pessoais, o participante poderá entrar em contato através do e-mail:', 'forjados.ofc@gmail.com'] },
+  { title: '16. Alterações nesta Política', paragraphs: ['Esta Política de Privacidade poderá ser atualizada periodicamente para refletir alterações legais, operacionais, técnicas, administrativas ou organizacionais.', 'A versão mais recente estará sempre disponível nos canais oficiais do Projeto FORJADOS.', 'Última atualização: maio de 2026.'] },
+];
 
-const TITLES: Record<LegalDocumentsTab, string> = {
-  privacy: 'Política de Privacidade',
-  terms: 'Termo de Responsabilidade',
-  rules: 'Regras do Retiro',
-};
+const TERM_SECTIONS: Section[] = [
+  { title: '1. Sobre o Projeto FORJADOS', paragraphs: ['O Projeto FORJADOS é uma experiência cristã de imersão espiritual, emocional e vivencial, realizada em local reservado, durante um período determinado, com o propósito de conduzir homens e mulheres a um processo de reflexão, fortalecimento, transformação de vida, amadurecimento espiritual, alinhamento com princípios cristãos e desenvolvimento de responsabilidade pessoal e espiritual.', 'Assim como o ferro é moldado na forja através do fogo, da pressão e da resistência, entendemos que determinadas áreas da vida também precisam passar por processos de confronto, disciplina, renúncia, fortalecimento e restauração.', 'O FORJADOS não é um evento de entretenimento ou lazer. É um ambiente de processo, quebrantamento, reconstrução e posicionamento espiritual.', 'Nosso objetivo não é constranger, humilhar ou expor pessoas, mas proporcionar um ambiente de reflexão, crescimento, fortalecimento emocional e desenvolvimento espiritual à luz dos princípios cristãos.'] },
+  { title: '2. Nossa missão', paragraphs: ['O Projeto FORJADOS tem como propósito despertar no participante um compromisso verdadeiro:'], items: ['Com Deus;', 'Consigo mesmo;', 'Com sua família;', 'Com sua igreja local;', 'Com a obra de evangelismo e missões;', 'Com valores cristãos e princípios de responsabilidade, honra e integridade.'], subsections: [{ title: '', paragraphs: ['O FORJADOS não promove divisão denominacional, não defende placas ministeriais e não está fundamentado em disputas doutrinárias. O foco é a formação de caráter cristão, maturidade espiritual, responsabilidade pessoal e transformação de vida.'] }] },
+  { title: '3. Sobre a experiência', paragraphs: ['O participante declara estar ciente de que o evento poderá envolver etapas, ministrações, atividades e dinâmicas vivenciais que poderão incluir:'], items: ['Simulações;', 'Ambientes de reflexão e silêncio;', 'Pressão emocional controlada;', 'Limitação temporária de conforto;', 'Desafios físicos moderados;', 'Exercícios de tomada de decisão;', 'Confrontos comportamentais;', 'Dinâmicas de resistência emocional;', 'Atividades voltadas à disciplina, cooperação e posicionamento pessoal e espiritual.'], subsections: [{ title: '', paragraphs: ['O Projeto FORJADOS possui como pano de fundo simbólico e reflexivo princípios cristãos relacionados à vigilância espiritual, arrependimento, responsabilidade, compromisso com Deus e preparação para uma vida cristã consciente e alinhada aos ensinamentos bíblicos.', 'Durante determinadas atividades, membros da equipe poderão assumir posturas firmes, corretivas ou provocativas, sempre com finalidade pedagógica, reflexiva, emocional e espiritual.', 'O participante declara compreender que poderá sentir desconforto físico e emocional, ser confrontado em áreas pessoais e espirituais, experimentar momentos de intensidade emocional, silêncio, reflexão e limitação temporária de conforto.'] }] },
+  { title: '4. Limites das dinâmicas e respeito à dignidade', paragraphs: ['A organização declara que nenhuma atividade do Projeto FORJADOS terá por finalidade humilhar, ameaçar, agredir, ridicularizar, constranger publicamente, violentar emocionalmente, discriminar, expor indevidamente, abusar da autoridade ou violar a dignidade do participante.', 'As atividades e dinâmicas serão conduzidas dentro de limites razoáveis de segurança, respeito, responsabilidade e cuidado.', 'Não serão permitidas agressões físicas, ameaças reais, violência psicológica, humilhação pública, discriminação, abuso de autoridade ou qualquer prática que coloque em risco a integridade física, emocional, moral ou espiritual dos participantes.'] },
+  { title: '5. Condições de participação', subsections: [
+    { title: '5.1. Condições físicas, emocionais e psicológicas', paragraphs: ['O participante declara estar em condições físicas, emocionais e psicológicas adequadas para participar das atividades propostas. Declara ainda não possuir condições médicas, psiquiátricas, psicológicas ou limitações físicas que possam colocar em risco sua integridade ou a de terceiros durante o evento.', 'Não será recomendada a participação de pessoas que apresentem:'], items: ['Doenças cardíacas graves;', 'Limitações físicas severas;', 'Transtornos psiquiátricos descompensados;', 'Crises severas de ansiedade;', 'Histórico recente de surtos psicológicos;', 'Condições incompatíveis com esforço físico moderado;', 'Condições emocionais ou psicológicas incompatíveis com ambientes de pressão simbólica, reflexão intensa ou confronto comportamental.'], subsections: [{ title: '', paragraphs: ['Caso o participante omita informações relevantes sobre sua saúde física, emocional ou psicológica, assumirá responsabilidade pelas consequências decorrentes dessa omissão.'] }] },
+    { title: '5.2. Gestantes', paragraphs: ['Mulheres grávidas não poderão participar do Projeto FORJADOS, em razão da natureza das atividades, deslocamentos, possíveis pressões emocionais e limitações temporárias de conforto.'] },
+    { title: '5.3. Idade mínima', paragraphs: ['A participação no Projeto FORJADOS é destinada preferencialmente a maiores de 18 anos.', 'Menores de idade somente poderão participar mediante autorização formal do responsável legal, envio da documentação exigida e aprovação prévia da organização.'] },
+    { title: '5.4. Deslocamento', paragraphs: ['Os participantes não poderão se dirigir ao local do evento utilizando veículo próprio, salvo autorização expressa da organização.', 'O deslocamento ocorrerá conforme orientação previamente informada pela equipe organizadora.'] },
+    { title: '5.5. Objetos proibidos', paragraphs: ['É terminantemente proibido portar ou levar ao evento:'], items: ['Armas de fogo;', 'Armas brancas;', 'Objetos cortantes ou perfurantes;', 'Fogos de artifício;', 'Substâncias ilícitas;', 'Bebidas alcoólicas;', 'Medicamentos de uso controlado sem comunicação prévia à organização;', 'Qualquer item que represente risco à segurança coletiva.'], subsections: [{ title: '', paragraphs: ['A organização poderá orientar a retirada, guarda ou descarte de itens incompatíveis com as regras de segurança do evento.'] }] },
+    { title: '5.6. Medicamentos', paragraphs: ['Participantes que façam uso de medicamentos contínuos, controlados ou emergenciais deverão informar previamente à organização e portar quantidade suficiente para todo o período do evento.', 'O participante é responsável pelo uso correto de seus medicamentos, salvo situações emergenciais em que necessite de auxílio imediato.'] },
+    { title: '5.7. Desistência e cancelamento', paragraphs: ['Em caso de desistência sem aviso prévio mínimo de 7 dias antes da data do evento, poderá não haver devolução do valor da inscrição, em razão dos custos operacionais, logísticos, alimentícios, administrativos e estruturais previamente assumidos pela organização.', 'Situações excepcionais poderão ser analisadas individualmente pela organização.'] },
+  ] },
+  { title: '6. Ciência sobre o processo', paragraphs: ['O participante reconhece que o FORJADOS é um ambiente de transformação, amadurecimento espiritual, fortalecimento emocional e formação de caráter cristão.', 'O participante declara estar ciente de que poderá ser levado a refletir sobre orgulho, perdão, fé, vaidade, obediência, relacionamentos, traumas, feridas emocionais, propósito, compromisso cristão, responsabilidade espiritual, vida familiar, chamado, renúncia e maturidade cristã.'] },
+  { title: '7. Direito de interrupção e medidas de segurança', paragraphs: ['A organização poderá interromper, suspender ou encerrar a participação de qualquer pessoa que apresente risco físico, risco emocional grave, comportamento agressivo, desobediência às orientações da equipe, conduta desrespeitosa, tentativa de prejudicar a dinâmica do evento, posse de objetos proibidos, uso de substâncias ilícitas ou qualquer condição incompatível com a continuidade segura no evento.', 'O participante também poderá comunicar à equipe caso se sinta em situação de risco físico, emocional ou psicológico, podendo ser avaliada sua permanência, pausa temporária ou retirada de determinada atividade.', 'A organização compromete-se a adotar medidas razoáveis de segurança, orientação, prevenção e cuidado durante o evento.'] },
+  { title: '8. Atendimento emergencial', paragraphs: ['Em caso de mal-estar, acidente, crise emocional, alteração de saúde ou qualquer situação que exija cuidado imediato, o participante autoriza a organização a:'], items: ['Acionar serviços de emergência;', 'Comunicar o contato de emergência informado;', 'Encaminhar o participante para atendimento médico;', 'Prestar auxílio inicial dentro das possibilidades da equipe;', 'Tomar providências necessárias para preservação de sua integridade física e emocional.'], subsections: [{ title: '', paragraphs: ['O participante declara estar ciente de que a organização não substitui acompanhamento médico, psicológico, psiquiátrico ou profissional especializado.'] }] },
+  { title: '9. Confidencialidade e respeito à privacidade', paragraphs: ['O participante compromete-se a respeitar a privacidade, intimidade e dignidade dos demais participantes.', 'Não será permitido divulgar, expor, compartilhar, gravar ou comentar publicamente relatos pessoais, experiências, testemunhos ou situações íntimas vivenciadas por terceiros durante o Projeto FORJADOS sem autorização expressa.'] },
+  { title: '10. Uso de imagem, voz e depoimentos', paragraphs: ['O uso de imagem, voz, vídeos, fotos ou depoimentos do participante para divulgação institucional do Projeto FORJADOS somente ocorrerá mediante autorização específica e separada.', 'A não autorização do uso de imagem para divulgação pública não impedirá a participação no evento, salvo registros internos necessários para segurança, identificação e organização.'] },
+  { title: '11. Aceite eletrônico', paragraphs: ['Ao marcar a opção de aceite no formulário, o participante declara que:'], items: ['Leu integralmente este Termo;', 'Compreendeu a natureza do Projeto FORJADOS;', 'Participa por livre e espontânea vontade;', 'Declara estar em condições físicas, emocionais e psicológicas compatíveis com a participação;', 'Assume responsabilidade pelas informações prestadas;', 'Compromete-se a respeitar integralmente as orientações da equipe organizadora;', 'Reconhece que as atividades possuem propósito espiritual, educativo, reflexivo e formativo;', 'Está ciente de que poderá experimentar momentos de intensidade emocional, reflexão e limitação temporária de conforto;', 'Autoriza, em caso de necessidade, o acionamento de atendimento emergencial;', 'Compromete-se a respeitar a privacidade dos demais participantes;', 'Concorda com as condições descritas neste Termo.'], subsections: [{ title: '', paragraphs: ['A confirmação eletrônica do aceite terá validade como manifestação livre, informada e consciente da vontade do participante.', 'Última atualização: maio de 2026.'] }] },
+];
 
-export function LegalDocumentsView({ initialTab = 'privacy', onBack }: LegalDocumentsViewProps) {
-  return (
-    <div className="legal-page">
-      <div className="admin-header">
-        <div>
-          <p className="eyebrow">Documentos da jornada</p>
-          <h2>{TITLES[initialTab]}</h2>
-          <p className="muted">
-            Diretrizes para proteger o propósito, a segurança e o ambiente de cura do FORJADOS.
-          </p>
-        </div>
-        {onBack && (
-          <button className="secondary-button legal-back-button" type="button" onClick={onBack}>
-            <ArrowLeft size={17} />
-            Voltar ao aplicativo
-          </button>
-        )}
-      </div>
+const TITLES: Record<LegalDocumentsTab, string> = { privacy: 'Política de Privacidade', terms: 'Termo de Responsabilidade', rules: 'Regras do Retiro' };
 
-      {initialTab === 'privacy' && <PrivacyContent />}
-      {initialTab === 'terms' && <TermsContent />}
-      {initialTab === 'rules' && <RulesContent />}
+function SectionList({ sections, nested = false }: { sections: Section[]; nested?: boolean }) {
+  return <>{sections.map((section, index) => <section className={nested ? 'legal-subsection' : undefined} key={`${section.title}-${index}`}>
+    {section.title && (nested ? <h5>{section.title}</h5> : <h4>{section.title}</h4>)}
+    {section.paragraphs?.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+    {section.items && <ul>{section.items.map((item) => <li key={item}>{item}</li>)}</ul>}
+    {section.subsections && <SectionList sections={section.subsections} nested />}
+  </section>)}</>;
+}
 
-      {onBack && (
-        <button className="secondary-button legal-bottom-back" type="button" onClick={onBack}>
-          <ArrowLeft size={17} />
-          Voltar ao aplicativo
-        </button>
-      )}
-    </div>
-  );
+export function LegalDocumentsView({ initialTab = 'privacy', onBack }: Props) {
+  return <div className="legal-page">
+    <div className="admin-header"><div><p className="eyebrow">Documentos da jornada</p><h2>{TITLES[initialTab]}</h2><p className="muted">Conteúdo oficial disponível dentro do aplicativo, inclusive após ser carregado para uso offline.</p></div>{onBack && <button className="secondary-button legal-back-button" type="button" onClick={onBack}><ArrowLeft size={17} />Voltar ao aplicativo</button>}</div>
+    {initialTab === 'privacy' && <PrivacyContent />}{initialTab === 'terms' && <TermsContent />}{initialTab === 'rules' && <RulesContent />}
+    {onBack && <button className="secondary-button legal-bottom-back" type="button" onClick={onBack}><ArrowLeft size={17} />Voltar ao aplicativo</button>}
+  </div>;
 }
 
 export function PrivacyContent() {
-  return (
-    <section className="panel wide legal-document">
-      <h3>Política de Privacidade</h3>
-      <p>
-        O aplicativo FORJADOS coleta dados necessários para cadastro, organização de equipes,
-        inscrições, escalas, pagamentos, pontuação, caronas e comunicação interna do retiro.
-      </p>
-      <h4>Dados coletados</h4>
-      <p>
-        Podemos coletar nome, e-mail, telefone, data de nascimento, cidade, bairro, equipe
-        principal, setores, tamanho de camisa, informações de saúde informadas voluntariamente,
-        contato de emergência, comprovantes e histórico de participação.
-      </p>
-      <h4>Finalidade</h4>
-      <p>
-        Os dados são utilizados para identificar membros, aprovar acessos, organizar escalas,
-        pagamentos, pontos, lojas internas, caronas e comunicação relacionada ao FORJADOS.
-      </p>
-      <h4>Acesso aos dados</h4>
-      <p>
-        Administradores, diretoria, tesouraria e líderes autorizados podem visualizar informações
-        conforme suas responsabilidades. O uso deve ser pastoral, administrativo e alinhado ao
-        propósito do projeto.
-      </p>
-      <h4>Segurança</h4>
-      <p>
-        O sistema utiliza autenticação, permissões por perfil e regras de acesso. Ainda assim,
-        informações sensíveis devem ser tratadas com discrição e responsabilidade.
-      </p>
-      <h4>Direitos do participante</h4>
-      <p>
-        O membro pode solicitar correção de dados cadastrais e, quando possível, remoção de dados,
-        respeitando registros necessários para controle financeiro, histórico e organização.
-      </p>
-    </section>
-  );
+  return <article className="panel wide legal-document"><p className="eyebrow">Política de Privacidade</p><h3>Projeto FORJADOS</h3><p>Esta Política de Privacidade explica de forma clara como os dados pessoais dos participantes são coletados, utilizados, armazenados e protegidos durante a utilização do site, preenchimento da ficha de inscrição e participação no Projeto FORJADOS.</p><SectionList sections={PRIVACY_SECTIONS} /></article>;
 }
 
 export function TermsContent() {
-  return (
-    <section className="panel wide legal-document">
-      <h3>Termo de Responsabilidade</h3>
-      <p>
-        Ao solicitar acesso e participar do FORJADOS, o membro declara que as informações
-        fornecidas são verdadeiras e assume responsabilidade pela participação nas atividades.
-      </p>
-      <h4>Compromisso com o propósito</h4>
-      <p>
-        O FORJADOS existe para conduzir pessoas feridas a um processo de cura, identidade,
-        restauração e reconciliação com Deus. O participante se compromete a proteger esse ambiente.
-      </p>
-      <h4>Saúde e segurança</h4>
-      <p>
-        O membro deve informar restrições alimentares, condições de saúde, uso de medicação e
-        contato de emergência quando necessário.
-      </p>
-      <h4>Imagem e comunicação</h4>
-      <p>
-        Ao aceitar este termo, o membro autoriza o uso de registros da participação em materiais
-        internos e de divulgação, salvo manifestação contrária feita à administração.
-      </p>
-      <h4>Conduta</h4>
-      <p>
-        Condutas incompatíveis com o propósito do retiro podem gerar advertência, remoção de escala,
-        restrição de acesso ou desligamento, conforme decisão da liderança.
-      </p>
-      <h4>Declaração espiritual e relacional</h4>
-      <p>
-        O participante reconhece que o FORJADOS é um ambiente de escuta, cura, verdade e perdão.
-        A proposta é cooperar com o agir de Deus, preservar o próximo e caminhar em honra.
-      </p>
-    </section>
-  );
+  return <article className="panel wide legal-document"><p className="eyebrow">Termo de Ciência</p><h3>Responsabilidade e Participação</h3><p>Este Termo informa o participante sobre a proposta, natureza, dinâmica, condições de participação, regras de segurança e responsabilidades relacionadas ao Projeto FORJADOS.</p><SectionList sections={TERM_SECTIONS} /></article>;
 }
 
 export function RulesContent() {
-  return (
-    <section className="panel wide legal-document">
-      <h3>Regras do Retiro FORJADOS</h3>
-      <p>
-        <strong>{FORJADOS_MAIN_MESSAGE}</strong>
-      </p>
-      <p>{FORJADOS_IDENTITY_TEXT}</p>
-
-      <h4>Diretrizes de convivência e participação</h4>
-      <ol className="legal-rules-list">
-        {FORJADOS_RULES.map((rule) => (
-          <li key={rule}>{rule}</li>
-        ))}
-      </ol>
-
-      <h4>Compromisso final</h4>
-      <p>
-        O FORJADOS trabalha cura espiritual, paternidade, identidade, Espírito Santo, perdão e
-        restauração de alma. Todo envolvimento no retiro deve proteger esse ambiente.
-      </p>
-    </section>
-  );
+  return <article className="panel wide legal-document"><h3>Regras do Retiro FORJADOS</h3><p><strong>{FORJADOS_MAIN_MESSAGE}</strong></p><p>{FORJADOS_IDENTITY_TEXT}</p><h4>Diretrizes de convivência e participação</h4><ol className="legal-rules-list">{FORJADOS_RULES.map((rule) => <li key={rule}>{rule}</li>)}</ol><h4>Compromisso final</h4><p>O FORJADOS trabalha cura espiritual, paternidade, identidade, Espírito Santo, perdão e restauração de alma. Todo envolvimento no retiro deve proteger esse ambiente.</p></article>;
 }

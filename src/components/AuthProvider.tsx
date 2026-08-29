@@ -4,6 +4,7 @@ import { supabase } from '../services/supabase';
 import { getMyProfile } from '../services/profiles';
 import { withTimeout } from '../services/safeAsync';
 import { clearSensitiveLocalData } from '../services/localData';
+import { isOfflineError, readOfflineData, saveOfflineData } from '../services/offlineCache';
 import type { UserProfile } from '../types';
 
 type AuthContextValue = {
@@ -16,6 +17,7 @@ type AuthContextValue = {
   isDirector: boolean;
   isLeader: boolean;
   isTreasury: boolean;
+  isOfflineMode: boolean;
 };
 
 const AuthContext = createContext<AuthContextValue>({
@@ -28,7 +30,19 @@ const AuthContext = createContext<AuthContextValue>({
   isDirector: false,
   isLeader: false,
   isTreasury: false,
+  isOfflineMode: false,
 });
+
+function createOfflineProfileSnapshot(profile: UserProfile): UserProfile {
+  return {
+    ...profile,
+    health_problems: '',
+    continuous_medicine: '',
+    food_restrictions: '',
+    emergency_contact: {},
+    terms_accepted: {},
+  };
+}
 
 function getMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message) return error.message;
@@ -41,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState('');
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const mountedRef = useRef(true);
   const profileRef = useRef<UserProfile | null>(null);
 
@@ -53,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       profileRef.current = null;
       setAuthError('');
+      setIsOfflineMode(false);
       return;
     }
 
@@ -73,7 +89,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setProfile(profileData);
       profileRef.current = profileData;
+      saveOfflineData('profile', createOfflineProfileSnapshot(profileData), currentUser.id);
       setAuthError('');
+      setIsOfflineMode(false);
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
 
@@ -83,6 +101,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (currentProfile?.id === currentUser.id) {
         setProfile(currentProfile);
         setAuthError('Não foi possível atualizar seu perfil agora. Os dados desta sessão foram mantidos.');
+        return;
+      }
+
+      const cachedProfile = readOfflineData<UserProfile>('profile', currentUser.id);
+      if (cachedProfile && isOfflineError(error)) {
+        setProfile(cachedProfile);
+        profileRef.current = cachedProfile;
+        setIsOfflineMode(true);
+        setAuthError('Você está offline. Exibindo os últimos dados salvos neste aparelho.');
         return;
       }
 
@@ -129,7 +156,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setProfile(profileData);
       profileRef.current = profileData;
+      saveOfflineData('profile', createOfflineProfileSnapshot(profileData), currentUser.id);
       setAuthError('');
+      setIsOfflineMode(false);
     } catch (error) {
       console.error('Erro ao recarregar perfil:', error);
 
@@ -142,9 +171,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+
+      if (user) {
+        const cachedProfile = readOfflineData<UserProfile>('profile', user.id);
+        if (cachedProfile && isOfflineError(error)) {
+          setProfile(cachedProfile);
+          profileRef.current = cachedProfile;
+          setIsOfflineMode(true);
+          setAuthError('Você está offline. Exibindo os últimos dados salvos neste aparelho.');
+          return;
+        }
+      }
+
       setAuthError(getMessage(error, 'Não foi possível recarregar seu perfil.'));
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -190,6 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null);
         profileRef.current = null;
         setAuthError('');
+        setIsOfflineMode(false);
         setLoading(false);
         return;
       }
@@ -230,8 +272,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role === 'admin' ||
         profile?.is_admin === true,
       isTreasury: role === 'treasury' || role === 'admin' || profile?.is_admin === true,
+      isOfflineMode,
     };
-  }, [user, profile, loading, authError, reloadProfile]);
+  }, [user, profile, loading, authError, reloadProfile, isOfflineMode]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

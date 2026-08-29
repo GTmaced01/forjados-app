@@ -188,6 +188,13 @@ export interface Ride {
   notes?: string;
   confirmed_passenger_count?: number;
   completed_points_awarded: boolean;
+  estimated_points?: number;
+  awarded_points?: number;
+  points_rule_snapshot?: {
+    mode?: 'per_passenger' | 'fixed';
+    points_per_passenger?: number;
+    fixed_points?: number;
+  };
   confirmed_by?: string | null;
   confirmed_at?: string | null;
   created_at: string;
@@ -379,6 +386,9 @@ export interface AppNotification {
   type?: string;
   is_read: boolean;
   read_at?: string | null;
+  is_pinned: boolean;
+  pinned_at?: string | null;
+  cleared_at?: string | null;
   created_at: string;
 }
 
@@ -416,11 +426,44 @@ export interface EventScheduleItem {
   activity_type: EventScheduleActivityType;
   team_names: string[];
   responsible?: string | null;
+  responsible_id?: string | null;
   is_published: boolean;
   created_by?: string | null;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
+}
+
+export interface SchedulePersonOption {
+  user_id: string;
+  display_name: string;
+  email: string;
+  role: UserRole;
+  primary_team?: string | null;
+}
+
+export interface RideSettings {
+  singleton: boolean;
+  points_mode: 'per_passenger' | 'fixed';
+  points_per_passenger: number;
+  fixed_points: number;
+  event_address: string;
+  event_map_url: string;
+  updated_at: string;
+}
+
+export type AttendanceStatus = 'confirmed' | 'present' | 'absent' | 'excused';
+
+export interface AttendanceRecord {
+  participation_id: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  edition_id?: string | null;
+  retreat_title: string;
+  attendance_status: AttendanceStatus;
+  attendance_notes?: string | null;
+  attendance_updated_at?: string | null;
 }
 
 export type EventScheduleItemInput = Omit<

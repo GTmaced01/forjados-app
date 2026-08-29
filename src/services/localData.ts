@@ -6,6 +6,7 @@ const SENSITIVE_LOCAL_KEYS = new Set([
 const SENSITIVE_PREFIXES = [
   'forjados_profile_cache_v1_',
   'forjados_treasury_',
+  'forjados_offline_v1_',
 ];
 
 function shouldRemove(key: string) {
