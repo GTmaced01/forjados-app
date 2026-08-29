@@ -46,4 +46,8 @@ As migrations oficiais ficam exclusivamente em `supabase/migrations/`. Não exec
 
 O lote de qualidade e desempenho 2.1R.1 está documentado em [docs/FORJADOS_2_1R1_RELEASE.md](docs/FORJADOS_2_1R1_RELEASE.md).
 
+O histórico antigo do banco ainda precisa de uma baseline reproduzível. Antes de
+usar `db reset`, `db push` ou reparar versões remotas, siga
+[docs/SUPABASE_BASELINE_RECOVERY.md](docs/SUPABASE_BASELINE_RECOVERY.md).
+
 Nunca coloque tokens privados de gateway, `service_role`, VAPID privada ou qualquer secret em variáveis `VITE_*`.
