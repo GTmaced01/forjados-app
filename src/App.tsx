@@ -34,6 +34,21 @@ function isRecoveryUrl() {
 function AppContent() {
   const { user, profile, loading, authError, isAdmin, reloadProfile } = useAuth();
 
+  useEffect(() => {
+    if (!user || !profile || !navigator.onLine) return;
+    const timer = window.setTimeout(() => {
+      void Promise.allSettled([
+        import('./views/ProfileView'),
+        import('./views/InscriptionView'),
+        import('./views/PublicPanelView'),
+        import('./views/NotificationsView'),
+        import('./views/EventScheduleView'),
+        import('./views/RidesView'),
+      ]);
+    }, 1800);
+    return () => window.clearTimeout(timer);
+  }, [profile, user]);
+
   if (loading) {
     return (
       <div className="page-center">

@@ -4080,6 +4080,190 @@ textarea:focus-visible {
   }
 }
 
+/* FORJADOS 2.1R8 — operações, documentos e modo offline */
+.notification-card.pinned {
+  border-color: rgba(199, 154, 74, 0.72);
+  box-shadow: inset 3px 0 0 #c79a4a;
+}
+
+.notification-card-actions,
+.notification-receipts-actions,
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.notification-pin-button {
+  min-width: 42px;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  color: var(--gold);
+  background: rgba(199, 154, 74, 0.08);
+}
+
+.schedule-team-selector {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.schedule-team-selector legend {
+  padding: 0 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ride-destination-card,
+.ride-points-estimate,
+.ride-points-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ride-destination-card > div,
+.ride-points-estimate > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.ride-points-estimate {
+  padding: 15px;
+  border: 1px solid rgba(199, 154, 74, 0.38);
+  border-radius: 16px;
+  background: rgba(199, 154, 74, 0.08);
+  color: var(--gold);
+}
+
+.ride-points-estimate p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.ride-points-preview {
+  width: fit-content;
+  padding: 8px 11px;
+  margin-top: 12px;
+  border-radius: 999px;
+  color: var(--gold);
+  background: rgba(199, 154, 74, 0.1);
+  font-weight: 750;
+  font-size: 0.86rem;
+}
+
+.ride-settings-panel form .primary-button {
+  justify-self: start;
+}
+
+.manage-rides-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.manage-ride-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(190px, 0.7fr) auto;
+  align-items: end;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.manage-ride-card > div {
+  display: grid;
+  gap: 7px;
+}
+
+.manage-ride-card span,
+.manage-ride-card small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.inline-legal-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gold);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.legal-document > section {
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.legal-document h5 {
+  margin: 20px 0 8px;
+  color: var(--gold);
+  font-size: 1rem;
+}
+
+.legal-document ul {
+  display: grid;
+  gap: 7px;
+  padding-left: 22px;
+  color: var(--muted);
+}
+
+.legal-subsection {
+  margin-top: 12px;
+}
+
+@media (max-width: 760px) {
+  .notification-card-actions,
+  .notification-receipts-actions,
+  .ride-destination-card,
+  .form-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .notification-card-actions > button,
+  .notification-receipts-actions > button,
+  .form-actions > button,
+  .ride-destination-card > a {
+    flex: 1;
+  }
+
+  .manage-ride-card {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .ride-settings-panel .grid.two {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-team-selector .chips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .schedule-team-selector .chip {
+    min-width: 0;
+    white-space: normal;
+  }
+}
+
 /* =========================
    NOTIFICAÇÕES E AUDITORIA
 ========================= */

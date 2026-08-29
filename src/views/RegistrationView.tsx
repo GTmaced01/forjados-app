@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import {
   FORJADOS_MAIN_MESSAGE,
-  OFFICIAL_PRIVACY_POLICY_URL,
-  OFFICIAL_RESPONSIBILITY_TERM_URL,
   PRIMARY_TEAMS,
   SECTORS,
   SHIRT_SIZES,
@@ -11,11 +9,13 @@ import {
 import { updateMyRegistration } from '../services/profiles';
 import { useAuth } from '../components/AuthProvider';
 import type { UserRole } from '../types';
+import { LegalDocumentsView, type LegalDocumentsTab } from './LegalDocumentsView';
 
 export function RegistrationView() {
   const { reloadProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [legalTab, setLegalTab] = useState<LegalDocumentsTab | null>(null);
   const [form, setForm] = useState({
     display_name: '',
     birth_date: '',
@@ -121,6 +121,10 @@ export function RegistrationView() {
     }
   }
 
+  if (legalTab) {
+    return <LegalDocumentsView initialTab={legalTab} onBack={() => setLegalTab(null)} />;
+  }
+
   return (
     <div className="page-center">
       <form className="panel wide" onSubmit={handleSubmit}>
@@ -191,9 +195,9 @@ export function RegistrationView() {
         </div>
 
         <div className="terms">
-          <label><input type="checkbox" required checked={form.retreatRules} onChange={(e) => setForm({ ...form, retreatRules: e.target.checked })} />Li e aceito as Regras do Retiro, preservando o ambiente de cuidado, sigilo, respeito e restauração.</label>
-          <label><input type="checkbox" required checked={form.privacyPolicy} onChange={(e) => setForm({ ...form, privacyPolicy: e.target.checked })} /><span>Li e aceito a <a href={OFFICIAL_PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">Política de Privacidade</a> do FORJADOS.</span></label>
-          <label><input type="checkbox" required checked={form.responsibilityTerm} onChange={(e) => setForm({ ...form, responsibilityTerm: e.target.checked })} /><span>Li e aceito o <a href={OFFICIAL_RESPONSIBILITY_TERM_URL} target="_blank" rel="noreferrer">Termo de Responsabilidade</a> e declaro que os dados informados são verdadeiros.</span></label>
+          <label><input type="checkbox" required checked={form.retreatRules} onChange={(e) => setForm({ ...form, retreatRules: e.target.checked })} /><span>Li e aceito as <button type="button" className="inline-legal-link" onClick={() => setLegalTab('rules')}>Regras do Retiro</button>, preservando o ambiente de cuidado, sigilo, respeito e restauração.</span></label>
+          <label><input type="checkbox" required checked={form.privacyPolicy} onChange={(e) => setForm({ ...form, privacyPolicy: e.target.checked })} /><span>Li e aceito a <button type="button" className="inline-legal-link" onClick={() => setLegalTab('privacy')}>Política de Privacidade</button> do FORJADOS.</span></label>
+          <label><input type="checkbox" required checked={form.responsibilityTerm} onChange={(e) => setForm({ ...form, responsibilityTerm: e.target.checked })} /><span>Li e aceito o <button type="button" className="inline-legal-link" onClick={() => setLegalTab('terms')}>Termo de Responsabilidade</button> e declaro que os dados informados são verdadeiros.</span></label>
           <label><input type="checkbox" required checked={form.spiritualCommitment} onChange={(e) => setForm({ ...form, spiritualCommitment: e.target.checked })} />Reconheço o propósito do FORJADOS e me comprometo a cooperar com um ambiente de perdão, honra, cura e amor.</label>
         </div>
 

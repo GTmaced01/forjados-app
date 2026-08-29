@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarClock, Car, MapPin, Plus, RefreshCw, Route, UserPlus, Users, XCircle } from 'lucide-react';
+import { Award, CalendarClock, Car, MapPin, Plus, RefreshCw, Route, UserPlus, Users, XCircle } from 'lucide-react';
 import { useAuth } from '../components/AuthProvider';
 import { AdminHistoryDeleteButton } from '../components/AdminHistoryDeleteButton';
 import {
@@ -7,12 +7,13 @@ import {
   confirmRideCompletion,
   createRide,
   formatRideStatus,
+  getRideSettings,
   joinRide,
   leaveRide,
   listRides,
 } from '../services/rides';
 import { withTimeout } from '../services/safeAsync';
-import type { Ride } from '../types';
+import type { Ride, RideSettings } from '../types';
 
 type RideFilter = 'all' | 'available' | 'mine';
 
@@ -40,6 +41,7 @@ export function RidesView() {
   const { profile, isAdmin, isDirector } = useAuth();
 
   const [rides, setRides] = useState<Ride[]>([]);
+  const [settings, setSettings] = useState<RideSettings | null>(null);
   const [filter, setFilter] = useState<RideFilter>('all');
 
   const [showForm, setShowForm] = useState(false);
@@ -65,13 +67,14 @@ export function RidesView() {
     setError('');
 
     try {
-      const data = await withTimeout(
-        listRides(),
+      const [data, rideSettings] = await withTimeout(
+        Promise.all([listRides(), getRideSettings()]),
         10000,
         'Não foi possível carregar as caronas. Tente novamente.'
       );
 
       setRides(data);
+      setSettings(rideSettings);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar caronas.');
@@ -83,6 +86,18 @@ export function RidesView() {
   useEffect(() => {
     loadRides();
   }, []);
+
+  const estimatedFormPoints = useMemo(() => {
+    if (!settings) return 0;
+    if (settings.points_mode === 'fixed') return settings.fixed_points;
+    return Math.max(0, Number(form.totalSeats || 0)) * settings.points_per_passenger;
+  }, [form.totalSeats, settings]);
+
+  function calculateRidePoints(ride: Ride, passengerCount: number) {
+    const snapshot = ride.points_rule_snapshot;
+    if (snapshot?.mode === 'fixed') return Number(snapshot.fixed_points || 0);
+    return passengerCount * Number(snapshot?.points_per_passenger ?? settings?.points_per_passenger ?? 0);
+  }
 
   const filteredRides = useMemo(() => {
     return rides.filter((ride) => {
@@ -215,7 +230,7 @@ export function RidesView() {
   
       setSuccess(
         completed
-          ? `Carona concluída. ${passengerCount * 50} pontos de honra lançados.`
+          ? `Carona concluída. ${calculateRidePoints(ride, passengerCount)} pontos de honra lançados.`
           : 'Carona marcada como não concluída.'
       );
   
@@ -326,6 +341,14 @@ export function RidesView() {
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
 
+      {settings?.event_address && (
+        <section className="panel wide ride-destination-card">
+          <MapPin size={22} />
+          <div><p className="eyebrow">Destino oficial do retiro</p><strong>{settings.event_address}</strong></div>
+          {getSafeExternalUrl(settings.event_map_url) && <a className="secondary-button" href={settings.event_map_url} target="_blank" rel="noopener noreferrer">Abrir mapa</a>}
+        </section>
+      )}
+
       <section className="rides-overview" aria-label="Resumo das caronas">
         <div className="card"><Route size={20} /><span>Caronas em aberto</span><strong>{rideMetrics.open}</strong></div>
         <div className="card"><Users size={20} /><span>Vagas disponíveis</span><strong>{rideMetrics.seats}</strong></div>
@@ -334,7 +357,10 @@ export function RidesView() {
 
       {showForm && (
         <section className="panel wide ride-form-panel">
-          <h3>Oferecer carona</h3>
+          <div className="section-title-row">
+            <div><h3>Oferecer carona</h3><p className="muted">Informe o ponto de saída e as vagas disponíveis.</p></div>
+            <button type="button" className="secondary-button" onClick={() => setShowForm(false)}><XCircle size={16} /> Cancelar</button>
+          </div>
 
           <form className="ride-form" onSubmit={handleCreateRide}>
             <div className="grid two">
@@ -414,9 +440,15 @@ export function RidesView() {
               />
             </div>
 
-            <button className="primary-button" disabled={saving}>
-              {saving ? 'Salvando...' : 'Criar carona'}
-            </button>
+            <div className="ride-points-estimate" role="status">
+              <Award size={20} />
+              <div><strong>Estimativa: até {estimatedFormPoints} pontos de honra</strong><p>O crédito só acontece depois que Admin ou Diretoria validarem a realização da carona e os passageiros transportados.</p></div>
+            </div>
+
+            <div className="form-actions">
+              <button type="button" className="secondary-button" onClick={() => setShowForm(false)} disabled={saving}>Cancelar</button>
+              <button className="primary-button" disabled={saving}>{saving ? 'Salvando...' : 'Criar carona'}</button>
+            </div>
           </form>
         </section>
       )}
@@ -555,6 +587,8 @@ export function RidesView() {
                   </div>
                 </div>
 
+                <div className="ride-points-preview"><Award size={16} /><span>{ride.status === 'completed' ? `${ride.awarded_points || 0} pontos aprovados` : `Até ${ride.estimated_points || 0} pontos após validação`}</span></div>
+
                 {ride.notes && (
                   <div className="ride-notes">
                     <label>Observações</label>
@@ -640,7 +674,7 @@ export function RidesView() {
                           value={confirmedCounts[ride.id] ?? suggestedPassengerCount}
                           onChange={(event) => setConfirmedCounts((current) => ({ ...current, [ride.id]: event.target.value }))}
                         />
-                        <p className="muted">Pontuação: {(Number(confirmedCounts[ride.id] ?? suggestedPassengerCount) || 0) * 50} pts</p>
+                        <p className="muted">Pontuação: {calculateRidePoints(ride, Number(confirmedCounts[ride.id] ?? suggestedPassengerCount) || 0)} pts</p>
                       </div>
                       <button type="button" className="approve-button" disabled={Boolean(actionRideId)} onClick={() => handleConfirmRide(ride, true)}>
                         {isActing ? 'Confirmando...' : 'Confirmar concluída'}

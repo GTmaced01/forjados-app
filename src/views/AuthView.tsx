@@ -11,10 +11,6 @@ import {
 import type { UserRole } from '../types';
 import { PrivacyContent, RulesContent, TermsContent } from './LegalDocumentsView';
 import {
-  OFFICIAL_PRIVACY_POLICY_URL,
-  OFFICIAL_RESPONSIBILITY_TERM_URL,
-} from '../constants';
-import {
   assertStrongPassword,
   getPasswordRequirements,
   PASSWORD_MIN_LENGTH,
@@ -230,8 +226,8 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
             </div>
             <div className="auth-legal-links">
               <button type="button" onClick={() => openLegal('rules')}>Regras do Retiro</button>
-              <a href={OFFICIAL_PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">Política de Privacidade</a>
-              <a href={OFFICIAL_RESPONSIBILITY_TERM_URL} target="_blank" rel="noreferrer">Termo de Responsabilidade</a>
+              <button type="button" onClick={() => openLegal('privacy')}>Política de Privacidade</button>
+              <button type="button" onClick={() => openLegal('terms')}>Termo de Responsabilidade</button>
             </div>
           </form>
         )}
@@ -273,9 +269,9 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
                 <p className="auth-consent-links">
                   Leia antes de aceitar:{' '}
                   <button type="button" onClick={() => openLegal('rules')}>Regras do Retiro</button>,{' '}
-                  <a href={OFFICIAL_PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">Política de Privacidade</a>{' '}
+                  <button type="button" onClick={() => openLegal('privacy')}>Política de Privacidade</button>{' '}
                   e{' '}
-                  <a href={OFFICIAL_RESPONSIBILITY_TERM_URL} target="_blank" rel="noreferrer">Termo de Responsabilidade</a>.
+                  <button type="button" onClick={() => openLegal('terms')}>Termo de Responsabilidade</button>.
                 </p>
               </div>
             </div>
@@ -284,8 +280,8 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
             <div className="auth-links"><button type="button" onClick={() => changeMode('login')}>Já tenho conta</button></div>
             <div className="auth-legal-links">
               <button type="button" onClick={() => openLegal('rules')}>Regras do Retiro</button>
-              <a href={OFFICIAL_PRIVACY_POLICY_URL} target="_blank" rel="noreferrer">Política de Privacidade</a>
-              <a href={OFFICIAL_RESPONSIBILITY_TERM_URL} target="_blank" rel="noreferrer">Termo de Responsabilidade</a>
+              <button type="button" onClick={() => openLegal('privacy')}>Política de Privacidade</button>
+              <button type="button" onClick={() => openLegal('terms')}>Termo de Responsabilidade</button>
             </div>
           </form>
         )}

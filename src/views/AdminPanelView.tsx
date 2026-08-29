@@ -22,10 +22,19 @@ import {
   rejectProfile,
 } from '../services/profiles';
 import { exportTeamWorkbook, printProfileFicha } from '../services/exporters';
-import type { InscriptionStatus, UserProfile, UserRole } from '../types';
+import { listAttendance, updateAttendance } from '../services/attendance';
+import type { AttendanceRecord, AttendanceStatus, InscriptionStatus, UserProfile, UserRole } from '../types';
+
+const ATTENDANCE_LABELS: Record<AttendanceStatus, string> = {
+  confirmed: 'Confirmado (aguardando evento)',
+  present: 'Presente',
+  absent: 'Não compareceu',
+  excused: 'Ausência justificada',
+};
 
 export function AdminPanelView() {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -42,13 +51,31 @@ export function AdminPanelView() {
     setError('');
 
     try {
-      const data = await listProfiles();
+      const [data, attendanceData] = await Promise.all([listProfiles(), listAttendance()]);
       setProfiles(data);
+      setAttendance(attendanceData);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar membros.');
     } finally {
       if (!silent) setLoading(false);
+    }
+  }
+
+  async function handleAttendanceChange(record: AttendanceRecord, status: AttendanceStatus) {
+    const note = status === 'absent' || status === 'excused'
+      ? window.prompt('Observação sobre a ausência (opcional):', record.attendance_notes || '') ?? record.attendance_notes ?? ''
+      : record.attendance_notes || '';
+    setSavingId(record.user_id);
+    setError('');
+    try {
+      await updateAttendance(record.participation_id, status, note);
+      await loadProfiles(true);
+      setSuccess(`Presença de ${record.user_name} atualizada para “${ATTENDANCE_LABELS[status]}”.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar presença.');
+    } finally {
+      setSavingId(null);
     }
   }
 
@@ -360,6 +387,7 @@ export function AdminPanelView() {
         <div className="members-list">
           {filteredProfiles.map((profile) => {
             const isSaving = savingId === profile.id;
+            const attendanceRecord = attendance.find((item) => item.user_id === profile.id);
 
             return (
               <div className="member-card" key={profile.id}>
@@ -437,6 +465,16 @@ export function AdminPanelView() {
                       onChange={(e) => handleRetreatCountChange(profile, e.target.value)}
                     />
                   </div>
+
+                  {attendanceRecord && (
+                    <div>
+                      <label>Presença nesta edição</label>
+                      <select value={attendanceRecord.attendance_status} disabled={isSaving} onChange={(e) => void handleAttendanceChange(attendanceRecord, e.target.value as AttendanceStatus)}>
+                        {Object.entries(ATTENDANCE_LABELS).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+                      </select>
+                      {attendanceRecord.attendance_notes && <small>{attendanceRecord.attendance_notes}</small>}
+                    </div>
+                  )}
 
                   <div>
                     <label>Equipe principal</label>
