@@ -185,6 +185,18 @@ export async function adminUpdateRetreatCount(params: { userId: string; count: n
   if (error) throwRpcError(error, 'Erro ao atualizar quantidade de retiros.');
 }
 
+export async function adminUpdateMemberSince(params: {
+  userId: string;
+  memberSince: string | null;
+}) {
+  const { error } = await supabase.rpc('forjados_admin_update_member_since_v1', {
+    p_user_id: params.userId,
+    p_member_since: params.memberSince,
+  });
+
+  if (error) throwRpcError(error, 'Erro ao atualizar a data de membro.');
+}
+
 export async function updateMyBasicProfile(params: {
   display_name: string;
   phone: string;

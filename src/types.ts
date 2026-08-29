@@ -455,11 +455,12 @@ export interface RideSettings {
 export type AttendanceStatus = 'confirmed' | 'present' | 'absent' | 'excused';
 
 export interface AttendanceRecord {
-  participation_id: string;
+  participation_id?: string | null;
+  enrollment_id: string;
   user_id: string;
   user_name: string;
   user_email: string;
-  edition_id?: string | null;
+  edition_id: string;
   retreat_title: string;
   attendance_status: AttendanceStatus;
   attendance_notes?: string | null;
