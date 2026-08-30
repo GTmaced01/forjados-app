@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import {
   FORJADOS_MAIN_MESSAGE,
-  PRIMARY_TEAMS,
-  SECTORS,
   SHIRT_SIZES,
   SKILLS,
 } from '../constants';
+import { useSectorOptions } from '../hooks/useSectorOptions';
 import { updateMyRegistration } from '../services/profiles';
 import { useAuth } from '../components/AuthProvider';
 import type { UserRole } from '../types';
 import { LegalDocumentsView, type LegalDocumentsTab } from './LegalDocumentsView';
 
 export function RegistrationView() {
+  const sectorOptions = useSectorOptions();
   const { reloadProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -155,7 +155,7 @@ export function RegistrationView() {
             <label>Equipe principal</label>
             <select required value={form.primary_team} onChange={(e) => handlePrimaryTeamChange(e.target.value)}>
               <option value="">Selecione sua equipe</option>
-              {PRIMARY_TEAMS.map((team) => <option key={team} value={team}>{team}</option>)}
+              {sectorOptions.map((team) => <option key={team} value={team}>{team}</option>)}
             </select>
             <p className="field-hint">Essa equipe será usada para vincular líderes e liderados.</p>
           </div>
@@ -163,7 +163,7 @@ export function RegistrationView() {
 
         <label>Outras equipes/setores que você também ajuda</label>
         <div className="chips">
-          {SECTORS.map((sector) => (
+          {sectorOptions.map((sector) => (
             <button key={sector} type="button" className={form.sectors.includes(sector) ? 'chip active' : 'chip'} onClick={() => toggleSector(sector)}>{sector}</button>
           ))}
         </div>
