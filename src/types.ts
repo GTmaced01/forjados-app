@@ -286,6 +286,7 @@ export interface PointsRedemption {
   updated_at: string;
 }
 export type ServiceScaleGender = 'male' | 'female';
+export type ServiceScaleType = 'accommodation' | 'main_gate';
 
 export interface ServiceScalePerson {
   id: string;
@@ -303,6 +304,7 @@ export interface ServiceScalePerson {
 }
 
 export interface ServiceScaleConfig {
+  scaleType: ServiceScaleType;
   title: string;
   startAt: string;
   endAt: string;
@@ -334,6 +336,9 @@ export interface ServiceScaleSlotRequirement {
 
 export interface ServiceScaleSchedule {
   id: string;
+  edition_id?: string | null;
+  service_unit_id?: string | null;
+  scale_type: ServiceScaleType;
   title: string;
   start_at: string;
   end_at: string;
@@ -360,6 +365,20 @@ export interface ServiceScaleAssignment {
   slot_end: string;
   accommodation: 'male' | 'female';
   created_at: string;
+}
+
+export interface PublishedServiceScaleAssignment {
+  schedule_id: string;
+  schedule_title: string;
+  scale_type: ServiceScaleType;
+  service_unit_id: string;
+  assignment_id: string;
+  user_id?: string | null;
+  person_name: string;
+  gender: ServiceScaleGender;
+  slot_number: number;
+  slot_start: string;
+  slot_end: string;
 }
 
 export type PublicPanelCategory = 'notice' | 'scale' | 'info' | 'urgent';

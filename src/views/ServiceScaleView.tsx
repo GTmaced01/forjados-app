@@ -7,6 +7,7 @@ import type {
   ServiceScalePerson,
   ServiceScaleSchedule,
   ServiceScaleSlotRequirement,
+  ServiceScaleType,
 } from '../types';
 import {
   buildGeneratedScale,
@@ -38,6 +39,7 @@ const defaultEnd = new Date(defaultStart);
 defaultEnd.setDate(defaultEnd.getDate() + 2);
 
 const initialConfig: ServiceScaleConfig = {
+  scaleType: 'accommodation',
   title: 'Escala de Serviço do Alojamento',
   startAt: toDatetimeLocalValue(defaultStart),
   endAt: toDatetimeLocalValue(defaultEnd),
@@ -46,6 +48,16 @@ const initialConfig: ServiceScaleConfig = {
   womenPerShift: 2,
   minRestMinutes: 180,
   avoidConsecutive: true,
+};
+
+const SCALE_TYPE_LABELS: Record<ServiceScaleType, string> = {
+  accommodation: 'Alojamento',
+  main_gate: 'Portão Principal',
+};
+
+const SCALE_TYPE_TITLES: Record<ServiceScaleType, string> = {
+  accommodation: 'Escala de Serviço do Alojamento',
+  main_gate: 'Escala de Serviço do Portão Principal',
 };
 
 const initialPersonForm = {
@@ -181,6 +193,12 @@ export function ServiceScaleView() {
     if (key === 'startAt' || key === 'endAt' || key === 'shiftMinutes') {
       setSlotRequirements([]);
     }
+    invalidateGeneratedScale();
+  }
+
+  function handleScaleTypeChange(scaleType: ServiceScaleType) {
+    setConfig((current) => ({ ...current, scaleType, title: SCALE_TYPE_TITLES[scaleType] }));
+    setSlotRequirements([]);
     invalidateGeneratedScale();
   }
 
@@ -374,8 +392,8 @@ export function ServiceScaleView() {
       ).size;
       setSuccess(
         linkedUsers > 0
-          ? `Escala publicada. ${linkedUsers} pessoa(s) com conta vinculada receberam a escala por notificação.`
-          : 'Escala publicada. As pessoas cadastradas manualmente não têm conta vinculada para receber notificação.'
+          ? `Escala de ${SCALE_TYPE_LABELS[config.scaleType]} publicada em Serviços. ${linkedUsers} pessoa(s) com conta vinculada receberam uma notificação.`
+          : `Escala de ${SCALE_TYPE_LABELS[config.scaleType]} publicada em Serviços. As pessoas cadastradas manualmente não têm conta vinculada para receber notificação.`
       );
     } catch (err) {
       setError(`Não foi possível salvar a escala. Detalhe: ${formatSupabaseError(err)}`);
@@ -386,7 +404,8 @@ export function ServiceScaleView() {
 
   function handleExportGenerated() {
     if (generatedSlots.length === 0) return;
-    downloadTextFile('escala-servico-alojamento.csv', exportScaleCsv(generatedSlots));
+    const suffix = config.scaleType === 'main_gate' ? 'portao-principal' : 'alojamento';
+    downloadTextFile(`escala-servico-${suffix}.csv`, exportScaleCsv(generatedSlots));
   }
 
   const selectedSchedule = schedules.find((schedule) => schedule.id === selectedScheduleId);
@@ -414,7 +433,7 @@ export function ServiceScaleView() {
           <p className="eyebrow">Serviço com propósito</p>
           <h2>Escala de Serviço</h2>
           <p className="muted">
-            Cadastre pessoas, marque quem fará trilha e gere automaticamente os turnos do alojamento.
+            Escolha entre Alojamento e Portão Principal, configure os horários e publique diretamente na aba Serviços.
           </p>
         </div>
         <button type="button" className="secondary-button" onClick={loadAll}>Atualizar</button>
@@ -536,6 +555,18 @@ export function ServiceScaleView() {
 
           <div className="form">
             <div>
+              <label>Tipo de escala</label>
+              <select
+                value={config.scaleType}
+                onChange={(event) => handleScaleTypeChange(event.target.value as ServiceScaleType)}
+              >
+                <option value="accommodation">Alojamento</option>
+                <option value="main_gate">Portão Principal</option>
+              </select>
+              <small className="muted">Ao publicar, esta escolha define em qual escala da aba Serviços ela aparecerá.</small>
+            </div>
+
+            <div>
               <label>Nome da escala</label>
               <input
                 required
@@ -647,7 +678,7 @@ export function ServiceScaleView() {
           <div className="section-title-row">
             <div>
               <h3>Necessidade por horário</h3>
-              <p className="muted">Desative horários sem pessoas no alojamento. Nos demais, use inclusive apenas 1 pessoa quando for suficiente.</p>
+              <p className="muted">Desative horários sem necessidade de serviço. Nos demais, informe quantos homens e mulheres devem ser escalados.</p>
             </div>
             <span className="pill success">
               {slotRequirements.filter((slot) => slot.enabled && slot.menRequired + slot.womenRequired > 0).length} horário(s) ativo(s)
@@ -658,7 +689,7 @@ export function ServiceScaleView() {
               <thead>
                 <tr>
                   <th>Data e horário</th>
-                  <th>Há pessoas no alojamento?</th>
+                  <th>Escalar neste horário?</th>
                   <th>Masculino</th>
                   <th>Feminino</th>
                 </tr>
@@ -803,12 +834,12 @@ export function ServiceScaleView() {
           <div className="section-title-row">
             <div>
               <h3>Prévia da escala de serviço</h3>
-              <p className="muted">Revise antes de salvar/publicar.</p>
+              <p className="muted">{SCALE_TYPE_LABELS[config.scaleType]} · revise antes de publicar em Serviços.</p>
             </div>
             <button type="button" className="secondary-button" onClick={() => window.print()}>Imprimir</button>
           </div>
 
-          <ScaleTable slots={generatedSlots} />
+          <ScaleTable slots={generatedSlots} scaleType={config.scaleType} />
 
           <div className="service-summary-grid">
             {Object.entries(summary).map(([name, total]) => (
@@ -853,7 +884,7 @@ export function ServiceScaleView() {
               <select value={selectedScheduleId} onChange={(event) => setSelectedScheduleId(event.target.value)}>
                 {schedules.map((schedule) => (
                   <option key={schedule.id} value={schedule.id}>
-                    {schedule.title} — {formatDateTime(schedule.start_at)}
+                    {SCALE_TYPE_LABELS[schedule.scale_type || 'accommodation']} · {schedule.title} — {formatDateTime(schedule.start_at)}
                   </option>
                 ))}
               </select>
@@ -869,7 +900,7 @@ export function ServiceScaleView() {
   );
 }
 
-function ScaleTable({ slots }: { slots: GeneratedScaleSlot[] }) {
+function ScaleTable({ slots, scaleType }: { slots: GeneratedScaleSlot[]; scaleType: ServiceScaleType }) {
   return (
     <div className="table-wrap">
       <table className="data-table service-scale-table">
@@ -878,8 +909,8 @@ function ScaleTable({ slots }: { slots: GeneratedScaleSlot[] }) {
             <th>Turno</th>
             <th>Início</th>
             <th>Fim</th>
-            <th>Alojamento Masculino</th>
-            <th>Alojamento Feminino</th>
+            <th>Homens · {SCALE_TYPE_LABELS[scaleType]}</th>
+            <th>Mulheres · {SCALE_TYPE_LABELS[scaleType]}</th>
           </tr>
         </thead>
         <tbody>
@@ -888,8 +919,8 @@ function ScaleTable({ slots }: { slots: GeneratedScaleSlot[] }) {
               <td data-label="Turno"><strong>#{slot.slotNumber}</strong></td>
               <td data-label="Início">{formatDateTime(slot.startAt)}</td>
               <td data-label="Fim">{formatDateTime(slot.endAt)}</td>
-              <td data-label="Alojamento masculino"><strong>{slot.menRequired}:</strong> {slot.men.map((person) => person.name).join(' / ') || '-'}</td>
-              <td data-label="Alojamento feminino"><strong>{slot.womenRequired}:</strong> {slot.women.map((person) => person.name).join(' / ') || '-'}</td>
+              <td data-label="Homens"><strong>{slot.menRequired}:</strong> {slot.men.map((person) => person.name).join(' / ') || '-'}</td>
+              <td data-label="Mulheres"><strong>{slot.womenRequired}:</strong> {slot.women.map((person) => person.name).join(' / ') || '-'}</td>
             </tr>
           ))}
         </tbody>
@@ -919,7 +950,7 @@ function SavedAssignmentsTable({
   return (
     <div>
       <p className="muted">
-        {schedule.title} · {formatDateTime(schedule.start_at)} até {formatDateTime(schedule.end_at)}
+        {SCALE_TYPE_LABELS[schedule.scale_type || 'accommodation']} · {schedule.title} · {formatDateTime(schedule.start_at)} até {formatDateTime(schedule.end_at)}
       </p>
       <div className="table-wrap">
         <table className="data-table service-scale-table">
@@ -928,8 +959,8 @@ function SavedAssignmentsTable({
               <th>Turno</th>
               <th>Início</th>
               <th>Fim</th>
-              <th>Alojamento Masculino</th>
-              <th>Alojamento Feminino</th>
+              <th>Homens</th>
+              <th>Mulheres</th>
             </tr>
           </thead>
           <tbody>
@@ -938,8 +969,8 @@ function SavedAssignmentsTable({
                 <td data-label="Turno"><strong>#{slot.slotNumber}</strong></td>
                 <td data-label="Início">{slot.startAt ? formatDateTime(slot.startAt) : '-'}</td>
                 <td data-label="Fim">{slot.endAt ? formatDateTime(slot.endAt) : '-'}</td>
-                <td data-label="Alojamento masculino">{slot.men.join(' / ') || '-'}</td>
-                <td data-label="Alojamento feminino">{slot.women.join(' / ') || '-'}</td>
+                <td data-label="Homens">{slot.men.join(' / ') || '-'}</td>
+                <td data-label="Mulheres">{slot.women.join(' / ') || '-'}</td>
               </tr>
             ))}
           </tbody>

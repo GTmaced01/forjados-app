@@ -8105,6 +8105,45 @@ textarea:focus {
   font-size: 12px;
 }
 
+.service-personal-shifts {
+  display: grid;
+  gap: 7px;
+}
+
+.service-published-scales {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.service-published-scales > div {
+  display: grid;
+  gap: 8px;
+}
+
+.service-published-scales > div > strong {
+  color: var(--accent);
+}
+
+.service-published-scales p {
+  display: grid;
+  grid-template-columns: auto minmax(120px, auto) 1fr;
+  align-items: start;
+  gap: 7px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+}
+
+.service-published-scales p b {
+  color: inherit;
+  font-weight: 600;
+}
+
 .manage-services-layout {
   display: grid;
   grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
@@ -8386,5 +8425,13 @@ textarea:focus {
   .route-settings {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .service-published-scales p {
+    grid-template-columns: auto 1fr;
+  }
+
+  .service-published-scales p b {
+    grid-column: 2;
   }
 }

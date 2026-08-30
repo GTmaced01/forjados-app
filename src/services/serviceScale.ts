@@ -5,6 +5,7 @@ import type {
   ServiceScaleGender,
   ServiceScalePerson,
   ServiceScaleSchedule,
+  PublishedServiceScaleAssignment,
   GeneratedScaleSlot,
   ServiceScaleSlotRequirement,
 } from '../types';
@@ -162,6 +163,16 @@ export async function listAssignmentsBySchedule(scheduleId: string): Promise<Ser
   return (data || []) as ServiceScaleAssignment[];
 }
 
+export async function listPublishedServiceScaleAssignments(
+  editionId: string
+): Promise<PublishedServiceScaleAssignment[]> {
+  const { data, error } = await supabase.rpc('forjados_list_published_service_scales_v1', {
+    p_edition_id: editionId,
+  });
+  if (error) throw error;
+  return (data || []) as PublishedServiceScaleAssignment[];
+}
+
 export async function saveGeneratedScale(params: {
   config: ServiceScaleConfig;
   slots: GeneratedScaleSlot[];
@@ -189,8 +200,9 @@ export async function saveGeneratedScale(params: {
     return [...men, ...women];
   });
 
-  const { data, error } = await supabase.rpc('forjados_save_service_scale_v2', {
+  const { data, error } = await supabase.rpc('forjados_save_service_scale_v3', {
     p_config: {
+      scale_type: params.config.scaleType,
       title: params.config.title.trim(),
       start_at: params.config.startAt,
       end_at: params.config.endAt,
@@ -254,10 +266,10 @@ export function buildGeneratedScale(
   else if (end <= start) warnings.push('A data final precisa ser maior que a data inicial.');
   if (hasInvalidNumber) warnings.push('Use números inteiros válidos na configuração da escala.');
   if (config.shiftMinutes < 15 || config.shiftMinutes > 720) warnings.push('A duração do serviço deve ficar entre 15 minutos e 12 horas.');
-  if (config.menPerShift < 0 || config.womenPerShift < 0) warnings.push('A quantidade padrão por alojamento não pode ser negativa.');
+  if (config.menPerShift < 0 || config.womenPerShift < 0) warnings.push('A quantidade padrão de pessoas não pode ser negativa.');
   if (config.minRestMinutes < 0 || config.minRestMinutes > 1440) warnings.push('O descanso mínimo deve ficar entre 0 e 1.440 minutos.');
-  if (requirements.length === 0) warnings.push('Monte os horários e informe quando haverá pessoas no alojamento.');
-  if (activeRequirements.length === 0) warnings.push('Ative pelo menos um horário com uma pessoa no alojamento.');
+  if (requirements.length === 0) warnings.push('Monte os horários e informe quando haverá necessidade de serviço.');
+  if (activeRequirements.length === 0) warnings.push('Ative pelo menos um horário com uma pessoa escalada.');
   if (requirements.some((slot) => (
     !Number.isInteger(slot.menRequired)
     || !Number.isInteger(slot.womenRequired)
@@ -418,7 +430,7 @@ export function summarizeGeneratedScale(slots: GeneratedScaleSlot[]): Record<str
 }
 
 export function exportScaleCsv(slots: GeneratedScaleSlot[]): string {
-  const header = ['Turno', 'Início', 'Fim', 'Necessidade masculina', 'Alojamento Masculino', 'Necessidade feminina', 'Alojamento Feminino'];
+  const header = ['Turno', 'Início', 'Fim', 'Necessidade masculina', 'Homens escalados', 'Necessidade feminina', 'Mulheres escaladas'];
   const rows = slots.map((slot) => [
     String(slot.slotNumber),
     formatDateTime(slot.startAt),
