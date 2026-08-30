@@ -10,12 +10,11 @@ import {
   UsersRound,
 } from 'lucide-react';
 import {
-  PRIMARY_TEAMS,
   ROLE_LABELS,
-  SECTORS,
   SHIRT_SIZES,
   STATUS_LABELS,
 } from '../constants';
+import { useSectorOptions } from '../hooks/useSectorOptions';
 import { useAuth } from '../components/AuthProvider';
 import { updateMyBasicProfile } from '../services/profiles';
 import type { UserProfile } from '../types';
@@ -67,6 +66,7 @@ function onlyDigits(value: string) {
 }
 
 export function ProfileView() {
+  const sectorOptions = useSectorOptions();
   const { profile, reloadProfile, isAdmin, isDirector } = useAuth();
   const initialForm = useMemo(() => buildForm(profile), [profile]);
 
@@ -286,7 +286,7 @@ export function ProfileView() {
               <label htmlFor="profile-primary-team">Equipe principal</label>
               <select id="profile-primary-team" required value={form.primary_team} onChange={(event) => handlePrimaryTeamChange(event.target.value)}>
                 <option value="">Selecione sua equipe</option>
-                {PRIMARY_TEAMS.map((team) => <option key={team} value={team}>{team}</option>)}
+                {sectorOptions.map((team) => <option key={team} value={team}>{team}</option>)}
               </select>
               <p className="field-hint">Sua equipe principal sempre permanece marcada abaixo.</p>
             </div>
@@ -298,7 +298,7 @@ export function ProfileView() {
           <fieldset className="profile-sectors-fieldset">
             <legend>Outras equipes/setores</legend>
             <div className="chips">
-              {SECTORS.map((sector) => (
+              {sectorOptions.map((sector) => (
                 <button key={sector} type="button" className={form.sectors.includes(sector) ? 'chip active' : 'chip'} aria-pressed={form.sectors.includes(sector)} onClick={() => toggleSector(sector)}>{sector}</button>
               ))}
             </div>

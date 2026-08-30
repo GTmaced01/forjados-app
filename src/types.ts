@@ -428,10 +428,107 @@ export interface EventScheduleItem {
   responsible?: string | null;
   responsible_id?: string | null;
   is_published: boolean;
+  schedule_kind: 'activity' | 'route';
+  duration_minutes?: number | null;
+  route_order?: number | null;
+  service_unit_id?: string | null;
   created_by?: string | null;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
+}
+
+export type EventServiceUnitType = 'character' | 'sector' | 'location' | 'group' | 'scale';
+
+export interface EventServiceUnit {
+  id: string;
+  edition_id: string;
+  unit_type: EventServiceUnitType;
+  name: string;
+  description: string;
+  color: string;
+  min_people: number;
+  max_people?: number | null;
+  per_group: boolean;
+  display_order: number;
+  is_active: boolean;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventServicePosition {
+  id: string;
+  unit_id: string;
+  name: string;
+  description: string;
+  min_people: number;
+  max_people?: number | null;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventServiceAssignment {
+  id: string;
+  edition_id: string;
+  unit_id: string;
+  position_id?: string | null;
+  linked_character_id?: string | null;
+  group_id?: string | null;
+  user_id?: string | null;
+  external_name: string;
+  person_name: string;
+  assignment_kind: 'staff' | 'participant';
+  role_title: string;
+  is_leader: boolean;
+  is_primary: boolean;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  notes: string;
+  display_order: number;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventServiceSlot {
+  id: string;
+  edition_id: string;
+  unit_id: string;
+  location_id?: string | null;
+  title: string;
+  starts_at: string;
+  ends_at: string;
+  notes: string;
+  display_order: number;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventServicePersonOption {
+  user_id: string;
+  display_name: string;
+  email: string;
+  role: UserRole;
+  primary_team: string;
+}
+
+export interface EventServicesSnapshot {
+  units: EventServiceUnit[];
+  positions: EventServicePosition[];
+  assignments: EventServiceAssignment[];
+  slots: EventServiceSlot[];
+}
+
+export interface EventRouteRowInput {
+  title: string;
+  duration_minutes: number;
+  location_id?: string | null;
+  activity_type?: EventScheduleActivityType;
+  description?: string;
 }
 
 export interface SchedulePersonOption {
@@ -469,8 +566,21 @@ export interface AttendanceRecord {
 
 export type EventScheduleItemInput = Omit<
   EventScheduleItem,
-  'id' | 'created_by' | 'created_at' | 'updated_at' | 'deleted_at'
->;
+  | 'id'
+  | 'created_by'
+  | 'created_at'
+  | 'updated_at'
+  | 'deleted_at'
+  | 'schedule_kind'
+  | 'duration_minutes'
+  | 'route_order'
+  | 'service_unit_id'
+> & {
+  schedule_kind?: 'activity' | 'route';
+  duration_minutes?: number | null;
+  route_order?: number | null;
+  service_unit_id?: string | null;
+};
 
 export interface AuditLog {
   id: string;

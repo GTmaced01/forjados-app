@@ -7980,3 +7980,411 @@ textarea:focus {
     padding: 8px;
   }
 }
+
+/* Operação do evento: roteiro, serviços, oficinas, setores, personagens e grupos. */
+.event-services-page,
+.manage-services-page {
+  display: grid;
+  gap: 20px;
+}
+
+.service-my-panel {
+  background: linear-gradient(135deg, rgba(145, 94, 31, 0.15), rgba(15, 18, 21, 0.96));
+}
+
+.service-my-grid,
+.service-public-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.service-my-card,
+.service-unit-public-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 16px;
+}
+
+.service-my-card > span,
+.service-unit-public-card > div:first-child > p {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.service-my-card h4,
+.service-unit-public-card h4 {
+  margin: 5px 0 8px;
+}
+
+.service-my-card p {
+  margin: 0 0 10px;
+}
+
+.service-my-card small,
+.service-unit-public-card li,
+.service-slot-summary span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.service-empty-inline,
+.service-empty {
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  color: var(--muted);
+}
+
+.service-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.service-search input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+}
+
+.service-public-section + .service-public-section {
+  margin-top: 28px;
+}
+
+.service-public-section > h3 {
+  margin: 0 0 12px;
+}
+
+.service-unit-public-card {
+  border-top: 3px solid var(--accent);
+}
+
+.service-unit-public-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+  display: grid;
+  gap: 8px;
+}
+
+.service-unit-public-card li {
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.service-unit-public-card li span,
+.service-unit-public-card li b {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.service-unit-public-card li b {
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.service-slot-summary {
+  border-top: 1px solid var(--border);
+  margin-top: 14px;
+  padding-top: 12px;
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.manage-services-layout {
+  display: grid;
+  grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.service-unit-list {
+  position: sticky;
+  top: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 14px;
+  background: var(--panel, #17191b);
+  display: grid;
+  gap: 7px;
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+}
+
+.service-unit-list h3 {
+  margin: 4px 6px 10px;
+}
+
+.service-unit-list button {
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 8px 1fr;
+  gap: 3px 8px;
+  text-align: left;
+}
+
+.service-unit-list button:hover,
+.service-unit-list button.active {
+  border-color: var(--border);
+  background: rgba(166, 111, 43, 0.13);
+}
+
+.service-unit-list button > span {
+  grid-row: 1 / 3;
+  width: 8px;
+  height: 100%;
+  min-height: 32px;
+  border-radius: 8px;
+  background: var(--accent);
+}
+
+.service-unit-list button small {
+  color: var(--muted);
+}
+
+.service-manager-main {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+
+.service-selected-header,
+.service-unit-form,
+.inline-add-form,
+.service-slot-form,
+.route-settings,
+.route-actions {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.service-selected-header {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.service-unit-form > input,
+.service-unit-form > label,
+.service-slot-form > input,
+.service-slot-form > select {
+  flex: 1 1 160px;
+}
+
+.service-sheet-wrap,
+.route-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+}
+
+.service-sheet,
+.route-table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.service-sheet th,
+.service-sheet td,
+.route-table th,
+.route-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.service-sheet th,
+.route-table th {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.035);
+  white-space: nowrap;
+}
+
+.service-sheet td > small {
+  display: block;
+  color: var(--accent);
+  margin-top: 3px;
+}
+
+.service-assignment-form {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.service-assignment-form h4,
+.service-assignment-form .service-notes-field,
+.service-assignment-form .header-actions,
+.service-assignment-form .service-checks {
+  grid-column: 1 / -1;
+}
+
+.service-assignment-form label,
+.route-settings label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.service-checks {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.service-checks label,
+.check-line {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+.inline-add-form {
+  margin-top: 14px;
+}
+
+.inline-add-form input {
+  flex: 1;
+}
+
+.chips .chip button {
+  border: 0;
+  padding: 0 0 0 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+}
+
+.service-slot-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.service-slot-list > div {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(230px, 2fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.service-slot-list span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.route-editor {
+  display: grid;
+  gap: 18px;
+}
+
+.route-editor form {
+  display: grid;
+  gap: 16px;
+}
+
+.route-settings {
+  justify-content: space-between;
+}
+
+.route-table input,
+.route-table select {
+  min-width: 125px;
+  padding: 8px;
+}
+
+.route-duration {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.route-duration input {
+  min-width: 70px;
+  width: 78px;
+}
+
+.route-actions {
+  justify-content: space-between;
+}
+
+@media (max-width: 900px) {
+  .manage-services-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .service-unit-list {
+    position: static;
+    display: flex;
+    max-height: none;
+    overflow-x: auto;
+  }
+
+  .service-unit-list h3 {
+    display: none;
+  }
+
+  .service-unit-list button {
+    min-width: 170px;
+  }
+
+  .service-assignment-form {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .service-my-grid,
+  .service-public-grid,
+  .service-assignment-form {
+    grid-template-columns: 1fr;
+  }
+
+  .service-slot-list > div {
+    grid-template-columns: 1fr auto;
+  }
+
+  .service-slot-list > div span {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .service-selected-header,
+  .route-actions,
+  .route-settings {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

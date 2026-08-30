@@ -12,7 +12,8 @@ import {
   Trash2,
   UserX,
 } from 'lucide-react';
-import { PRIMARY_TEAMS, ROLE_LABELS, SECTORS, STATUS_LABELS } from '../constants';
+import { ROLE_LABELS, STATUS_LABELS } from '../constants';
+import { useSectorOptions } from '../hooks/useSectorOptions';
 import {
   adminDeleteProfile,
   adminUpdateMemberSince,
@@ -34,6 +35,7 @@ const ATTENDANCE_LABELS: Record<AttendanceStatus, string> = {
 };
 
 export function AdminPanelView() {
+  const sectorOptions = useSectorOptions();
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -395,7 +397,7 @@ export function AdminPanelView() {
 
         <select value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)} aria-label="Filtrar por equipe">
           <option value="all">Todas as equipes</option>
-          {PRIMARY_TEAMS.map((team) => <option key={team} value={team}>{team}</option>)}
+          {sectorOptions.map((team) => <option key={team} value={team}>{team}</option>)}
         </select>
       </section>
 
@@ -525,7 +527,7 @@ export function AdminPanelView() {
                       onChange={(e) => handlePrimaryTeamChange(profile, e.target.value)}
                     >
                       <option value="">Sem equipe principal</option>
-                      {PRIMARY_TEAMS.map((team) => (
+                      {sectorOptions.map((team) => (
                         <option key={team} value={team}>{team}</option>
                       ))}
                     </select>
@@ -536,7 +538,7 @@ export function AdminPanelView() {
                   <label>Equipes/setores extras</label>
 
                   <div className="chips">
-                    {SECTORS.map((sector) => (
+                    {sectorOptions.map((sector) => (
                       <button
                         key={sector}
                         type="button"

@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  ArrowDown,
+  ArrowUp,
   CalendarDays,
   Clock3,
   Edit3,
   MapPin,
+  ListOrdered,
   Plus,
   RefreshCw,
   Trash2,
@@ -16,11 +19,16 @@ import {
   listEventScheduleItems,
   listSchedulePeople,
   saveEventScheduleItem,
+  saveEventRoute,
 } from '../services/eventSchedule';
-import { PRIMARY_TEAMS } from '../constants';
+import { listEventServicesSnapshot } from '../services/eventServices';
+import { buildEventRoutePreview, DEFAULT_EVENT_ROUTE } from '../services/eventRoute';
+import { useSectorOptions } from '../hooks/useSectorOptions';
 import type {
   EventScheduleActivityType,
   EventScheduleItem,
+  EventRouteRowInput,
+  EventServiceUnit,
   RetreatEventSettings,
   SchedulePersonOption,
 } from '../types';
@@ -61,6 +69,26 @@ function addMinutesToLocalInput(value: string, minutes: number) {
   return toLocalInput(date.toISOString());
 }
 
+function getDefaultRouteStart(value?: string | null) {
+  if (!value) return '';
+  const date = new Date(value);
+  date.setDate(date.getDate() + 1);
+  date.setHours(9, 0, 0, 0);
+  return toLocalInput(date.toISOString());
+}
+
+function findRouteLocationId(title: string, locations: EventServiceUnit[]) {
+  const normalizedTitle = title.toLocaleLowerCase('pt-BR');
+  const exact = locations.find((location) => location.name.toLocaleLowerCase('pt-BR') === normalizedTitle);
+  if (exact) return exact.id;
+  return locations
+    .filter((location) => {
+      const primaryName = location.name.split(' / ')[0].toLocaleLowerCase('pt-BR');
+      return primaryName.includes(normalizedTitle) || normalizedTitle.includes(primaryName);
+    })
+    .sort((a, b) => b.name.length - a.name.length)[0]?.id || null;
+}
+
 function formatDay(value: string) {
   return new Intl.DateTimeFormat('pt-BR', {
     weekday: 'long',
@@ -78,6 +106,7 @@ function formatTime(value?: string | null) {
 }
 
 export function EventScheduleView() {
+  const sectorOptions = useSectorOptions();
   const { isAdmin, isDirector } = useAuth();
   const canManage = isAdmin || isDirector;
   const [edition, setEdition] = useState<RetreatEventSettings | null>(null);
@@ -86,6 +115,11 @@ export function EventScheduleView() {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showRouteEditor, setShowRouteEditor] = useState(false);
+  const [routeStart, setRouteStart] = useState('');
+  const [routeRows, setRouteRows] = useState<EventRouteRowInput[]>(DEFAULT_EVENT_ROUTE);
+  const [routePublished, setRoutePublished] = useState(false);
+  const [locations, setLocations] = useState<EventServiceUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -95,14 +129,16 @@ export function EventScheduleView() {
     setLoading(true);
     setError('');
     try {
-      const [activeEdition, schedule, peopleOptions] = await Promise.all([
-        getActiveRetreatEvent(),
+      const activeEdition = await getActiveRetreatEvent();
+      const [schedule, peopleOptions, services] = await Promise.all([
         listEventScheduleItems(),
         canManage ? listSchedulePeople() : Promise.resolve([]),
+        activeEdition ? listEventServicesSnapshot(activeEdition.id) : Promise.resolve(null),
       ]);
       setEdition(activeEdition);
       setItems(schedule);
       setPeople(peopleOptions);
+      setLocations(services?.units.filter((unit) => unit.unit_type === 'location' && unit.is_active) || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível carregar o cronograma.');
     } finally {
@@ -115,9 +151,17 @@ export function EventScheduleView() {
   }, []);
 
   const visibleItems = useMemo(
-    () => items.filter((item) => item.is_published || canManage),
-    [canManage, items]
+    () => items.filter((item) => item.edition_id === edition?.id && (item.is_published || canManage)),
+    [canManage, edition?.id, items]
   );
+
+  const routePreview = useMemo(() => {
+    try {
+      return buildEventRoutePreview(routeStart, routeRows);
+    } catch {
+      return [];
+    }
+  }, [routeRows, routeStart]);
 
   const groupedItems = useMemo(() => {
     return visibleItems.reduce<Record<string, EventScheduleItem[]>>((groups, item) => {
@@ -136,8 +180,69 @@ export function EventScheduleView() {
       ends_at: addMinutesToLocalInput(startsAt, 60),
     });
     setShowForm(true);
+    setShowRouteEditor(false);
     setError('');
     setSuccess('');
+  }
+
+  function startRouteEditor() {
+    const existingRoute = items
+      .filter((item) => item.edition_id === edition?.id && item.schedule_kind === 'route' && !item.deleted_at)
+      .sort((a, b) => (a.route_order || 0) - (b.route_order || 0));
+    setRouteStart(existingRoute[0] ? toLocalInput(existingRoute[0].starts_at) : getDefaultRouteStart(edition?.start_date));
+    setRoutePublished(existingRoute[0]?.is_published || false);
+    setRouteRows(existingRoute.length ? existingRoute.map((item) => ({
+      title: item.title,
+      duration_minutes: item.duration_minutes || Math.max(1, Math.round((new Date(item.ends_at || item.starts_at).getTime() - new Date(item.starts_at).getTime()) / 60_000)),
+      location_id: item.service_unit_id || null,
+      activity_type: item.activity_type,
+      description: item.description || '',
+    })) : DEFAULT_EVENT_ROUTE.map((row) => ({
+      ...row,
+      location_id: findRouteLocationId(row.title, locations),
+    })));
+    setShowForm(false);
+    setShowRouteEditor(true);
+    setError('');
+    setSuccess('');
+  }
+
+  function updateRouteRow(index: number, changes: Partial<EventRouteRowInput>) {
+    setRouteRows((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, ...changes } : row));
+  }
+
+  function moveRouteRow(index: number, direction: -1 | 1) {
+    setRouteRows((rows) => {
+      const target = index + direction;
+      if (target < 0 || target >= rows.length) return rows;
+      const next = [...rows];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
+
+  async function handleSaveRoute(event: React.FormEvent) {
+    event.preventDefault();
+    if (!edition) return;
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      buildEventRoutePreview(routeStart, routeRows);
+      await saveEventRoute({
+        editionId: edition.id,
+        startAt: new Date(routeStart).toISOString(),
+        rows: routeRows,
+        isPublished: routePublished,
+      });
+      setShowRouteEditor(false);
+      setSuccess(`Roteiro salvo com ${routeRows.length} etapas e horários recalculados.`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível salvar o roteiro.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function handleStartChange(startsAt: string) {
@@ -235,9 +340,7 @@ export function EventScheduleView() {
             <RefreshCw size={16} /> Atualizar
           </button>
           {canManage && (
-            <button type="button" className="primary-button" onClick={startNewItem} disabled={!edition}>
-              <Plus size={16} /> Nova atividade
-            </button>
+            <><button type="button" className="secondary-button" onClick={startRouteEditor} disabled={!edition}><ListOrdered size={16} /> Montar roteiro</button><button type="button" className="primary-button" onClick={startNewItem} disabled={!edition}><Plus size={16} /> Nova atividade</button></>
           )}
         </div>
       </div>
@@ -270,7 +373,7 @@ export function EventScheduleView() {
             <fieldset className="schedule-wide-field schedule-team-selector">
               <legend>Equipes escaladas</legend>
               <div className="chips">
-                {PRIMARY_TEAMS.map((team) => (
+                {sectorOptions.map((team) => (
                   <button
                     type="button"
                     className={form.teams.includes(team) ? 'chip active' : 'chip'}
@@ -284,6 +387,17 @@ export function EventScheduleView() {
             <div className="schedule-wide-field"><label htmlFor="schedule-description">Orientações</label><textarea id="schedule-description" maxLength={2000} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
             <label className="auth-terms-consent schedule-publish-toggle"><input type="checkbox" checked={form.is_published} onChange={(e) => setForm({ ...form, is_published: e.target.checked })} /><span>Publicar para todos os usuários</span></label>
             <button className="primary-button" disabled={saving}>{saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Adicionar atividade'}</button>
+          </form>
+        </section>
+      )}
+
+      {showRouteEditor && canManage && (
+        <section className="panel wide route-editor">
+          <div className="section-title-row"><div><p className="eyebrow">Roteiro completo</p><h3>Oficinas e horários calculados</h3><p className="muted">Altere a ordem ou a duração; todos os horários seguintes são recalculados automaticamente.</p></div><button type="button" className="secondary-button" onClick={() => setShowRouteEditor(false)}>Cancelar</button></div>
+          <form onSubmit={handleSaveRoute}>
+            <div className="route-settings"><label>Início do roteiro<input required type="datetime-local" value={routeStart} onChange={(event) => setRouteStart(event.target.value)} /></label><label className="check-line"><input type="checkbox" checked={routePublished} onChange={(event) => setRoutePublished(event.target.checked)} /> Publicar para toda a equipe</label></div>
+            <div className="route-table-wrap"><table className="route-table"><thead><tr><th>#</th><th>Etapa</th><th>Local vinculado</th><th>Duração</th><th>Início</th><th>Fim</th><th>Ações</th></tr></thead><tbody>{routeRows.map((row, index) => <tr key={index}><td>{index + 1}</td><td><input required minLength={3} maxLength={160} value={row.title} onChange={(event) => updateRouteRow(index, { title: event.target.value })} /></td><td><select value={row.location_id || ''} onChange={(event) => updateRouteRow(index, { location_id: event.target.value || null })}><option value="">Sem vínculo</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></td><td><label className="route-duration"><input required type="number" min="1" max="1440" value={row.duration_minutes} onChange={(event) => updateRouteRow(index, { duration_minutes: Number(event.target.value) })} /><span>min</span></label></td><td>{routePreview[index] ? formatTime(routePreview[index].starts_at) : '—'}</td><td>{routePreview[index] ? formatTime(routePreview[index].ends_at) : '—'}</td><td><div className="table-actions"><button type="button" className="icon-button" aria-label="Mover para cima" disabled={index === 0} onClick={() => moveRouteRow(index, -1)}><ArrowUp size={14} /></button><button type="button" className="icon-button" aria-label="Mover para baixo" disabled={index === routeRows.length - 1} onClick={() => moveRouteRow(index, 1)}><ArrowDown size={14} /></button><button type="button" className="icon-button danger-button" aria-label="Remover etapa" disabled={routeRows.length === 1} onClick={() => setRouteRows((rows) => rows.filter((_, rowIndex) => rowIndex !== index))}><Trash2 size={14} /></button></div></td></tr>)}</tbody></table></div>
+            <div className="route-actions"><button type="button" className="secondary-button" onClick={() => setRouteRows((rows) => [...rows, { title: 'Nova etapa', duration_minutes: 30 }])}><Plus size={15} /> Adicionar etapa</button><button className="primary-button" disabled={saving || !routePreview.length}>{saving ? 'Salvando roteiro...' : 'Salvar e recalcular roteiro'}</button></div>
           </form>
         </section>
       )}
@@ -305,7 +419,7 @@ export function EventScheduleView() {
                   <article className={`schedule-item ${item.is_published ? '' : 'draft'}`} key={item.id}>
                     <div className="schedule-time"><Clock3 size={16} /><strong>{formatTime(item.starts_at)}</strong>{item.ends_at && <span>até {formatTime(item.ends_at)}</span>}</div>
                     <div className="schedule-item-main">
-                      <div className="schedule-item-heading"><span>{ACTIVITY_LABELS[item.activity_type]}</span>{!item.is_published && <b>Rascunho</b>}</div>
+                      <div className="schedule-item-heading"><span>{item.schedule_kind === 'route' ? `Roteiro${item.duration_minutes ? ` · ${item.duration_minutes} min` : ''}` : ACTIVITY_LABELS[item.activity_type]}</span>{!item.is_published && <b>Rascunho</b>}</div>
                       <h4>{item.title}</h4>
                       {item.description && <p>{item.description}</p>}
                       <div className="schedule-meta">
@@ -314,7 +428,7 @@ export function EventScheduleView() {
                         {item.responsible && <span><strong>Responsável:</strong> {item.responsible}</span>}
                       </div>
                     </div>
-                    {canManage && <div className="schedule-actions"><button type="button" className="secondary-button" onClick={() => startEditing(item)}><Edit3 size={15} />Editar</button><button type="button" className="secondary-button danger-button" onClick={() => void handleArchive(item)}><Trash2 size={15} />Remover</button></div>}
+                    {canManage && <div className="schedule-actions">{item.schedule_kind !== 'route' && <button type="button" className="secondary-button" onClick={() => startEditing(item)}><Edit3 size={15} />Editar</button>}<button type="button" className="secondary-button danger-button" onClick={() => void handleArchive(item)}><Trash2 size={15} />Remover</button></div>}
                   </article>
                 ))}
               </div>

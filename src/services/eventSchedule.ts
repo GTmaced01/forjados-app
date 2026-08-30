@@ -1,5 +1,10 @@
 import { supabase } from './supabase';
-import type { EventScheduleItem, EventScheduleItemInput, SchedulePersonOption } from '../types';
+import type {
+  EventRouteRowInput,
+  EventScheduleItem,
+  EventScheduleItemInput,
+  SchedulePersonOption,
+} from '../types';
 import { isOfflineError, readOfflineData, saveOfflineData } from './offlineCache';
 
 export async function listEventScheduleItems(): Promise<EventScheduleItem[]> {
@@ -42,6 +47,10 @@ export async function saveEventScheduleItem(
     responsible: (input.responsible || '').trim(),
     responsible_id: input.responsible_id || null,
     is_published: input.is_published,
+    schedule_kind: input.schedule_kind || 'activity',
+    duration_minutes: input.duration_minutes ?? null,
+    route_order: input.route_order ?? null,
+    service_unit_id: input.service_unit_id || null,
   };
 
   if (itemId) {
@@ -62,6 +71,23 @@ export async function saveEventScheduleItem(
   if (error) throw error;
   if (!data?.id) throw new Error('Atividade salva sem identificador.');
   return data.id as string;
+}
+
+export async function saveEventRoute(params: {
+  editionId: string;
+  startAt: string;
+  rows: EventRouteRowInput[];
+  isPublished: boolean;
+}) {
+  const { data, error } = await supabase.rpc('forjados_save_event_route_v1', {
+    p_edition_id: params.editionId,
+    p_start_at: params.startAt,
+    p_rows: params.rows,
+    p_is_published: params.isPublished,
+    p_replace: true,
+  });
+  if (error) throw error;
+  return Number(data || 0);
 }
 
 export async function archiveEventScheduleItem(itemId: string) {

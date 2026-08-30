@@ -69,6 +69,8 @@ const OfferView = lazy(() => import("./OfferView").then(({ OfferView }) => ({ de
 const AutomatedMessagesView = lazy(() => import("./AutomatedMessagesView").then(({ AutomatedMessagesView }) => ({ default: AutomatedMessagesView })));
 const EventSettingsView = lazy(() => import("./EventSettingsView").then(({ EventSettingsView }) => ({ default: EventSettingsView })));
 const EventScheduleView = lazy(() => import("./EventScheduleView").then(({ EventScheduleView }) => ({ default: EventScheduleView })));
+const ServicesView = lazy(() => import("./ServicesView").then(({ ServicesView }) => ({ default: ServicesView })));
+const ManageEventServicesView = lazy(() => import("./ManageEventServicesView").then(({ ManageEventServicesView }) => ({ default: ManageEventServicesView })));
 
 function ModuleLoading() {
   return (
@@ -103,6 +105,12 @@ type Tab =
   | "automated-messages"
   | "event-settings"
   | "schedule"
+  | "services"
+  | "manage-characters"
+  | "manage-sectors"
+  | "manage-locations"
+  | "manage-groups"
+  | "manage-scales"
   | "privacy"
   | "terms"
   | "rules"
@@ -132,6 +140,12 @@ const VALID_TABS: Tab[] = [
   "automated-messages",
   "event-settings",
   "schedule",
+  "services",
+  "manage-characters",
+  "manage-sectors",
+  "manage-locations",
+  "manage-groups",
+  "manage-scales",
   "privacy",
   "terms",
   "rules",
@@ -200,6 +214,8 @@ export function DashboardView() {
   const canSeeAuditLog = isAdmin || isDirector;
   const canSeeAccessRequests = isAdmin || isDirector;
   const canSeeLeaderTeam = isLeader || isDirector || isAdmin;
+  const canManageEventOperations = isAdmin || isDirector;
+  const canManageEventSectors = isLeader || isDirector || isAdmin;
 
   const canSeeManagement =
     canManagePoints ||
@@ -209,6 +225,7 @@ export function DashboardView() {
     canManageServiceScale ||
     canManageRides ||
     canManageTreasury ||
+    canManageEventSectors ||
     canSeeAdminPanel ||
     canSeeAuditLog;
 
@@ -358,6 +375,7 @@ export function DashboardView() {
       tab === "notifications" ||
       tab === "points-store" ||
       tab === "schedule" ||
+      tab === "services" ||
       tab === "offer" ||
       tab === "rides" ||
       tab === "shirts" ||
@@ -378,7 +396,12 @@ export function DashboardView() {
       (tab === "automated-messages" && canManagePublicPanel) ||
       (tab === "event-settings" && canManagePublicPanel);
 
-    if (!canAccessTab) {
+    const canAccessOperationalTab =
+      (tab === "manage-sectors" && canManageEventSectors) ||
+      ((["manage-characters", "manage-locations", "manage-groups", "manage-scales"] as Tab[]).includes(tab) &&
+        canManageEventOperations);
+
+    if (!canAccessTab && !canAccessOperationalTab) {
       setTab("home");
       localStorage.setItem("forjados-active-tab", "home");
     }
@@ -393,6 +416,8 @@ export function DashboardView() {
     canManageTreasury,
     canSeeAdminPanel,
     canSeeAuditLog,
+    canManageEventOperations,
+    canManageEventSectors,
   ]);
 
   if (!profile) return null;
@@ -949,6 +974,7 @@ export function DashboardView() {
       { label: "Minha Identidade", tab: "profile" },
       { label: "Minha Inscrição", tab: "inscription" },
       { label: "Cronograma", tab: "schedule" },
+      { label: "Serviços", tab: "services" },
       { label: `Notificações${unreadNotifications > 0 ? ` (${unreadNotifications})` : ""}`, tab: "notifications" },
       { label: "Loja de Honra", tab: "points-store" },
       { label: "Fazer Oferta", tab: "offer" },
@@ -973,6 +999,11 @@ export function DashboardView() {
         tab: "manage-points",
         visible: canManagePoints,
       },
+      { label: "Personagens", tab: "manage-characters", visible: canManageEventOperations },
+      { label: "Setores", tab: "manage-sectors", visible: canManageEventSectors },
+      { label: "Oficinas / Locais", tab: "manage-locations", visible: canManageEventOperations },
+      { label: "Grupos", tab: "manage-groups", visible: canManageEventOperations },
+      { label: "Escalas operacionais", tab: "manage-scales", visible: canManageEventOperations },
       {
         label: "Gerenciar Loja de Camisas",
         tab: "manage-shirts",
@@ -1066,6 +1097,12 @@ export function DashboardView() {
     if (tab === "automated-messages" && canManagePublicPanel) return <AutomatedMessagesView />;
     if (tab === "event-settings" && canManagePublicPanel) return <EventSettingsView />;
     if (tab === "schedule") return <EventScheduleView />;
+    if (tab === "services") return <ServicesView />;
+    if (tab === "manage-characters" && canManageEventOperations) return <ManageEventServicesView unitType="character" />;
+    if (tab === "manage-sectors" && canManageEventSectors) return <ManageEventServicesView unitType="sector" />;
+    if (tab === "manage-locations" && canManageEventOperations) return <ManageEventServicesView unitType="location" />;
+    if (tab === "manage-groups" && canManageEventOperations) return <ManageEventServicesView unitType="group" />;
+    if (tab === "manage-scales" && canManageEventOperations) return <ManageEventServicesView unitType="scale" />;
     if (tab === "treasury" && canManageTreasury) return <TreasuryView />;
     if (tab === "manage-points" && canManagePoints) return <ManagePointsView />;
     if (tab === "manage-shirts" && canManageShirts) return <ManageShirtsView />;
@@ -1140,6 +1177,13 @@ export function DashboardView() {
               onClick={() => selectTab("schedule")}
             >
               Cronograma
+            </button>
+            <button
+              type="button"
+              className={tab === "services" ? "active" : ""}
+              onClick={() => selectTab("services")}
+            >
+              Serviços
             </button>
             <button
               type="button"
@@ -1232,6 +1276,11 @@ export function DashboardView() {
           {canSeeManagement && (
             <div className="nav-section nav-management">
               <span className="nav-section-title">Gerenciamento</span>
+              {canManageEventOperations && <button type="button" className={tab === "manage-characters" ? "active" : ""} onClick={() => selectTab("manage-characters")}>Personagens</button>}
+              {canManageEventSectors && <button type="button" className={tab === "manage-sectors" ? "active" : ""} onClick={() => selectTab("manage-sectors")}>Setores</button>}
+              {canManageEventOperations && <button type="button" className={tab === "manage-locations" ? "active" : ""} onClick={() => selectTab("manage-locations")}>Oficinas / Locais</button>}
+              {canManageEventOperations && <button type="button" className={tab === "manage-groups" ? "active" : ""} onClick={() => selectTab("manage-groups")}>Grupos</button>}
+              {canManageEventOperations && <button type="button" className={tab === "manage-scales" ? "active" : ""} onClick={() => selectTab("manage-scales")}>Escalas operacionais</button>}
               {canManagePoints && (
                 <button
                   type="button"
