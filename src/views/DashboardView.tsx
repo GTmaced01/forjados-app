@@ -71,6 +71,7 @@ const EventSettingsView = lazy(() => import("./EventSettingsView").then(({ Event
 const EventScheduleView = lazy(() => import("./EventScheduleView").then(({ EventScheduleView }) => ({ default: EventScheduleView })));
 const ServicesView = lazy(() => import("./ServicesView").then(({ ServicesView }) => ({ default: ServicesView })));
 const ManageEventServicesView = lazy(() => import("./ManageEventServicesView").then(({ ManageEventServicesView }) => ({ default: ManageEventServicesView })));
+const TrailTrafficControlView = lazy(() => import("./TrailTrafficControlView").then(({ TrailTrafficControlView }) => ({ default: TrailTrafficControlView })));
 
 function ModuleLoading() {
   return (
@@ -111,6 +112,7 @@ type Tab =
   | "manage-locations"
   | "manage-groups"
   | "manage-scales"
+  | "trail-traffic"
   | "privacy"
   | "terms"
   | "rules"
@@ -146,6 +148,7 @@ const VALID_TABS: Tab[] = [
   "manage-locations",
   "manage-groups",
   "manage-scales",
+  "trail-traffic",
   "privacy",
   "terms",
   "rules",
@@ -398,7 +401,7 @@ export function DashboardView() {
 
     const canAccessOperationalTab =
       (tab === "manage-sectors" && canManageEventSectors) ||
-      ((["manage-characters", "manage-locations", "manage-groups", "manage-scales"] as Tab[]).includes(tab) &&
+      ((["manage-characters", "manage-locations", "manage-groups", "manage-scales", "trail-traffic"] as Tab[]).includes(tab) &&
         canManageEventOperations);
 
     if (!canAccessTab && !canAccessOperationalTab) {
@@ -1003,6 +1006,7 @@ export function DashboardView() {
       { label: "Setores", tab: "manage-sectors", visible: canManageEventSectors },
       { label: "Oficinas / Locais", tab: "manage-locations", visible: canManageEventOperations },
       { label: "Grupos", tab: "manage-groups", visible: canManageEventOperations },
+      { label: "Tráfego de Trilhas", tab: "trail-traffic", visible: canManageEventOperations },
       { label: "Escalas operacionais", tab: "manage-scales", visible: canManageEventOperations },
       {
         label: "Gerenciar Loja de Camisas",
@@ -1103,6 +1107,7 @@ export function DashboardView() {
     if (tab === "manage-locations" && canManageEventOperations) return <ManageEventServicesView unitType="location" />;
     if (tab === "manage-groups" && canManageEventOperations) return <ManageEventServicesView unitType="group" />;
     if (tab === "manage-scales" && canManageEventOperations) return <ManageEventServicesView unitType="scale" />;
+    if (tab === "trail-traffic" && canManageEventOperations) return <TrailTrafficControlView />;
     if (tab === "treasury" && canManageTreasury) return <TreasuryView />;
     if (tab === "manage-points" && canManagePoints) return <ManagePointsView />;
     if (tab === "manage-shirts" && canManageShirts) return <ManageShirtsView />;
@@ -1280,6 +1285,7 @@ export function DashboardView() {
               {canManageEventSectors && <button type="button" className={tab === "manage-sectors" ? "active" : ""} onClick={() => selectTab("manage-sectors")}>Setores</button>}
               {canManageEventOperations && <button type="button" className={tab === "manage-locations" ? "active" : ""} onClick={() => selectTab("manage-locations")}>Oficinas / Locais</button>}
               {canManageEventOperations && <button type="button" className={tab === "manage-groups" ? "active" : ""} onClick={() => selectTab("manage-groups")}>Grupos</button>}
+              {canManageEventOperations && <button type="button" className={tab === "trail-traffic" ? "active" : ""} onClick={() => selectTab("trail-traffic")}>Tráfego de Trilhas</button>}
               {canManageEventOperations && <button type="button" className={tab === "manage-scales" ? "active" : ""} onClick={() => selectTab("manage-scales")}>Escalas operacionais</button>}
               {canManagePoints && (
                 <button
