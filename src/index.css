@@ -813,7 +813,8 @@
 }
 
 .trail-start-button,
-.trail-finish-button {
+.trail-finish-button,
+.trail-reset-button {
   width: 100%;
   justify-content: center;
 }

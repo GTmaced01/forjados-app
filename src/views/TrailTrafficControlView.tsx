@@ -21,6 +21,7 @@ import {
   Navigation,
   Play,
   RefreshCw,
+  RotateCcw,
   Route,
   Square,
   Timer,
@@ -33,6 +34,7 @@ import {
   finishTrailRoute,
   listTrailTrafficSnapshot,
   reorderTrailExecution,
+  resetTrailRoutes,
   saveTrailGroupTraffic,
   startTrailRoute,
   subscribeToTrailTraffic,
@@ -473,6 +475,20 @@ export function TrailTrafficControlView() {
     await performAction(() => finishTrailRoute(groupId), `Trilha do grupo ${groupName} encerrada.`);
   }
 
+  async function handleReset(groupId?: string) {
+    const groupName = groupId ? groupsById.get(groupId)?.name || 'Grupo' : '';
+    const confirmed = window.confirm(groupId
+      ? `Preparar uma nova trilha para o grupo ${groupName}? A execução e os check-ins atuais serão apagados, mas a rota ideal será preservada.`
+      : 'Reiniciar a operação de todos os grupos? As execuções e os check-ins atuais serão apagados, mas todas as rotas ideais serão preservadas.');
+    if (!confirmed) return;
+    await performAction(
+      () => resetTrailRoutes(groupId),
+      groupId
+        ? `${groupName} voltou ao Campo e está pronto para iniciar uma nova trilha.`
+        : 'Operação reiniciada. Todos os grupos voltaram ao Campo e aguardam um novo início.'
+    );
+  }
+
   async function handleCheckIn(step: TrailRouteExecutionStep) {
     const groupName = groupsById.get(step.group_id)?.name || 'Grupo';
     setSelectedGroupId(step.group_id);
@@ -586,6 +602,11 @@ export function TrailTrafficControlView() {
           <button type="button" className="primary-button" onClick={() => void handleStartAll()} disabled={saving}>
             <Play size={15} /> Iniciar grupos
           </button>
+          {snapshot.executions.length > 0 && (
+            <button type="button" className="secondary-button danger-button" onClick={() => void handleReset()} disabled={saving}>
+              <RotateCcw size={15} /> Reiniciar operação
+            </button>
+          )}
           <button type="button" className="secondary-button" onClick={() => void refreshSnapshot(edition.id)} disabled={saving}>
             <RefreshCw size={15} /> Atualizar
           </button>
@@ -674,6 +695,11 @@ export function TrailTrafficControlView() {
           {selectedExecution?.run_status === 'active' && (
             <button type="button" className="secondary-button danger-button trail-finish-button" disabled={saving} onClick={() => void handleFinish(selectedGroupId)}>
               <Square size={15} /> Encerrar este grupo
+            </button>
+          )}
+          {selectedExecution?.run_status === 'finished' && (
+            <button type="button" className="secondary-button trail-reset-button" disabled={saving} onClick={() => void handleReset(selectedGroupId)}>
+              <RotateCcw size={15} /> Preparar nova trilha de {selectedGroup?.name || 'grupo'}
             </button>
           )}
 
