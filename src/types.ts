@@ -542,6 +542,92 @@ export interface EventServicesSnapshot {
   slots: EventServiceSlot[];
 }
 
+export type TrailMovementStatus =
+  | 'not_started'
+  | 'at_station'
+  | 'moving'
+  | 'holding'
+  | 'delayed'
+  | 'finished';
+
+export type TrailTrafficSignal = 'clear' | 'hold' | 'attention';
+
+export type TrailStationKind = 'station' | 'gate' | 'qg' | 'field' | 'reveal' | 'hold';
+
+export interface TrailMapStation {
+  id: string;
+  edition_id: string;
+  service_unit_id?: string | null;
+  station_key: string;
+  label: string;
+  short_label: string;
+  station_kind: TrailStationKind;
+  x_percent: number;
+  y_percent: number;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrailMapConnection {
+  id: string;
+  edition_id: string;
+  from_station_id: string;
+  to_station_id: string;
+  connection_kind: 'trail' | 'connector' | 'hold';
+  is_bidirectional: boolean;
+  display_order: number;
+  created_at: string;
+}
+
+export interface TrailGroupTraffic {
+  id: string;
+  edition_id: string;
+  group_id: string;
+  station_id?: string | null;
+  origin_station_id?: string | null;
+  destination_station_id?: string | null;
+  marker_x: number;
+  marker_y: number;
+  movement_status: TrailMovementStatus;
+  traffic_signal: TrailTrafficSignal;
+  delay_minutes: number;
+  notes: string;
+  updated_by?: string | null;
+  updated_by_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrailGroupTrafficHistory {
+  id: number;
+  traffic_id: string;
+  edition_id: string;
+  group_id: string;
+  station_id?: string | null;
+  origin_station_id?: string | null;
+  destination_station_id?: string | null;
+  marker_x: number;
+  marker_y: number;
+  movement_status: TrailMovementStatus;
+  traffic_signal: TrailTrafficSignal;
+  delay_minutes: number;
+  notes: string;
+  changed_by?: string | null;
+  changed_by_name: string;
+  changed_at: string;
+}
+
+export interface TrailTrafficSnapshot {
+  stations: TrailMapStation[];
+  connections: TrailMapConnection[];
+  traffic: TrailGroupTraffic[];
+  history: TrailGroupTrafficHistory[];
+  groups: EventServiceUnit[];
+  slots: EventServiceSlot[];
+}
+
 export interface EventRouteRowInput {
   title: string;
   duration_minutes: number;
