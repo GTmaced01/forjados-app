@@ -2,46 +2,58 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  Check,
   CircleDot,
   Clock3,
   Flag,
-  History,
+  GripVertical,
   MapPinned,
   Move,
   Navigation,
-  PauseCircle,
-  PlayCircle,
-  Radio,
+  Play,
   RefreshCw,
   Route,
-  Save,
-  ShieldAlert,
+  Square,
+  Timer,
   Wifi,
   WifiOff,
 } from 'lucide-react';
 import { getActiveRetreatEvent } from '../services/eventSettings';
 import {
+  checkInTrailStep,
+  finishTrailRoute,
   listTrailTrafficSnapshot,
+  reorderTrailExecution,
   saveTrailGroupTraffic,
+  startTrailRoute,
   subscribeToTrailTraffic,
   type SaveTrailTrafficInput,
 } from '../services/trailTraffic';
+import {
+  calculateLiveTrailTimeline,
+  calculatePlannedTrailTimeline,
+  calculateTrailFinishEta,
+  formatRouteClock,
+  moveTrailStep,
+} from '../services/trailRouteTime';
 import { detectTrailConflicts, nearestTrailStation } from '../services/trailTrafficRules';
 import type {
-  EventServiceSlot,
   EventServiceUnit,
   RetreatEventSettings,
   TrailGroupTraffic,
   TrailMapConnection,
   TrailMapStation,
-  TrailMovementStatus,
-  TrailTrafficSignal,
+  TrailRouteExecution,
+  TrailRouteExecutionStep,
   TrailTrafficSnapshot,
 } from '../types';
 
@@ -49,36 +61,28 @@ const EMPTY_SNAPSHOT: TrailTrafficSnapshot = {
   stations: [],
   connections: [],
   traffic: [],
-  history: [],
   groups: [],
-  slots: [],
+  routePlans: [],
+  routePlanSteps: [],
+  executions: [],
+  executionSteps: [],
 };
 
-const STATUS_LABELS: Record<TrailMovementStatus, string> = {
-  not_started: 'Não iniciou',
-  at_station: 'Na estação',
-  moving: 'Em trajeto',
-  holding: 'Aguardando',
-  delayed: 'Atrasado',
+const RUN_LABELS = {
+  waiting: 'Aguardando início',
+  active: 'Em trilha',
   finished: 'Finalizado',
 };
 
-const SIGNAL_LABELS: Record<TrailTrafficSignal, string> = {
-  clear: 'Via liberada',
-  hold: 'Segurar grupo',
-  attention: 'Atenção',
-};
-
-interface TrafficDraft {
-  stationId: string;
-  destinationStationId: string;
-  movementStatus: TrailMovementStatus;
-  trafficSignal: TrailTrafficSignal;
-  delayMinutes: number;
-  notes: string;
+function formatTime(value?: string | Date | null) {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
 }
 
-function formatTime(value?: string | null) {
+function formatDateTime(value?: string | Date | null) {
   if (!value) return 'Sem registro';
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
@@ -88,61 +92,31 @@ function formatTime(value?: string | null) {
   }).format(new Date(value));
 }
 
-function formatSlotTime(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value));
+function varianceLabel(minutes: number) {
+  if (minutes === 0) return 'No horário';
+  if (minutes > 0) return `+${minutes} min`;
+  return `${minutes} min`;
 }
 
 function stationName(stationsById: Map<string, TrailMapStation>, id?: string | null) {
-  return id ? stationsById.get(id)?.label || 'Posição livre no mapa' : 'Posição livre no mapa';
-}
-
-function trafficPositionLabel(
-  stationsById: Map<string, TrailMapStation>,
-  traffic: Pick<TrailGroupTraffic, 'station_id' | 'origin_station_id' | 'destination_station_id' | 'movement_status'>
-) {
-  if (traffic.movement_status === 'moving' && traffic.destination_station_id) {
-    return `${stationName(stationsById, traffic.origin_station_id)} → ${stationName(stationsById, traffic.destination_station_id)}`;
-  }
-  return stationName(stationsById, traffic.station_id);
-}
-
-function getGroupPlan(groupId: string, slots: EventServiceSlot[], now: Date) {
-  const groupSlots = slots.filter((slot) => slot.unit_id === groupId);
-  return groupSlots.find((slot) => new Date(slot.starts_at) <= now && new Date(slot.ends_at) >= now)
-    || groupSlots.find((slot) => new Date(slot.starts_at) > now)
-    || null;
-}
-
-function buildDraft(traffic: TrailGroupTraffic): TrafficDraft {
-  return {
-    stationId: traffic.station_id || traffic.origin_station_id || '',
-    destinationStationId: traffic.destination_station_id || '',
-    movementStatus: traffic.movement_status,
-    trafficSignal: traffic.traffic_signal,
-    delayMinutes: traffic.delay_minutes,
-    notes: traffic.notes,
-  };
+  return id ? stationsById.get(id)?.label || 'Posição livre' : 'Posição livre';
 }
 
 function fallbackTraffic(
   editionId: string,
   group: EventServiceUnit,
   groupIndex: number,
-  gate?: TrailMapStation
+  field?: TrailMapStation
 ): TrailGroupTraffic {
   return {
     id: '',
     edition_id: editionId,
     group_id: group.id,
-    station_id: gate?.id || null,
+    station_id: field?.id || null,
     origin_station_id: null,
     destination_station_id: null,
-    marker_x: Math.min(95, (gate?.x_percent || 6) + groupIndex * 2.2),
-    marker_y: Math.min(95, (gate?.y_percent || 40) + groupIndex * 2.2),
+    marker_x: Math.min(95, (field?.x_percent || 48) + groupIndex * 2.2),
+    marker_y: Math.min(95, (field?.y_percent || 36) + groupIndex * 2.2),
     movement_status: 'not_started',
     traffic_signal: 'clear',
     delay_minutes: 0,
@@ -276,7 +250,7 @@ function TrailMapCanvas({
             className={`trail-station ${station.station_kind} ${conflictStationIds.has(station.id) ? 'conflict' : ''}`}
             style={{ left: `${station.x_percent}%`, top: `${station.y_percent}%` }}
             onClick={() => onStationClick(station)}
-            title={`Selecionar ${station.label}`}
+            title={`Confirmar chegada em ${station.label}`}
           >
             <span>{station.short_label || station.label}</span>
           </button>
@@ -304,7 +278,7 @@ function TrailMapCanvas({
               onPointerUp={finishDrag}
               onPointerCancel={() => setDrag(null)}
               aria-label={`Mover grupo ${group.name}`}
-              title={`${group.name} · arraste para atualizar`}
+              title={`${group.name} · arraste para reposicionar`}
             >
               <span>{group.name.slice(0, 1)}</span>
               <small>{group.name}</small>
@@ -316,17 +290,23 @@ function TrailMapCanvas({
   );
 }
 
+function getRunStatus(execution?: TrailRouteExecution) {
+  if (!execution) return 'waiting' as const;
+  return execution.run_status;
+}
+
 export function TrailTrafficControlView() {
   const [edition, setEdition] = useState<RetreatEventSettings | null>(null);
   const [snapshot, setSnapshot] = useState<TrailTrafficSnapshot>(EMPTY_SNAPSHOT);
   const [selectedGroupId, setSelectedGroupId] = useState('');
-  const [draft, setDraft] = useState<TrafficDraft | null>(null);
+  const [draggedStepId, setDraggedStepId] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [clock, setClock] = useState(() => new Date());
+  const refreshTimerRef = useRef<number | null>(null);
 
   const refreshSnapshot = useCallback(async (editionId: string, silent = false) => {
     if (!silent) setLoading(true);
@@ -340,6 +320,14 @@ export function TrailTrafficControlView() {
       if (!silent) setLoading(false);
     }
   }, []);
+
+  const queueRefresh = useCallback((editionId: string) => {
+    if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = window.setTimeout(() => {
+      void refreshSnapshot(editionId, true);
+      refreshTimerRef.current = null;
+    }, 180);
+  }, [refreshSnapshot]);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -361,21 +349,25 @@ export function TrailTrafficControlView() {
   }, [loadAll]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setClock(new Date()), 30_000);
+    const interval = window.setInterval(() => setClock(new Date()), 1_000);
     return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => () => {
+    if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
   }, []);
 
   useEffect(() => {
     if (!edition?.id) return undefined;
     return subscribeToTrailTraffic(
       edition.id,
-      () => void refreshSnapshot(edition.id, true),
+      () => queueRefresh(edition.id),
       setRealtimeConnected
     );
-  }, [edition?.id, refreshSnapshot]);
+  }, [edition?.id, queueRefresh]);
 
-  const gate = useMemo(
-    () => snapshot.stations.find((station) => station.station_key === 'main_gate'),
+  const field = useMemo(
+    () => snapshot.stations.find((station) => station.station_key === 'field' || station.station_kind === 'field'),
     [snapshot.stations]
   );
   const stationsById = useMemo(
@@ -386,22 +378,43 @@ export function TrailTrafficControlView() {
     () => new Map(snapshot.groups.map((group) => [group.id, group])),
     [snapshot.groups]
   );
+  const plansByGroup = useMemo(
+    () => new Map(snapshot.routePlans.map((plan) => [plan.group_id, plan])),
+    [snapshot.routePlans]
+  );
+  const executionsByGroup = useMemo(
+    () => new Map(snapshot.executions.map((execution) => [execution.group_id, execution])),
+    [snapshot.executions]
+  );
   const trafficByGroup = useMemo(() => {
     const rows = new Map(snapshot.traffic.map((item) => [item.group_id, item]));
     snapshot.groups.forEach((group, index) => {
-      if (!rows.has(group.id) && edition) rows.set(group.id, fallbackTraffic(edition.id, group, index, gate));
+      if (!rows.has(group.id) && edition) rows.set(group.id, fallbackTraffic(edition.id, group, index, field));
     });
     return rows;
-  }, [edition, gate, snapshot.groups, snapshot.traffic]);
+  }, [edition, field, snapshot.groups, snapshot.traffic]);
 
   useEffect(() => {
     if (!selectedGroupId && snapshot.groups[0]) setSelectedGroupId(snapshot.groups[0].id);
   }, [selectedGroupId, snapshot.groups]);
 
-  const selectedTraffic = selectedGroupId ? trafficByGroup.get(selectedGroupId) : undefined;
-  useEffect(() => {
-    if (selectedTraffic) setDraft(buildDraft(selectedTraffic));
-  }, [selectedGroupId, selectedTraffic?.updated_at]);
+  const selectedGroup = groupsById.get(selectedGroupId);
+  const selectedPlan = plansByGroup.get(selectedGroupId);
+  const selectedExecution = executionsByGroup.get(selectedGroupId);
+  const selectedPlanTimeline = useMemo(() => selectedPlan
+    ? calculatePlannedTrailTimeline(
+      selectedPlan.starts_at,
+      snapshot.routePlanSteps.filter((step) => step.plan_id === selectedPlan.id)
+    )
+    : [], [selectedPlan, snapshot.routePlanSteps]);
+  const selectedLiveTimeline = useMemo(() => selectedExecution
+    ? calculateLiveTrailTimeline(
+      snapshot.executionSteps.filter((step) => step.execution_id === selectedExecution.id),
+      clock
+    )
+    : [], [clock, selectedExecution, snapshot.executionSteps]);
+  const pendingSelectedSteps = selectedLiveTimeline.filter((step) => step.step_status === 'pending');
+  const selectedFinishEta = calculateTrailFinishEta(selectedLiveTimeline);
 
   const conflicts = useMemo(
     () => detectTrailConflicts(snapshot.groups, Array.from(trafficByGroup.values()), snapshot.stations),
@@ -418,113 +431,135 @@ export function TrailTrafficControlView() {
 
   function selectGroup(groupId: string) {
     setSelectedGroupId(groupId);
-    const traffic = trafficByGroup.get(groupId);
-    if (traffic) setDraft(buildDraft(traffic));
     setSuccess('');
   }
 
-  function selectStation(station: TrailMapStation) {
-    if (!selectedGroupId) return;
-    setDraft((current) => current ? {
-      ...current,
-      stationId: station.id,
-      destinationStationId: '',
-      movementStatus: 'at_station',
-    } : current);
-  }
-
-  async function persistTraffic(input: SaveTrailTrafficInput, trafficId?: string, message?: string) {
+  async function performAction(action: () => Promise<unknown>, successMessage: string) {
+    if (!edition) return;
     setSaving(true);
     setError('');
+    setSuccess('');
     try {
-      const saved = await saveTrailGroupTraffic(input, trafficId);
-      setSnapshot((current) => ({
-        ...current,
-        traffic: [...current.traffic.filter((item) => item.group_id !== saved.group_id), saved],
-      }));
-      if (message) setSuccess(message);
-      if (edition) await refreshSnapshot(edition.id, true);
+      await action();
+      await refreshSnapshot(edition.id, true);
+      setSuccess(successMessage);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível atualizar a posição do grupo.');
+      setError(err instanceof Error ? err.message : 'Não foi possível concluir a operação.');
     } finally {
       setSaving(false);
     }
   }
 
-  async function saveDraft() {
-    if (!edition || !selectedTraffic || !draft) return;
-    const currentStation = stationsById.get(draft.stationId);
-    const destination = stationsById.get(draft.destinationStationId);
-    const isMoving = draft.movementStatus === 'moving';
-    let markerX = selectedTraffic.marker_x;
-    let markerY = selectedTraffic.marker_y;
-    if (isMoving && currentStation && destination) {
-      markerX = (currentStation.x_percent + destination.x_percent) / 2;
-      markerY = (currentStation.y_percent + destination.y_percent) / 2;
-    } else if (currentStation) {
-      markerX = currentStation.x_percent;
-      markerY = currentStation.y_percent;
+  async function handleStart(groupId: string) {
+    const groupName = groupsById.get(groupId)?.name || 'Grupo';
+    await performAction(() => startTrailRoute(groupId), `${groupName} iniciou no Campo. Cronômetro e ETAs ativados.`);
+  }
+
+  async function handleStartAll() {
+    const waitingGroups = snapshot.groups.filter((group) => !executionsByGroup.has(group.id));
+    if (!waitingGroups.length) {
+      setSuccess('Todos os grupos já foram iniciados ou encerrados.');
+      return;
     }
-    await persistTraffic({
-      edition_id: edition.id,
-      group_id: selectedTraffic.group_id,
-      station_id: isMoving ? null : draft.stationId || null,
-      origin_station_id: isMoving
-        ? draft.stationId || selectedTraffic.station_id || selectedTraffic.origin_station_id || null
-        : selectedTraffic.station_id || selectedTraffic.origin_station_id || null,
-      destination_station_id: isMoving ? draft.destinationStationId || null : null,
-      marker_x: markerX,
-      marker_y: markerY,
-      movement_status: draft.movementStatus,
-      traffic_signal: draft.trafficSignal,
-      delay_minutes: draft.delayMinutes,
-      notes: draft.notes,
-    }, selectedTraffic.id || undefined, 'Posição atualizada e compartilhada em tempo real.');
+    await performAction(
+      () => Promise.all(waitingGroups.map((group) => startTrailRoute(group.id))),
+      `${waitingGroups.length} grupo(s) iniciado(s) no Campo.`
+    );
   }
 
-  async function quickSignal(signal: TrailTrafficSignal) {
-    if (!edition || !selectedTraffic) return;
-    const movementStatus = signal === 'hold'
-      ? 'holding'
-      : signal === 'attention'
-        ? 'delayed'
-        : selectedTraffic.movement_status === 'holding' || selectedTraffic.movement_status === 'delayed'
-          ? 'at_station'
-          : selectedTraffic.movement_status;
-    await persistTraffic({
-      edition_id: edition.id,
-      group_id: selectedTraffic.group_id,
-      station_id: selectedTraffic.station_id || null,
-      origin_station_id: selectedTraffic.origin_station_id || null,
-      destination_station_id: selectedTraffic.destination_station_id || null,
-      marker_x: selectedTraffic.marker_x,
-      marker_y: selectedTraffic.marker_y,
-      movement_status: movementStatus,
-      traffic_signal: signal,
-      delay_minutes: selectedTraffic.delay_minutes,
-      notes: draft?.notes || selectedTraffic.notes,
-    }, selectedTraffic.id || undefined, `${SIGNAL_LABELS[signal]} para ${groupsById.get(selectedTraffic.group_id)?.name || 'o grupo'}.`);
+  async function handleFinish(groupId: string) {
+    const groupName = groupsById.get(groupId)?.name || 'Grupo';
+    if (!window.confirm(`Encerrar a trilha do grupo ${groupName}? As bases ainda pendentes serão marcadas como puladas.`)) return;
+    await performAction(() => finishTrailRoute(groupId), `Trilha do grupo ${groupName} encerrada.`);
   }
 
-  async function dropGroup(groupId: string, xPercent: number, yPercent: number, station: TrailMapStation | null) {
+  async function handleCheckIn(step: TrailRouteExecutionStep) {
+    const groupName = groupsById.get(step.group_id)?.name || 'Grupo';
+    setSelectedGroupId(step.group_id);
+    await performAction(
+      () => checkInTrailStep(step.id),
+      `${groupName} chegou em ${step.label}. Próximos ETAs recalculados.`
+    );
+  }
+
+  async function handleReorder(movedId: string, targetId: string) {
+    if (!selectedExecution || selectedExecution.run_status !== 'active') return;
+    const reordered = moveTrailStep(pendingSelectedSteps, movedId, targetId);
+    if (reordered === pendingSelectedSteps) return;
+    await performAction(
+      () => reorderTrailExecution(selectedExecution.id, reordered.map((step) => step.id)),
+      'Rota operacional reordenada. O planejamento ideal foi preservado.'
+    );
+  }
+
+  async function handleMoveStep(stepId: string, direction: -1 | 1) {
+    const index = pendingSelectedSteps.findIndex((step) => step.id === stepId);
+    const target = pendingSelectedSteps[index + direction];
+    if (target) await handleReorder(stepId, target.id);
+  }
+
+  function handleStationClick(station: TrailMapStation) {
+    if (!selectedExecution || selectedExecution.run_status !== 'active') {
+      setError('Inicie a trilha do grupo selecionado antes de confirmar uma chegada.');
+      return;
+    }
+    const current = selectedLiveTimeline.find((step) => step.step_status === 'current');
+    if (current?.station_id === station.id) {
+      setSuccess(`${selectedGroup?.name || 'Grupo'} já está em ${station.label}.`);
+      return;
+    }
+    const nextAtStation = pendingSelectedSteps.find((step) => step.station_id === station.id);
+    if (!nextAtStation) {
+      setError(`${station.label} não está entre as etapas pendentes deste grupo. Arraste o marcador para reposicionar sem avançar a timeline.`);
+      return;
+    }
+    void handleCheckIn(nextAtStation);
+  }
+
+  async function persistFreePosition(
+    groupId: string,
+    xPercent: number,
+    yPercent: number,
+    station: TrailMapStation | null
+  ) {
     if (!edition) return;
     const current = trafficByGroup.get(groupId);
     if (!current) return;
-    await persistTraffic({
+    const input: SaveTrailTrafficInput = {
       edition_id: edition.id,
       group_id: groupId,
       station_id: station?.id || null,
       origin_station_id: current.station_id || current.origin_station_id || null,
-      destination_station_id: station ? null : current.destination_station_id || null,
+      destination_station_id: null,
       marker_x: xPercent,
       marker_y: yPercent,
       movement_status: station ? 'at_station' : 'moving',
-      traffic_signal: current.traffic_signal,
+      traffic_signal: 'clear',
       delay_minutes: current.delay_minutes,
-      notes: current.notes,
-    }, current.id || undefined, station
-      ? `${groupsById.get(groupId)?.name || 'Grupo'} chegou em ${station.label}.`
-      : `${groupsById.get(groupId)?.name || 'Grupo'} reposicionado no trajeto.`);
+      notes: station ? `Reposicionamento livre: ${station.label}` : 'Reposicionamento livre no trajeto.',
+    };
+    await performAction(
+      () => saveTrailGroupTraffic(input, current.id || undefined),
+      station
+        ? `${groupsById.get(groupId)?.name || 'Grupo'} reposicionado em ${station.label}, sem alterar a timeline.`
+        : `${groupsById.get(groupId)?.name || 'Grupo'} reposicionado livremente no mapa.`
+    );
+  }
+
+  function handleDrop(groupId: string, xPercent: number, yPercent: number, station: TrailMapStation | null) {
+    setSelectedGroupId(groupId);
+    const execution = executionsByGroup.get(groupId);
+    if (station && execution?.run_status === 'active') {
+      const pending = snapshot.executionSteps
+        .filter((step) => step.execution_id === execution.id && step.step_status === 'pending')
+        .sort((first, second) => first.live_order - second.live_order)
+        .find((step) => step.station_id === station.id);
+      if (pending) {
+        void handleCheckIn(pending);
+        return;
+      }
+    }
+    void persistFreePosition(groupId, xPercent, yPercent, station);
   }
 
   if (loading) {
@@ -541,13 +576,16 @@ export function TrailTrafficControlView() {
         <div>
           <p className="eyebrow">Central de comando · {edition.title}</p>
           <h2>Painel de Tráfego de Trilhas</h2>
-          <p className="muted">Arraste os grupos pelo mapa ou use os controles para atualizar a operação recebida pelo rádio.</p>
+          <p className="muted">Confirme a chegada em uma base com um clique. O mapa, o cronômetro e todos os próximos ETAs são atualizados automaticamente.</p>
         </div>
         <div className="trail-header-actions">
           <span className={`trail-live-pill ${realtimeConnected ? 'connected' : ''}`}>
             {realtimeConnected ? <Wifi size={15} /> : <WifiOff size={15} />}
             {realtimeConnected ? 'Tempo real ativo' : 'Conectando'}
           </span>
+          <button type="button" className="primary-button" onClick={() => void handleStartAll()} disabled={saving}>
+            <Play size={15} /> Iniciar grupos
+          </button>
           <button type="button" className="secondary-button" onClick={() => void refreshSnapshot(edition.id)} disabled={saving}>
             <RefreshCw size={15} /> Atualizar
           </button>
@@ -559,24 +597,30 @@ export function TrailTrafficControlView() {
 
       <section className="trail-group-overview" aria-label="Situação dos grupos">
         {snapshot.groups.map((group) => {
+          const execution = executionsByGroup.get(group.id);
+          const runStatus = getRunStatus(execution);
+          const liveSteps = execution
+            ? calculateLiveTrailTimeline(snapshot.executionSteps.filter((step) => step.execution_id === execution.id), clock)
+            : [];
+          const current = liveSteps.find((step) => step.step_status === 'current');
+          const plan = plansByGroup.get(group.id);
           const traffic = trafficByGroup.get(group.id);
-          if (!traffic) return null;
-          const plan = getGroupPlan(group.id, snapshot.slots, clock);
+          const finishEta = execution?.run_status === 'finished' ? execution.finished_at : calculateTrailFinishEta(liveSteps);
           const style = { '--group-color': group.color || '#d4a017' } as CSSProperties;
           return (
             <button
               type="button"
               key={group.id}
-              className={`trail-group-card ${selectedGroupId === group.id ? 'selected' : ''} signal-${traffic.traffic_signal}`}
+              className={`trail-group-card ${selectedGroupId === group.id ? 'selected' : ''}`}
               style={style}
               onClick={() => selectGroup(group.id)}
             >
-              <span className="trail-group-card-top"><b>{group.name}</b><i>{STATUS_LABELS[traffic.movement_status]}</i></span>
-              <strong><MapPinned size={15} /> {trafficPositionLabel(stationsById, traffic)}</strong>
-              <small>{plan ? `${formatSlotTime(plan.starts_at)} · ${plan.title}` : 'Sem horário de grupo cadastrado'}</small>
+              <span className="trail-group-card-top"><b>{group.name}</b><i>{RUN_LABELS[runStatus]}</i></span>
+              <strong><MapPinned size={15} /> {current?.label || stationName(stationsById, traffic?.station_id)}</strong>
+              <small>{current ? `${formatRouteClock(current.elapsedSeconds)} na base · previsto ${current.stay_minutes} min` : plan ? `Início ideal ${formatTime(plan.starts_at)}` : 'Rota ideal não cadastrada'}</small>
               <span className="trail-group-card-meta">
-                <em>{SIGNAL_LABELS[traffic.traffic_signal]}</em>
-                {traffic.delay_minutes > 0 && <b>+{traffic.delay_minutes} min</b>}
+                <em>Fim {formatTime(finishEta)}</em>
+                {execution && <b className={execution.schedule_variance_minutes <= 0 ? 'on-time' : ''}>{varianceLabel(execution.schedule_variance_minutes)}</b>}
               </span>
             </button>
           );
@@ -587,7 +631,7 @@ export function TrailTrafficControlView() {
         <section className="trail-map-panel">
           <div className="trail-section-heading">
             <div><p className="eyebrow">Visão do sítio</p><h3>Mapa operacional</h3></div>
-            <span><Move size={15} /> Arraste os escudos</span>
+            <span><Move size={15} /> Clique na base ou arraste o escudo</span>
           </div>
           <TrailMapCanvas
             stations={snapshot.stations}
@@ -599,74 +643,102 @@ export function TrailTrafficControlView() {
             conflictStationIds={conflictStationIds}
             disabled={saving}
             onSelectGroup={selectGroup}
-            onStationClick={selectStation}
-            onDrop={(groupId, x, y, station) => void dropGroup(groupId, x, y, station)}
+            onStationClick={handleStationClick}
+            onDrop={handleDrop}
           />
         </section>
 
-        <aside className="trail-command-panel">
+        <aside className="trail-command-panel trail-timeline-panel">
           <div className="trail-section-heading">
-            <div><p className="eyebrow">Operação por rádio</p><h3>Comando rápido</h3></div>
-            <Radio size={22} />
+            <div><p className="eyebrow">Rota viva</p><h3>Timeline do percurso</h3></div>
+            <Route size={22} />
           </div>
 
-          {draft && selectedTraffic && (
-            <div className="trail-command-form">
-              <label>Grupo
-                <select value={selectedGroupId} onChange={(event) => selectGroup(event.target.value)}>
-                  {snapshot.groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
-                </select>
-              </label>
+          <label className="trail-group-select">Grupo
+            <select value={selectedGroupId} onChange={(event) => selectGroup(event.target.value)}>
+              {snapshot.groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+            </select>
+          </label>
 
-              <div className="trail-radio-actions">
-                <button type="button" className="clear" disabled={saving} onClick={() => void quickSignal('clear')}><PlayCircle size={16} /> Liberar</button>
-                <button type="button" className="hold" disabled={saving} onClick={() => void quickSignal('hold')}><PauseCircle size={16} /> Segurar</button>
-                <button type="button" className="attention" disabled={saving} onClick={() => void quickSignal('attention')}><ShieldAlert size={16} /> Atenção</button>
-              </div>
+          <div className="trail-timeline-summary">
+            <span><Clock3 size={14} /> Início {formatTime(selectedExecution?.started_at || selectedPlan?.starts_at)}</span>
+            <span><Flag size={14} /> ETA final {formatTime(selectedExecution?.run_status === 'finished' ? selectedExecution.finished_at : selectedFinishEta || selectedPlanTimeline.at(-1)?.plannedDepartureAt)}</span>
+            {selectedExecution && <strong className={selectedExecution.schedule_variance_minutes > 0 ? 'late' : ''}>{varianceLabel(selectedExecution.schedule_variance_minutes)}</strong>}
+          </div>
 
-              <label>Posição / última base
-                <select value={draft.stationId} onChange={(event) => setDraft({ ...draft, stationId: event.target.value })}>
-                  <option value="">Posição livre no mapa</option>
-                  {snapshot.stations.map((station) => <option key={station.id} value={station.id}>{station.label}</option>)}
-                </select>
-              </label>
-
-              <label>Situação
-                <select value={draft.movementStatus} onChange={(event) => setDraft({ ...draft, movementStatus: event.target.value as TrailMovementStatus })}>
-                  {Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
-              </label>
-
-              {draft.movementStatus === 'moving' && (
-                <label>Destino do trajeto
-                  <select value={draft.destinationStationId} onChange={(event) => setDraft({ ...draft, destinationStationId: event.target.value })}>
-                    <option value="">Destino ainda não informado</option>
-                    {snapshot.stations.filter((station) => station.id !== draft.stationId).map((station) => <option key={station.id} value={station.id}>{station.label}</option>)}
-                  </select>
-                </label>
-              )}
-
-              <div className="trail-form-row">
-                <label>Sinal
-                  <select value={draft.trafficSignal} onChange={(event) => setDraft({ ...draft, trafficSignal: event.target.value as TrailTrafficSignal })}>
-                    {Object.entries(SIGNAL_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                  </select>
-                </label>
-                <label>Atraso (min)
-                  <input type="number" min="0" max="720" value={draft.delayMinutes} onChange={(event) => setDraft({ ...draft, delayMinutes: Number(event.target.value) })} />
-                </label>
-              </div>
-
-              <label>Observação para o QG
-                <textarea rows={3} maxLength={1000} placeholder="Ex.: invisível informou fila na ponte" value={draft.notes} onChange={(event) => setDraft({ ...draft, notes: event.target.value })} />
-              </label>
-
-              <button type="button" className="primary-button trail-save-button" onClick={() => void saveDraft()} disabled={saving}>
-                <Save size={16} /> {saving ? 'Transmitindo...' : 'Atualizar posição'}
-              </button>
-              <small className="muted">Última informação: {formatTime(selectedTraffic.updated_at)} · {selectedTraffic.updated_by_name}</small>
-            </div>
+          {!selectedExecution && (
+            <button type="button" className="primary-button trail-start-button" disabled={saving || !selectedPlanTimeline.length} onClick={() => void handleStart(selectedGroupId)}>
+              <Play size={16} /> Iniciar trilha de {selectedGroup?.name || 'grupo'}
+            </button>
           )}
+          {selectedExecution?.run_status === 'active' && (
+            <button type="button" className="secondary-button danger-button trail-finish-button" disabled={saving} onClick={() => void handleFinish(selectedGroupId)}>
+              <Square size={15} /> Encerrar este grupo
+            </button>
+          )}
+
+          <div className="trail-timeline-list">
+            {!selectedExecution && selectedPlanTimeline.map((step, index) => (
+              <div key={step.id} className="trail-timeline-step planned">
+                <span className="trail-step-index">{index + 1}</span>
+                <div className="trail-step-copy"><strong>{step.label}</strong><small>{step.stay_minutes} min na base{step.travel_minutes ? ` · ${step.travel_minutes} min deslocamento` : ''}</small></div>
+                <time>{formatTime(step.plannedArrivalAt)}</time>
+              </div>
+            ))}
+
+            {selectedExecution && selectedLiveTimeline.map((step, index) => {
+              const pendingIndex = pendingSelectedSteps.findIndex((pending) => pending.id === step.id);
+              const isPending = step.step_status === 'pending';
+              return (
+                <div
+                  key={step.id}
+                  className={`trail-timeline-step ${step.step_status} ${step.is_break ? 'break' : ''}`}
+                  draggable={isPending && !saving}
+                  onDragStart={() => setDraggedStepId(step.id)}
+                  onDragEnd={() => setDraggedStepId('')}
+                  onDragOver={(event) => { if (isPending) event.preventDefault(); }}
+                  onDrop={() => {
+                    if (isPending && draggedStepId) void handleReorder(draggedStepId, step.id);
+                    setDraggedStepId('');
+                  }}
+                >
+                  <span className="trail-step-index">{step.step_status === 'completed' ? <Check size={13} /> : index + 1}</span>
+                  <button
+                    type="button"
+                    className="trail-step-copy"
+                    disabled={!isPending || saving}
+                    onClick={() => void handleCheckIn(step)}
+                    title={isPending ? `Confirmar chegada em ${step.label}` : undefined}
+                  >
+                    <strong>{step.label}</strong>
+                    <small>
+                      {step.step_status === 'current'
+                        ? `${formatRouteClock(step.elapsedSeconds)} de ${step.stay_minutes} min`
+                        : step.step_status === 'completed'
+                          ? `Chegada ${formatTime(step.checked_in_at)} · saída ${formatTime(step.checked_out_at)}`
+                          : step.step_status === 'skipped'
+                            ? 'Etapa não realizada'
+                            : `${step.stay_minutes} min · clique para check-in`}
+                    </small>
+                  </button>
+                  <div className="trail-step-time">
+                    <time>{formatTime(step.displayArrivalAt)}</time>
+                    {isPending && <small>ideal {formatTime(step.planned_arrival_at)}</small>}
+                  </div>
+                  {isPending && (
+                    <div className="trail-step-order-actions">
+                      <GripVertical size={14} aria-hidden="true" />
+                      <button type="button" className="icon-button" aria-label={`Mover ${step.label} para cima`} disabled={saving || pendingIndex === 0} onClick={() => void handleMoveStep(step.id, -1)}><ArrowUp size={13} /></button>
+                      <button type="button" className="icon-button" aria-label={`Mover ${step.label} para baixo`} disabled={saving || pendingIndex === pendingSelectedSteps.length - 1} onClick={() => void handleMoveStep(step.id, 1)}><ArrowDown size={13} /></button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {!selectedPlanTimeline.length && !selectedLiveTimeline.length && <p className="muted">Cadastre a rota ideal deste grupo na aba Grupos.</p>}
+          </div>
+          <p className="trail-timeline-help">A ordem alterada aqui vale somente para a operação atual. O roteiro ideal da aba Grupos permanece intacto.</p>
         </aside>
       </div>
 
@@ -686,27 +758,47 @@ export function TrailTrafficControlView() {
               ))}
             </div>
           ) : (
-            <div className="trail-all-clear"><Flag size={24} /><div><strong>Percurso sem conflitos detectados</strong><span>Continue atualizando as posições conforme os relatos do rádio.</span></div></div>
+            <div className="trail-all-clear"><Flag size={24} /><div><strong>Percurso sem conflitos detectados</strong><span>As posições são comparadas automaticamente a cada atualização.</span></div></div>
           )}
         </section>
 
-        <section className="trail-history-panel">
+        <section className="trail-history-panel trail-timers-panel">
           <div className="trail-section-heading">
-            <div><p className="eyebrow">Registro operacional</p><h3>Últimas movimentações</h3></div>
-            <History size={22} />
+            <div><p className="eyebrow">Registro operacional</p><h3>Cronômetros das bases</h3></div>
+            <Timer size={22} />
           </div>
-          <div className="trail-history-list">
-            {snapshot.history.slice(0, 16).map((entry) => (
-              <div key={entry.id}>
-                <span className="trail-history-dot" style={{ background: groupsById.get(entry.group_id)?.color || '#d4a017' }} />
-                <div>
-                  <strong>{groupsById.get(entry.group_id)?.name || 'Grupo'} · {STATUS_LABELS[entry.movement_status]}</strong>
-                  <small>{trafficPositionLabel(stationsById, entry)}</small>
-                  <em><Clock3 size={12} /> {formatTime(entry.changed_at)} · {entry.changed_by_name}</em>
-                </div>
-              </div>
-            ))}
-            {!snapshot.history.length && <p className="muted">As primeiras atualizações aparecerão aqui.</p>}
+          <div className="trail-base-timers">
+            {snapshot.groups.map((group) => {
+              const execution = executionsByGroup.get(group.id);
+              const liveSteps = execution
+                ? calculateLiveTrailTimeline(snapshot.executionSteps.filter((step) => step.execution_id === execution.id), clock)
+                : [];
+              const current = liveSteps.find((step) => step.step_status === 'current');
+              const finishEta = execution?.run_status === 'finished' ? execution.finished_at : calculateTrailFinishEta(liveSteps);
+              const progress = current ? Math.min(100, (current.elapsedSeconds / Math.max(1, current.stay_minutes * 60)) * 100) : 0;
+              const isOvertime = Boolean(current?.overtimeSeconds);
+              const style = { '--group-color': group.color || '#d4a017', '--timer-progress': `${progress}%` } as CSSProperties;
+              return (
+                <button type="button" key={group.id} className={`trail-timer-card ${isOvertime ? 'overtime' : ''}`} style={style} onClick={() => selectGroup(group.id)}>
+                  <span className="trail-timer-title"><b>{group.name}</b><em>{RUN_LABELS[getRunStatus(execution)]}</em></span>
+                  {current ? <>
+                    <strong>{current.label}</strong>
+                    <time>{formatRouteClock(current.elapsedSeconds)}</time>
+                    <span className="trail-timer-progress"><i /></span>
+                    <small>{isOvertime ? `${formatRouteClock(current.overtimeSeconds)} além do previsto` : `${formatRouteClock(current.remainingSeconds)} restantes`} · base {current.stay_minutes} min</small>
+                  </> : execution?.run_status === 'finished' ? <>
+                    <strong>Trilha encerrada</strong>
+                    <time>{formatTime(execution.finished_at)}</time>
+                    <small>Conclusão registrada em {formatDateTime(execution.finished_at)}</small>
+                  </> : <>
+                    <strong>Aguardando no Campo</strong>
+                    <time>00:00</time>
+                    <small>O cronômetro começa ao iniciar a trilha.</small>
+                  </>}
+                  <span className="trail-timer-eta"><Clock3 size={12} /> ETA final {formatTime(finishEta)}</span>
+                </button>
+              );
+            })}
           </div>
         </section>
       </div>

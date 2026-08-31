@@ -45,8 +45,10 @@ export function detectTrailConflicts(
   });
   byStation.forEach((items, stationId) => {
     if (items.length < 2) return;
+    const station = stationsById.get(stationId);
+    if (station && ['field', 'qg', 'gate', 'hold'].includes(station.station_kind)) return;
     const groupIds = items.map((item) => item.group_id);
-    const stationName = stationsById.get(stationId)?.label || 'uma estação';
+    const stationName = station?.label || 'uma estação';
     conflicts.push({
       id: `station-${stationId}`,
       kind: 'station',

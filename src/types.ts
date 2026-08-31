@@ -619,13 +619,80 @@ export interface TrailGroupTrafficHistory {
   changed_at: string;
 }
 
+export interface TrailRoutePlan {
+  id: string;
+  edition_id: string;
+  group_id: string;
+  starts_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrailRoutePlanStep {
+  id: string;
+  plan_id: string;
+  edition_id: string;
+  group_id: string;
+  station_id?: string | null;
+  label: string;
+  ideal_order: number;
+  stay_minutes: number;
+  travel_minutes: number;
+  is_break: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type TrailRouteRunStatus = 'active' | 'finished';
+export type TrailRouteStepStatus = 'pending' | 'current' | 'completed' | 'skipped';
+
+export interface TrailRouteExecution {
+  id: string;
+  edition_id: string;
+  group_id: string;
+  plan_id?: string | null;
+  run_status: TrailRouteRunStatus;
+  started_at: string;
+  finished_at?: string | null;
+  schedule_variance_minutes: number;
+  estimated_finish_at?: string | null;
+  updated_by?: string | null;
+  updated_by_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrailRouteExecutionStep {
+  id: string;
+  execution_id: string;
+  edition_id: string;
+  group_id: string;
+  plan_step_id?: string | null;
+  station_id?: string | null;
+  label: string;
+  original_order: number;
+  live_order: number;
+  stay_minutes: number;
+  travel_minutes: number;
+  planned_arrival_at: string;
+  eta_at: string;
+  checked_in_at?: string | null;
+  checked_out_at?: string | null;
+  step_status: TrailRouteStepStatus;
+  is_break: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TrailTrafficSnapshot {
   stations: TrailMapStation[];
   connections: TrailMapConnection[];
   traffic: TrailGroupTraffic[];
-  history: TrailGroupTrafficHistory[];
   groups: EventServiceUnit[];
-  slots: EventServiceSlot[];
+  routePlans: TrailRoutePlan[];
+  routePlanSteps: TrailRoutePlanStep[];
+  executions: TrailRouteExecution[];
+  executionSteps: TrailRouteExecutionStep[];
 }
 
 export interface EventRouteRowInput {
