@@ -70,6 +70,18 @@ test('ignora grupos que ainda não começaram', () => {
   assert.equal(conflicts.length, 0);
 });
 
+test('permite a reunião inicial de todos os grupos no Campo', () => {
+  const fieldStations = stations.map((station) => (
+    station.id === 'field' ? { ...station, station_kind: 'field' as const } : station
+  ));
+  const conflicts = detectTrailConflicts(groups, [
+    traffic({ group_id: 'red', movement_status: 'at_station', station_id: 'field', marker_x: 50, marker_y: 30 }),
+    traffic({ group_id: 'gold', movement_status: 'at_station', station_id: 'field', marker_x: 50, marker_y: 30 }),
+  ], fieldStations);
+
+  assert.equal(conflicts.length, 0);
+});
+
 test('encaixa o marcador na estação mais próxima dentro do limite', () => {
   assert.equal(nearestTrailStation(stations, 52, 31)?.id, 'field');
   assert.equal(nearestTrailStation(stations, 90, 90), null);
