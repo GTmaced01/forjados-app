@@ -476,13 +476,14 @@ export function TrailTrafficControlView() {
   }
 
   async function handleReset(groupId?: string) {
+    if (!edition) return;
     const groupName = groupId ? groupsById.get(groupId)?.name || 'Grupo' : '';
     const confirmed = window.confirm(groupId
       ? `Preparar uma nova trilha para o grupo ${groupName}? A execução e os check-ins atuais serão apagados, mas a rota ideal será preservada.`
       : 'Reiniciar a operação de todos os grupos? As execuções e os check-ins atuais serão apagados, mas todas as rotas ideais serão preservadas.');
     if (!confirmed) return;
     await performAction(
-      () => resetTrailRoutes(groupId),
+      () => resetTrailRoutes(edition.id, groupId),
       groupId
         ? `${groupName} voltou ao Campo e está pronto para iniciar uma nova trilha.`
         : 'Operação reiniciada. Todos os grupos voltaram ao Campo e aguardam um novo início.'

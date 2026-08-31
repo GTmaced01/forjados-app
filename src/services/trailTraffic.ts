@@ -190,8 +190,9 @@ export async function finishTrailRoute(groupId: string) {
   return data as string;
 }
 
-export async function resetTrailRoutes(groupId?: string) {
+export async function resetTrailRoutes(editionId: string, groupId?: string) {
   const { data, error } = await supabase.rpc('forjados_reset_trail_routes_v1', {
+    p_edition_id: editionId,
     p_group_id: groupId || null,
   });
   if (error) throw error;
