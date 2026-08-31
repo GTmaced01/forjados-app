@@ -1,4 +1,4 @@
-const SW_VERSION = 'forjados-pwa-v11-admin-attendance-social';
+const SW_VERSION = 'forjados-pwa-v12-principal-share-logo';
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 const APP_SHELL_CACHE = `${SW_VERSION}-shell`;
 
@@ -11,6 +11,7 @@ const APP_SHELL = [
   '/icons.svg',
   '/logo-forjados.png',
   '/og-image-forjados.png',
+  '/og-forjados-principal-20260831.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/icon-512-maskable.png',
