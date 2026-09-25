@@ -55,7 +55,7 @@ export interface UserProfile {
   updated_at: string;
 }
 
-export type PaymentReceiptStatus = 'pending' | 'approved' | 'rejected';
+type PaymentReceiptStatus = 'pending' | 'approved' | 'rejected';
 
 export interface PaymentReceipt {
   id: string;
@@ -165,7 +165,7 @@ export interface CartItem {
   quantity: number;
 }
 
-export type RideStatus =
+type RideStatus =
   | 'available'
   | 'full'
   | 'cancelled'
@@ -202,7 +202,7 @@ export interface Ride {
   passengers?: RidePassenger[];
 }
 
-export interface RidePassenger {
+interface RidePassenger {
   id: string;
   ride_id: string;
   passenger_id: string;
@@ -266,7 +266,7 @@ export interface HonorGoal {
   updated_at: string;
 }
 
-export type PointsRedemptionStatus =
+type PointsRedemptionStatus =
   | 'pending'
   | 'delivered'
   | 'cancelled';
@@ -552,7 +552,7 @@ export type TrailMovementStatus =
 
 export type TrailTrafficSignal = 'clear' | 'hold' | 'attention';
 
-export type TrailStationKind = 'station' | 'gate' | 'qg' | 'field' | 'reveal' | 'hold';
+type TrailStationKind = 'station' | 'gate' | 'qg' | 'field' | 'reveal' | 'hold';
 
 export interface TrailMapStation {
   id: string;
@@ -600,25 +600,6 @@ export interface TrailGroupTraffic {
   updated_at: string;
 }
 
-export interface TrailGroupTrafficHistory {
-  id: number;
-  traffic_id: string;
-  edition_id: string;
-  group_id: string;
-  station_id?: string | null;
-  origin_station_id?: string | null;
-  destination_station_id?: string | null;
-  marker_x: number;
-  marker_y: number;
-  movement_status: TrailMovementStatus;
-  traffic_signal: TrailTrafficSignal;
-  delay_minutes: number;
-  notes: string;
-  changed_by?: string | null;
-  changed_by_name: string;
-  changed_at: string;
-}
-
 export interface TrailRoutePlan {
   id: string;
   edition_id: string;
@@ -643,8 +624,8 @@ export interface TrailRoutePlanStep {
   updated_at: string;
 }
 
-export type TrailRouteRunStatus = 'active' | 'finished';
-export type TrailRouteStepStatus = 'pending' | 'current' | 'completed' | 'skipped';
+type TrailRouteRunStatus = 'active' | 'finished';
+type TrailRouteStepStatus = 'pending' | 'current' | 'completed' | 'skipped';
 
 export interface TrailRouteExecution {
   id: string;
@@ -817,15 +798,4 @@ export interface RetreatEventSettings {
   registration_open?: boolean;
   created_at: string;
   updated_at: string;
-}
-
-export interface RetreatParticipation {
-  id: string;
-  user_id: string;
-  retreat_title: string;
-  confirmed_by_payment_id?: string | null;
-  confirmed_by?: string | null;
-  confirmed_at: string;
-  notes?: string | null;
-  created_at: string;
 }

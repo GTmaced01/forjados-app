@@ -10,6 +10,23 @@ não correspondem aos registrados no projeto remoto.
 A migration `20260829141521_performance_hardening.sql` é a primeira migration
 local alinhada, por versão e nome, ao histórico remoto nesta revisão.
 
+## Manutenção aplicada em 25/09/2026
+
+A migration `20260925025950_io_security_cleanup.sql` foi aplicada no projeto de
+produção e registrada no histórico remoto. Ela:
+
+- substitui dois cron jobs que disparavam a cada minuto por um único tick que só
+  chama a Edge Function quando existe trabalho pendente;
+- limita `cron.job_run_details` aos últimos sete dias e limpa o histórico técnico
+  acumulado de `cron` e `pg_net`;
+- adiciona o índice ausente da chave estrangeira de `service_scale_schedules`;
+- consolida políticas RLS permissivas duplicadas e impede leitura pública de
+  registros inativos, excluídos ou não publicados.
+
+Após a manutenção, o banco caiu de aproximadamente 221 MB para 19 MB. Os jobs
+`forjados-automation-tick` e `forjados-cron-history-retention` foram validados em
+produção.
+
 Até a baseline ser recuperada:
 
 - não execute `supabase db reset` esperando reproduzir produção;
@@ -50,7 +67,7 @@ um dump completo e validado poderia produzir uma baseline incompleta.
   revisadas: possuem `search_path` fixo e verificações de usuário/papel; nenhuma
   está executável por `anon`. O novo aviso do advisor deve ser tratado
   função por função, com testes de autorização, e não por revogação em massa.
-- Políticas permissivas duplicadas e índices classificados como não usados devem
-  ser consolidados apenas após medir tráfego e validar a equivalência das regras.
-- A manutenção de bloat em `net._http_response` exige janela de manutenção; não
-  execute `VACUUM FULL` durante operação normal.
+- Índices classificados apenas como não usados pelo advisor não devem ser removidos
+  sem uma janela representativa de tráfego e validação do plano das consultas.
+- O histórico técnico de `cron` e `pg_net` deve continuar sendo monitorado. A
+  retenção automática evita novo crescimento indefinido de `cron.job_run_details`.

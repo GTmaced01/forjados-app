@@ -1,4 +1,4 @@
-const SW_VERSION = 'forjados-pwa-v12-principal-share-logo';
+const SW_VERSION = 'forjados-pwa-v13-maintenance-cleanup';
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 const APP_SHELL_CACHE = `${SW_VERSION}-shell`;
 
@@ -8,9 +8,7 @@ const APP_SHELL = [
   '/manifest.webmanifest',
   '/favicon.svg',
   '/favicon.png',
-  '/icons.svg',
   '/logo-forjados.png',
-  '/og-image-forjados.png',
   '/og-forjados-principal-20260831.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',

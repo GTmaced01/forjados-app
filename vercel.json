@@ -72,6 +72,18 @@
   ],
   "rewrites": [
     {
+      "source": "/og-image-forjados.png",
+      "destination": "/og-forjados-principal-20260831.png"
+    },
+    {
+      "source": "/og-image.png",
+      "destination": "/og-forjados-principal-20260831.png"
+    },
+    {
+      "source": "/icons.svg",
+      "destination": "/favicon.svg"
+    },
+    {
       "source": "/((?!.*\\..*).*)",
       "destination": "/index.html"
     }

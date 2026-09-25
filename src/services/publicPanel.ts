@@ -18,7 +18,7 @@ function cacheItems(items: PublicPanelItem[]) {
   }
 }
 
-export function getCachedPublicPanelItems(): PublicPanelItem[] {
+function getCachedPublicPanelItems(): PublicPanelItem[] {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return [];

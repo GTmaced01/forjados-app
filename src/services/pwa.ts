@@ -1,14 +1,8 @@
 import { isNativeApp } from './platform';
 
-type ServiceWorkerWithSync = ServiceWorkerRegistration & {
-  sync?: {
-    register: (tag: string) => Promise<void>;
-  };
-};
-
 const SW_UPDATE_EVENT = 'forjados-sw-update';
 
-export function dispatchPwaUpdate(registration: ServiceWorkerRegistration) {
+function dispatchPwaUpdate(registration: ServiceWorkerRegistration) {
   window.dispatchEvent(new CustomEvent(SW_UPDATE_EVENT, { detail: registration }));
 }
 
@@ -51,20 +45,6 @@ export function registerServiceWorker() {
 
 export async function applyWaitingServiceWorker(registration: ServiceWorkerRegistration) {
   registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
-}
-
-export async function registerBackgroundSync(tag: string) {
-  if (!('serviceWorker' in navigator)) return false;
-
-  try {
-    const registration = (await navigator.serviceWorker.ready) as ServiceWorkerWithSync;
-    if (!registration.sync) return false;
-    await registration.sync.register(tag);
-    return true;
-  } catch (error) {
-    console.warn('Background Sync indisponível:', error);
-    return false;
-  }
 }
 
 export function isRunningAsInstalledApp() {

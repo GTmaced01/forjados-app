@@ -21,8 +21,6 @@ export const SECTORS = [
   'Outro',
 ];
 
-export const PRIMARY_TEAMS = SECTORS;
-
 export const ROLE_LABELS: Record<UserRole, string> = {
   member: 'Equipe',
   leader: 'Líder',
@@ -60,12 +58,6 @@ export const SKILLS = [
 export const FORJADOS_MAIN_MESSAGE =
   'A forja não era para te destruir. Era para te transformar.';
 
-export const OFFICIAL_PRIVACY_POLICY_URL =
-  'https://forjados-site-theta.vercel.app/politica-de-privacidade';
-
-export const OFFICIAL_RESPONSIBILITY_TERM_URL =
-  'https://forjados-site-theta.vercel.app/termo-de-ciencia';
-
 export const FORJADOS_DNA_PHRASES = [
   'A dor não definiu quem eu sou.',
   'O fogo não me destruiu. Me forjou.',
@@ -75,29 +67,6 @@ export const FORJADOS_DNA_PHRASES = [
   'Toda cicatriz pode carregar propósito.',
   'Forjados pelo fogo. Guiados pelo Espírito.',
   'A presença de Deus restaura o que a vida tentou destruir.',
-];
-
-export const FORJADOS_PILLARS = [
-  {
-    title: 'Cura espiritual',
-    description:
-      'Deus toca feridas profundas, restaura a alma e reabre caminhos de esperança.',
-  },
-  {
-    title: 'Perdão',
-    description:
-      'O perdão quebra correntes, vence o orgulho e reconecta pessoas com Deus.',
-  },
-  {
-    title: 'Identidade',
-    description:
-      'O participante entende que não é vítima do passado, mas testemunho da graça.',
-  },
-  {
-    title: 'Propósito',
-    description:
-      'Deus usa o fogo da vida para forjar pessoas capazes de amar.',
-  },
 ];
 
 export const FORJADOS_RULES = [
