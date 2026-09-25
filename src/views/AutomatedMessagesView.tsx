@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CalendarClock, RefreshCw, Send, XCircle } from 'lucide-react';
-import { PRIMARY_TEAMS } from '../constants';
+import { SECTORS } from '../constants';
 import { cancelAutomatedMessage, createAutomatedMessage, getAutomatedMessagesCronStatus, listAutomatedMessages, processDueAutomatedMessages } from '../services/automatedMessages';
 import type { AutomatedMessage, AutomatedMessageTarget } from '../types';
 import { AdminHistoryDeleteButton } from '../components/AdminHistoryDeleteButton';
@@ -132,7 +132,7 @@ export function AutomatedMessagesView() {
             <label>Equipe específica</label>
             <select value={form.target_team} disabled={form.target !== 'team'} onChange={(e) => setForm({ ...form, target_team: e.target.value })}>
               <option value="">Selecione</option>
-              {PRIMARY_TEAMS.map((team) => <option key={team}>{team}</option>)}
+              {SECTORS.map((team) => <option key={team}>{team}</option>)}
             </select>
           </div>
           <div className="grid-full">

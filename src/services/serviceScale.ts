@@ -470,37 +470,3 @@ export function toDatetimeLocalValue(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
-
-export async function ensureProfileInServiceScale(params: {
-  userId: string;
-  displayName: string;
-  phone?: string;
-  sectors?: string[];
-  role?: string;
-}) {
-  const name = params.displayName?.trim();
-  if (!name) return;
-
-  const { data: existing, error: existingError } = await supabase
-    .from(PEOPLE_TABLE)
-    .select('id')
-    .eq('user_id', params.userId)
-    .maybeSingle();
-
-  if (existingError) throw existingError;
-  if (existing) return;
-
-  const { error } = await supabase.from(PEOPLE_TABLE).insert({
-    user_id: params.userId,
-    name,
-    display_name: name,
-    gender: 'male',
-    phone: params.phone || null,
-    sector: params.sectors?.[0] || null,
-    is_active: true,
-    does_trail: false,
-    notes: `Adicionado automaticamente após aprovação no app. Revisar gênero/setor se necessário. Cargo: ${params.role || 'membro'}`,
-  });
-
-  if (error) throw error;
-}

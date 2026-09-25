@@ -4,7 +4,7 @@ import {
   vapidPublicKeyToUint8Array,
 } from './vapid';
 
-export type PushPermissionState =
+type PushPermissionState =
   | 'unsupported'
   | 'missing-public-key'
   | 'invalid-public-key'
@@ -31,7 +31,7 @@ function getPublicKeyStatus(): PushSubscriptionStatus['publicKeyStatus'] {
   return WEB_PUSH_PUBLIC_KEY ? 'valid' : 'invalid';
 }
 
-export function isPushSupported() {
+function isPushSupported() {
   return (
     typeof window !== 'undefined' &&
     'Notification' in window &&
