@@ -1,4 +1,5 @@
-const SW_VERSION = 'forjados-pwa-v13-maintenance-cleanup';
+const SW_VERSION = 'forjados-pwa-v14-official-logo';
+const OFFICIAL_NOTIFICATION_ICON = '/icons/icon-192.png?v=20261002-official-logo';
 const RUNTIME_CACHE = `${SW_VERSION}-runtime`;
 const APP_SHELL_CACHE = `${SW_VERSION}-shell`;
 
@@ -10,7 +11,7 @@ const APP_SHELL = [
   '/favicon.png',
   '/logo-forjados.png',
   '/og-forjados-principal-20260831.png',
-  '/icons/icon-192.png',
+  OFFICIAL_NOTIFICATION_ICON,
   '/icons/icon-512.png',
   '/icons/icon-512-maskable.png',
   '/icons/apple-touch-icon.png'
@@ -150,8 +151,9 @@ self.addEventListener('push', (event) => {
   const title = payload.title || 'FORJADOS';
   const options = {
     body: payload.message || payload.body || 'Você recebeu uma nova notificação.',
-    icon: payload.icon || '/icons/icon-192.png',
-    badge: payload.badge || '/icons/icon-192.png',
+    // Brand identity stays official even when an older sender supplies a legacy icon.
+    icon: OFFICIAL_NOTIFICATION_ICON,
+    badge: OFFICIAL_NOTIFICATION_ICON,
     image: payload.image,
     tag: payload.tag || payload.notification_id || 'forjados-notification',
     renotify: true,
