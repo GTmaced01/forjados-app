@@ -4611,6 +4611,14 @@ nav button:hover {
   font-weight: 900;
 }
 
+.auth-legal-links a {
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .file-upload-box {
   position: relative;
   min-height: 56px;
@@ -8612,6 +8620,181 @@ textarea:focus {
 
 .auth-legal-links a {
   font-size: 11px;
+}
+
+/* Privacidade, suporte e exclusão de conta */
+.account-danger-zone {
+  margin-top: 20px;
+  border-color: color-mix(in srgb, #ef4444 46%, var(--border));
+  background: linear-gradient(145deg, color-mix(in srgb, #7f1d1d 18%, var(--panel)), var(--panel));
+}
+
+.account-danger-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.account-danger-heading h3 {
+  margin: 2px 0 6px;
+}
+
+.account-danger-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border-radius: 12px;
+  color: #fecaca;
+  background: rgba(185, 28, 28, 0.32);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.danger-button,
+.destructive-button {
+  border-color: rgba(248, 113, 113, 0.6) !important;
+}
+
+.danger-button {
+  color: #fecaca;
+}
+
+.destructive-button {
+  background: #b91c1c !important;
+  color: #fff !important;
+}
+
+.destructive-button:hover:not(:disabled) {
+  background: #991b1b !important;
+}
+
+.account-deletion-confirmation {
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+}
+
+.account-deletion-confirmation > p,
+.account-deletion-confirmation > label {
+  margin: 0;
+}
+
+.account-deletion-confirmation input {
+  max-width: 340px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.account-deletion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.alert.warning {
+  color: #fde68a;
+  background: rgba(120, 53, 15, 0.34);
+  border: 1px solid rgba(245, 158, 11, 0.44);
+}
+
+.public-resource-page {
+  min-height: 100vh;
+}
+
+.public-resource-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 26px;
+}
+
+.public-resource-brand img {
+  width: min(220px, 52vw);
+  max-height: 92px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.public-resource-title-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  color: #fecaca;
+  background: rgba(185, 28, 28, 0.28);
+  border: 1px solid rgba(248, 113, 113, 0.34);
+}
+
+.public-deletion-document section + section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.public-resource-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  white-space: normal;
+}
+
+.public-resource-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.public-resource-security-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  color: var(--muted);
+  background: rgba(180, 126, 45, 0.09);
+}
+
+.public-resource-security-note p {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .account-deletion-actions,
+  .account-deletion-actions button,
+  .account-deletion-confirmation input {
+    width: 100%;
+    max-width: none;
+  }
+
+  .public-resource-brand {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .public-resource-brand img {
+    align-self: center;
+  }
+
+  .public-resource-brand button,
+  .public-resource-actions,
+  .public-resource-actions a,
+  .public-resource-link {
+    width: 100%;
+  }
 }
 
 .catalog-toolbar {

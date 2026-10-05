@@ -6,6 +6,8 @@ import {
   RotateCcw,
   Save,
   ShieldCheck,
+  Trash2,
+  TriangleAlert,
   UserRound,
   UsersRound,
 } from 'lucide-react';
@@ -16,6 +18,7 @@ import {
 } from '../constants';
 import { useSectorOptions } from '../hooks/useSectorOptions';
 import { useAuth } from '../components/AuthProvider';
+import { deleteMyAccount } from '../services/accountDeletion';
 import { updateMyBasicProfile } from '../services/profiles';
 import type { UserProfile } from '../types';
 
@@ -67,7 +70,7 @@ function onlyDigits(value: string) {
 
 export function ProfileView() {
   const sectorOptions = useSectorOptions();
-  const { profile, reloadProfile, isAdmin, isDirector } = useAuth();
+  const { user, profile, reloadProfile, isAdmin, isDirector } = useAuth();
   const initialForm = useMemo(() => buildForm(profile), [profile]);
 
   const [form, setForm] = useState<ProfileFormState>(initialForm);
@@ -75,6 +78,12 @@ export function ProfileView() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [deletionOpen, setDeletionOpen] = useState(
+    () => new URLSearchParams(window.location.search).get('account') === 'delete',
+  );
+  const [deletionConfirmation, setDeletionConfirmation] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deletionError, setDeletionError] = useState('');
 
   useEffect(() => {
     setForm(initialForm);
@@ -188,6 +197,24 @@ export function ProfileView() {
       setError(err instanceof Error ? err.message : 'Erro ao atualizar perfil.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (deletionConfirmation !== 'EXCLUIR') {
+      setDeletionError('Digite EXCLUIR exatamente como mostrado para confirmar.');
+      return;
+    }
+
+    setDeletingAccount(true);
+    setDeletionError('');
+
+    try {
+      await deleteMyAccount(deletionConfirmation);
+      window.location.assign('/?account-deleted=1');
+    } catch (err) {
+      setDeletionError(err instanceof Error ? err.message : 'Não foi possível excluir sua conta.');
+      setDeletingAccount(false);
     }
   }
 
@@ -367,6 +394,66 @@ export function ProfileView() {
           </div>
         </div>
       </form>
+
+      <section className="panel wide account-danger-zone" id="excluir-conta" aria-labelledby="delete-account-title">
+        <div className="account-danger-heading">
+          <div className="account-danger-icon"><TriangleAlert size={22} /></div>
+          <div>
+            <p className="eyebrow">Privacidade e controle</p>
+            <h3 id="delete-account-title">Excluir minha conta</h3>
+            <p className="muted">Você pode encerrar sua conta e apagar os dados pessoais associados diretamente pelo aplicativo.</p>
+          </div>
+        </div>
+
+        {!deletionOpen ? (
+          <button className="secondary-button danger-button" type="button" onClick={() => setDeletionOpen(true)}>
+            <Trash2 size={16} />Solicitar exclusão da conta
+          </button>
+        ) : (
+          <div className="account-deletion-confirmation">
+            <div className="alert warning" role="alert">
+              <strong>Esta ação é permanente.</strong> O login, perfil, dados de saúde, contatos, mensagens, inscrições, escalas, fotos e comprovantes armazenados no aplicativo serão removidos. Somente registros mínimos sem identificação direta poderão ser mantidos pelo prazo legal aplicável.
+            </div>
+            <p>Conta que será excluída: <strong>{user?.email || profile.email}</strong></p>
+            <label htmlFor="delete-account-confirmation">Para confirmar, digite <strong>EXCLUIR</strong></label>
+            <input
+              id="delete-account-confirmation"
+              value={deletionConfirmation}
+              onChange={(event) => {
+                setDeletionConfirmation(event.target.value.toUpperCase());
+                setDeletionError('');
+              }}
+              disabled={deletingAccount}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="EXCLUIR"
+            />
+            {deletionError && <div className="alert error" role="alert">{deletionError}</div>}
+            <div className="account-deletion-actions">
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={deletingAccount}
+                onClick={() => {
+                  setDeletionOpen(false);
+                  setDeletionConfirmation('');
+                  setDeletionError('');
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="primary-button destructive-button"
+                type="button"
+                disabled={deletingAccount || deletionConfirmation !== 'EXCLUIR'}
+                onClick={() => void handleDeleteAccount()}
+              >
+                <Trash2 size={16} />{deletingAccount ? 'Excluindo conta...' : 'Excluir conta permanentemente'}
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
