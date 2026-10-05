@@ -2,7 +2,9 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 
 const ROOT = process.cwd();
-const IGNORED_DIRECTORIES = new Set(['.git', '.npm-cache', 'dist', 'node_modules']);
+const IGNORED_DIRECTORIES = new Set([
+  '.git', '.gradle', '.npm-cache', '.tools', 'DerivedData', 'build', 'dist', 'node_modules',
+]);
 const TEXT_EXTENSIONS = new Set([
   '', '.css', '.env', '.example', '.gradle', '.html', '.java', '.js', '.json', '.jsx',
   '.md', '.mjs', '.plist', '.properties', '.sql', '.svg', '.swift', '.toml', '.ts',

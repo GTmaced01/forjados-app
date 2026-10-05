@@ -7,6 +7,7 @@ import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { initialPasswordRecovery, supabase } from './services/supabase';
 import { isPasswordRecoveryUrl } from './services/authRecovery';
 import { PushPermissionPrompt } from './components/PushPermissionPrompt';
+import { PublicResourceView, type PublicResourceKind } from './views/PublicResourceView';
 
 const RegistrationView = lazy(() =>
   import('./views/RegistrationView').then(({ RegistrationView }) => ({ default: RegistrationView })),
@@ -29,6 +30,16 @@ function AppLoading() {
 
 function isRecoveryUrl() {
   return initialPasswordRecovery || isPasswordRecoveryUrl(window.location);
+}
+
+function getPublicResource(): PublicResourceKind | null {
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/privacidade') return 'privacy';
+  if (path === '/termos') return 'terms';
+  if (path === '/regras') return 'rules';
+  if (path === '/excluir-conta') return 'delete-account';
+  if (path === '/suporte') return 'support';
+  return null;
 }
 
 function AppContent() {
@@ -109,6 +120,7 @@ function AppContent() {
 
 function AppGate() {
   const [passwordRecovery, setPasswordRecovery] = useState(isRecoveryUrl);
+  const publicResource = getPublicResource();
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event: string) => {
@@ -118,6 +130,8 @@ function AppGate() {
 
     return () => data.subscription.unsubscribe();
   }, []);
+
+  if (publicResource) return <PublicResourceView kind={publicResource} />;
 
   if (passwordRecovery) {
     return <AuthView initialMode="update-password" onPasswordUpdated={() => setPasswordRecovery(false)} />;

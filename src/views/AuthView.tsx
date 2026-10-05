@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import {
   getAuthErrorMessage,
@@ -92,7 +92,18 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [success, setSuccess] = useState(() => (
+    new URLSearchParams(window.location.search).get('account-deleted') === '1'
+      ? 'Sua conta e seus dados pessoais foram excluídos com sucesso.'
+      : ''
+  ));
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('account-deleted') !== '1') return;
+    url.searchParams.delete('account-deleted');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  }, []);
 
   function changeMode(nextMode: Mode) {
     setMode(nextMode);
@@ -228,6 +239,8 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
               <button type="button" onClick={() => openLegal('rules')}>Regras do Retiro</button>
               <button type="button" onClick={() => openLegal('privacy')}>Política de Privacidade</button>
               <button type="button" onClick={() => openLegal('terms')}>Termo de Responsabilidade</button>
+              <a href="/suporte">Suporte</a>
+              <a href="/excluir-conta">Excluir conta</a>
             </div>
           </form>
         )}
@@ -282,6 +295,8 @@ export function AuthView({ initialMode = 'login', onPasswordUpdated }: AuthViewP
               <button type="button" onClick={() => openLegal('rules')}>Regras do Retiro</button>
               <button type="button" onClick={() => openLegal('privacy')}>Política de Privacidade</button>
               <button type="button" onClick={() => openLegal('terms')}>Termo de Responsabilidade</button>
+              <a href="/suporte">Suporte</a>
+              <a href="/excluir-conta">Excluir conta</a>
             </div>
           </form>
         )}
