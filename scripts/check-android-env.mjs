@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { delimiter, join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 
-const REQUIRED_JAVA_MAJOR = 17
+const REQUIRED_JAVA_MAJOR = 21
 const REQUIRED_ANDROID_API = 36
 
 function fail(message) {
@@ -20,7 +20,7 @@ function commandExists(command) {
 
 const javaResult = spawnSync('java', ['-version'], { encoding: 'utf8' })
 if (javaResult.error || javaResult.status !== 0) {
-  fail('Java não foi encontrado no PATH. Instale um JDK 17 e configure JAVA_HOME.')
+  fail('Java não foi encontrado no PATH. Instale um JDK 21 e configure JAVA_HOME.')
 } else {
   const javaOutput = `${javaResult.stdout}\n${javaResult.stderr}`
   const versionMatch = javaOutput.match(/version "(?:1\.)?(\d+)/)
