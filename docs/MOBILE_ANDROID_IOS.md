@@ -12,8 +12,8 @@ O identificador preparado é `br.com.forjados.app`. Confirme esse identificador 
 
 ### Android
 
-- Android Studio com Android SDK Platform 36 e Android SDK Platform-Tools;
-- JDK 17 configurado em `JAVA_HOME`;
+- Android Studio 2025.2.1 ou mais recente, com Android SDK Platform 36 e Android SDK Platform-Tools;
+- JDK 21 configurado em `JAVA_HOME`;
 - `ANDROID_HOME` apontando para a pasta do Android SDK e `platform-tools` no `PATH`;
 - `minSdk 24`, `compileSdk 36` e `targetSdk 36`;
 - conta Google Play Console;
@@ -46,7 +46,7 @@ O comando `mobile:sync` sempre executa um build novo e copia os arquivos para os
 
 ## Preparar e validar o ambiente Android
 
-O projeto usa JDK 17, Gradle Wrapper 8.14.3, Android Gradle Plugin 8.13.0 e Android SDK Platform 36. Não é necessário instalar o Gradle separadamente.
+O projeto usa JDK 21, Gradle Wrapper 8.14.3, Android Gradle Plugin 8.13.0 e Android SDK Platform 36. Não é necessário instalar o Gradle separadamente.
 
 No Windows, instale o Android Studio e, em **SDK Manager > SDK Platforms**, marque **Android 16 (API 36)**. Em **SDK Tools**, instale **Android SDK Platform-Tools**. Depois configure, ajustando o caminho ao seu usuário:
 
