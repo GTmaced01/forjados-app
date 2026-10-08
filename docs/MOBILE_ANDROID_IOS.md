@@ -74,6 +74,9 @@ O workflow `Android` repete essa validação em cada pull request que altera o a
 
 ## Assinatura e publicação
 
+Antes de criar a upload key, siga [Assinatura Android e recuperação](ANDROID_SIGNING.md).
+Esse guia explica a geração local, backup e validação, sem expor senhas.
+
 1. Ajustar `versionCode/versionName` no Android e `CURRENT_PROJECT_VERSION/MARKETING_VERSION` no iOS.
 2. Configurar assinatura Release sem versionar keystore, senhas ou certificados.
 3. Testar em aparelho físico, inclusive login, reset de senha, upload de PDF/imagem e links externos.

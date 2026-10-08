@@ -1,0 +1,101 @@
+import java.security.MessageDigest
+import java.security.SecureRandom
+import java.util.jar.JarEntry
+import java.util.jar.JarFile
+import java.util.jar.JarOutputStream
+
+tasks.register('signingRegression') {
+    doLast {
+        def fixture = new File(buildDir, 'disposable-key')
+        fixture.mkdirs()
+        def bytes = new byte[32]
+        new SecureRandom().nextBytes(bytes)
+        def storeSecret = Base64.encoder.encodeToString(bytes)
+        new SecureRandom().nextBytes(bytes)
+        def keySecret = Base64.encoder.encodeToString(bytes)
+        def alias = 'test-only-do-not-publish'
+        def store = new File(fixture, 'disposable.jks')
+        def config = new File(fixture, 'test.properties')
+
+        def runTool = { String tool, List args ->
+            def suffix = System.getProperty('os.name').toLowerCase().contains('windows') ? '.exe' : ''
+            def executable = new File(System.getProperty('java.home'), "bin/${tool}${suffix}")
+            def builder = new ProcessBuilder([executable.absolutePath] + args)
+            builder.environment().put('FORJADOS_TEST_STORE_PASSWORD', storeSecret)
+            builder.environment().put('FORJADOS_TEST_KEY_PASSWORD', keySecret)
+            builder.redirectErrorStream(true)
+            def child = builder.start()
+            // Consume but never log provider output or private configuration.
+            child.inputStream.bytes
+            if (child.waitFor() != 0) throw new GradleException("Ferramenta de teste falhou: ${tool}.")
+        }
+        runTool('keytool', ['-genkeypair', '-keystore', store.absolutePath, '-storetype', 'JKS',
+            '-alias', alias, '-keyalg', 'RSA', '-keysize', '2048', '-validity', '2',
+            '-dname', 'CN=DISPOSABLE TEST KEY, O=TEST ONLY, C=BR',
+            '-storepass:env', 'FORJADOS_TEST_STORE_PASSWORD', '-keypass:env', 'FORJADOS_TEST_KEY_PASSWORD'])
+
+        def valid = [storeFile: store.absolutePath, storePassword: storeSecret,
+                     keyAlias: alias, keyPassword: keySecret]
+        def writeConfig = { Map values ->
+            def props = new Properties()
+            values.each { key, value -> props.setProperty(key, value) }
+            config.withOutputStream { props.store(it, 'Disposable test configuration') }
+        }
+        def expectFailure = { Map values, String message ->
+            writeConfig(values)
+            try {
+                loadReleaseSigning(config)
+                throw new AssertionError('Configuração inválida foi aceita.')
+            } catch (GradleException error) {
+                assert error.message.contains(message)
+                assert !error.message.contains(storeSecret)
+                assert !error.message.contains(keySecret)
+                assert !error.message.contains(store.absolutePath)
+                assert error.cause == null
+            }
+        }
+        assert loadReleaseSigning(new File(fixture, 'absent.properties')) == null
+        valid.keySet().each { missing ->
+            def incomplete = new LinkedHashMap(valid)
+            incomplete.remove(missing)
+            expectFailure(incomplete, "campo ${missing} obrigatório")
+        }
+        expectFailure(valid + [storeFile: new File(fixture, 'missing.jks').absolutePath], 'keystore não encontrado')
+        def corrupt = new File(fixture, 'corrupt.jks')
+        corrupt.text = 'not a key'
+        expectFailure(valid + [storeFile: corrupt.absolutePath], 'abrir o keystore')
+        expectFailure(valid + [storePassword: keySecret], 'abrir o keystore')
+        expectFailure(valid + [keyAlias: 'absent'], 'alias configurado')
+        expectFailure(valid + [keyPassword: storeSecret], 'senha da chave')
+        writeConfig(valid)
+        def loaded = loadReleaseSigning(config)
+        assert loaded.keyAlias == alias
+        assert loaded.storeType.equalsIgnoreCase('JKS')
+
+        // Verify a real signature without building or publishing an app bundle.
+        def unsigned = new File(fixture, 'unsigned.jar')
+        new JarOutputStream(new FileOutputStream(unsigned)).withCloseable { jar ->
+            jar.putNextEntry(new JarEntry('payload.txt'))
+            jar.write('signing regression'.bytes)
+            jar.closeEntry()
+        }
+        def signed = new File(fixture, 'signed.jar')
+        runTool('jarsigner', ['-keystore', store.absolutePath, '-storetype', 'JKS',
+            '-storepass:env', 'FORJADOS_TEST_STORE_PASSWORD', '-keypass:env', 'FORJADOS_TEST_KEY_PASSWORD',
+            '-signedjar', signed.absolutePath, unsigned.absolutePath, alias])
+        def keyStore = java.security.KeyStore.getInstance(store, storeSecret.toCharArray())
+        def fingerprint = { certificate -> MessageDigest.getInstance('SHA-256').digest(certificate.encoded).encodeHex().toString() }
+        new JarFile(signed, true).withCloseable { jar ->
+            def entry = jar.getJarEntry('payload.txt')
+            jar.getInputStream(entry).withCloseable { it.bytes }
+            assert entry.codeSigners?.length == 1
+            assert fingerprint(entry.codeSigners[0].signerCertPath.certificates[0]) == fingerprint(keyStore.getCertificate(alias))
+        }
+        def restored = new File(fixture, 'restored.jks')
+        restored.bytes = store.bytes
+        writeConfig(valid + [storeFile: restored.absolutePath])
+        assert loadReleaseSigning(config).keyAlias == alias
+        assert fingerprint(java.security.KeyStore.getInstance(restored, storeSecret.toCharArray()).getCertificate(alias)) == fingerprint(keyStore.getCertificate(alias))
+        println 'OK: configuração ausente/incompleta, caminho, arquivo, senhas, alias, assinatura e restauração verificados.'
+    }
+}

@@ -11,6 +11,14 @@ android/local.properties
 android/keystore.properties
 android/app/*.jks
 android/app/*.keystore
+# Private signing material, regardless of its location in the repository
+*.jks
+*.keystore
+*.p12
+*.pfx
+keystore.properties
+keystore.properties.*
+!keystore.properties.example
 android/app/build/
 android/build/
 ios/App/DerivedData/

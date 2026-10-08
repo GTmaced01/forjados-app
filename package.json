@@ -17,6 +17,7 @@
     "mobile:sync": "npm run build && cap sync",
     "android:env:check": "node scripts/check-android-env.mjs",
     "android:build:check": "node scripts/check-android-build.mjs",
+    "android:signing:test": "node scripts/test-android-signing.mjs",
     "mobile:android": "npm run mobile:sync && cap open android",
     "mobile:ios": "npm run mobile:sync && cap open ios"
   },

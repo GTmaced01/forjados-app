@@ -8,6 +8,7 @@ on:
       - 'src/**'
       - 'public/**'
       - 'scripts/check-android-*.mjs'
+      - 'scripts/test-android-signing.mjs'
       - 'capacitor.config.ts'
       - 'package.json'
       - 'package-lock.json'
@@ -21,6 +22,7 @@ on:
       - 'src/**'
       - 'public/**'
       - 'scripts/check-android-*.mjs'
+      - 'scripts/test-android-signing.mjs'
       - 'capacitor.config.ts'
       - 'package.json'
       - 'package-lock.json'
@@ -63,6 +65,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Test signing with a disposable key
+        run: npm run android:signing:test
 
       - name: Validate Android build environment
         run: npm run android:build:check
