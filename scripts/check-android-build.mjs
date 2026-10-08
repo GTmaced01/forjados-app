@@ -5,6 +5,9 @@ function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     encoding: 'utf8',
     stdio: 'inherit',
+    // Windows .cmd/.bat launchers require the command interpreter. Commands
+    // and arguments in this script are fixed and never contain user input.
+    shell: process.platform === 'win32',
     ...options,
   })
 
