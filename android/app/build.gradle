@@ -1,16 +1,5 @@
-import java.util.Properties
-
 apply plugin: 'com.android.application'
-
-def keystoreProperties = new Properties()
-def keystorePropertiesFile = rootProject.file('keystore.properties')
-def hasReleaseSigning = keystorePropertiesFile.exists()
-
-if (hasReleaseSigning) {
-    keystorePropertiesFile.withInputStream { stream ->
-        keystoreProperties.load(stream)
-    }
-}
+apply from: rootProject.file('release-signing.gradle')
 
 android {
     namespace = "br.com.forjados.app"
@@ -29,18 +18,19 @@ android {
         }
     }
     signingConfigs {
-        if (hasReleaseSigning) {
+        if (releaseSigning != null) {
             release {
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
-                storeFile file(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
+                keyAlias releaseSigning.keyAlias
+                keyPassword releaseSigning.keyPassword
+                storeFile releaseSigning.storeFile
+                storeType releaseSigning.storeType
+                storePassword releaseSigning.storePassword
             }
         }
     }
     buildTypes {
         release {
-            if (hasReleaseSigning) {
+            if (releaseSigning != null) {
                 signingConfig signingConfigs.release
             }
             minifyEnabled false

@@ -1,0 +1,63 @@
+import java.security.KeyStore
+
+// Shared with the isolated regression harness. Never attach a cause to errors:
+// provider messages and file paths can contain private configuration values.
+ext.loadReleaseSigning = { File propertiesFile ->
+    if (!propertiesFile.exists()) return null
+
+    def values = new Properties()
+    try {
+        propertiesFile.withInputStream { values.load(it) }
+    } catch (Exception ignored) {
+        throw new GradleException('Não foi possível ler a configuração de assinatura.')
+    }
+
+    ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].each { field ->
+        if (!values.getProperty(field)?.trim()) {
+            throw new GradleException("Configuração de assinatura incompleta: campo ${field} obrigatório.")
+        }
+    }
+
+    File privateStore
+    try {
+        privateStore = file(values.getProperty('storeFile'))
+        if (!privateStore.isFile()) throw new IllegalArgumentException()
+    } catch (Exception ignored) {
+        throw new GradleException('Arquivo de keystore não encontrado ou inválido.')
+    }
+
+    KeyStore keyStore
+    try {
+        keyStore = KeyStore.getInstance(privateStore, values.getProperty('storePassword').toCharArray())
+    } catch (Exception ignored) {
+        throw new GradleException('Não foi possível abrir o keystore. Confira o arquivo e a senha do armazenamento.')
+    }
+
+    def alias = values.getProperty('keyAlias')
+    if (!keyStore.isKeyEntry(alias)) {
+        throw new GradleException('O alias configurado não identifica uma chave privada no keystore.')
+    }
+    try {
+        def key = keyStore.getKey(alias, values.getProperty('keyPassword').toCharArray())
+        if (!(key instanceof java.security.PrivateKey) || keyStore.getCertificate(alias) == null) {
+            throw new IllegalArgumentException()
+        }
+    } catch (Exception ignored) {
+        throw new GradleException('Não foi possível acessar a chave privada. Confira a senha da chave.')
+    }
+
+    return [storeFile: privateStore, storeType: keyStore.type,
+            storePassword: values.getProperty('storePassword'),
+            keyAlias: alias, keyPassword: values.getProperty('keyPassword')]
+}
+
+ext.releaseSigning = loadReleaseSigning(rootProject.file('keystore.properties'))
+
+// Debug and the CI dry-run remain available without a production key.
+gradle.taskGraph.whenReady { graph ->
+    if (!gradle.startParameter.dryRun && releaseSigning == null && graph.allTasks.any {
+        it.project == project && (it.name == 'preReleaseBuild' || it.name ==~ /(?:assemble|bundle|package)Release.*/)
+    }) {
+        throw new GradleException('Assinatura release ausente. Configure android/keystore.properties conforme docs/ANDROID_SIGNING.md.')
+    }
+}
