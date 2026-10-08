@@ -12,7 +12,9 @@ O identificador preparado é `br.com.forjados.app`. Confirme esse identificador 
 
 ### Android
 
-- Android Studio e JDK compatível com o projeto gerado;
+- Android Studio 2025.2.1 ou mais recente, com Android SDK Platform 36 e Android SDK Platform-Tools;
+- JDK 21 configurado em `JAVA_HOME`;
+- `ANDROID_HOME` apontando para a pasta do Android SDK e `platform-tools` no `PATH`;
 - `minSdk 24`, `compileSdk 36` e `targetSdk 36`;
 - conta Google Play Console;
 - chave de assinatura guardada fora do repositório;
@@ -41,6 +43,34 @@ npm run mobile:ios
 ```
 
 O comando `mobile:sync` sempre executa um build novo e copia os arquivos para os projetos nativos.
+
+## Preparar e validar o ambiente Android
+
+O projeto usa JDK 21, Gradle Wrapper 8.14.3, Android Gradle Plugin 8.13.0 e Android SDK Platform 36. Não é necessário instalar o Gradle separadamente.
+
+No Windows, instale o Android Studio e, em **SDK Manager > SDK Platforms**, marque **Android 16 (API 36)**. Em **SDK Tools**, instale **Android SDK Platform-Tools**. Depois configure, ajustando o caminho ao seu usuário:
+
+```powershell
+$javaHome = 'C:\Program Files\Android\Android Studio\jbr'
+$androidHome = "$env:LOCALAPPDATA\Android\Sdk"
+[Environment]::SetEnvironmentVariable('JAVA_HOME', $javaHome, 'User')
+[Environment]::SetEnvironmentVariable('ANDROID_HOME', $androidHome, 'User')
+$path = [Environment]::GetEnvironmentVariable('Path', 'User')
+[Environment]::SetEnvironmentVariable('Path', "$path;$javaHome\bin;$androidHome\platform-tools", 'User')
+```
+
+Abra um novo terminal e execute:
+
+```bash
+npm ci
+npm run android:env:check
+npm run mobile:check
+npm run android:build:check
+```
+
+`android:build:check` sincroniza o Capacitor, compila um APK de debug e valida, em modo de simulação, a tarefa `bundleRelease`. Ele não cria nem assina o AAB de publicação. A configuração da chave e a geração do AAB assinado são etapas posteriores.
+
+O workflow `Android` repete essa validação em cada pull request que altera o aplicativo ou o projeto Android. Assim, a configuração fica verificável mesmo antes de cada máquina local estar preparada.
 
 ## Assinatura e publicação
 
