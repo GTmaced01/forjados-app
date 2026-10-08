@@ -66,8 +66,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Test signing with a disposable key
-        run: npm run android:signing:test
-
       - name: Validate Android build environment
         run: npm run android:build:check
+
+      - name: Test signing and release APK with a disposable key
+        run: npm run android:signing:test -- --android

@@ -96,6 +96,7 @@ tasks.register('signingRegression') {
         writeConfig(valid + [storeFile: restored.absolutePath])
         assert loadReleaseSigning(config).keyAlias == alias
         assert fingerprint(java.security.KeyStore.getInstance(restored, storeSecret.toCharArray()).getCertificate(alias)) == fingerprint(keyStore.getCertificate(alias))
+        new File(fixture, 'certificate-sha256.txt').text = fingerprint(keyStore.getCertificate(alias))
         println 'OK: configuração ausente/incompleta, caminho, arquivo, senhas, alias, assinatura e restauração verificados.'
     }
 }

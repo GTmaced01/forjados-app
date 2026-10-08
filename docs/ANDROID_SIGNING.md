@@ -73,7 +73,7 @@ npm run android:signing:test
 npm run android:build:check
 ```
 
-`android:signing:test` usa um projeto temporário separado, uma chave descartável e senhas aleatórias. Testa a validação, uma assinatura JAR real, certificado e restauração; não lê sua chave ou configuração de produção. O CI executa esse teste com o JDK 21. Os arquivos temporários de teste não são enviados como artefatos.
+`android:signing:test` usa um projeto temporário separado, uma chave descartável e senhas aleatórias. Testa a validação, uma assinatura JAR real, certificado e restauração; não lê sua chave ou configuração de produção. No CI Linux, após sincronizar o Capacitor, a opção `--android` também compila um APK release em uma cópia isolada do projeto e confere a assinatura com `apksigner`. Essa cópia exclui configurações e chaves privadas do projeto original. O CI executa os testes com o JDK 21. Os arquivos temporários de teste não são enviados como artefatos e o APK de teste nunca deve ser distribuído ou usado para publicação.
 
 O scanner examina arquivos rastreados pelo Git e recusa keystores/configurações privadas, inclusive quando adicionados à força. O `.gitignore` reduz erros de inclusão, mas não remove arquivos já versionados e não substitui a revisão antes de cada commit.
 
