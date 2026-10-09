@@ -110,6 +110,9 @@ tasks.register('signingRegression') {
         // Keep the intentional wrong-store-password check last. Some Windows
         // providers retain failed probing state longer than Linux providers.
         expectFailure(withOverrides([storePassword: keySecret]), 'abrir o keystore')
+        // The integrated APK test copies this fixture after the regression task,
+        // so always leave the disposable configuration in a valid state.
+        writeConfig(valid)
         println 'OK: configuração ausente/incompleta, caminho, arquivo, senhas, alias, assinatura e restauração verificados.'
     }
 }
