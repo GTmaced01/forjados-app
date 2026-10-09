@@ -8,11 +8,16 @@ tasks.register('signingRegression') {
     doLast {
         def fixture = new File(buildDir, 'disposable-key')
         fixture.mkdirs()
-        def bytes = new byte[32]
-        new SecureRandom().nextBytes(bytes)
-        def storeSecret = Base64.encoder.encodeToString(bytes)
-        new SecureRandom().nextBytes(bytes)
-        def keySecret = Base64.encoder.encodeToString(bytes)
+        def random = new SecureRandom()
+        def randomSecret = {
+            def bytes = new byte[32]
+            random.nextBytes(bytes)
+            // Hex avoids shell, environment and properties encoding differences
+            // across Windows and Linux while preserving disposable randomness.
+            bytes.encodeHex().toString()
+        }
+        def storeSecret = randomSecret()
+        def keySecret = randomSecret()
         def alias = 'test-only-do-not-publish'
         def store = new File(fixture, 'disposable.jks')
         def config = new File(fixture, 'test.properties')
@@ -36,6 +41,11 @@ tasks.register('signingRegression') {
 
         def valid = [storeFile: store.absolutePath, storePassword: storeSecret,
                      keyAlias: alias, keyPassword: keySecret]
+        def withOverrides = { Map overrides ->
+            def values = new LinkedHashMap(valid)
+            values.putAll(overrides)
+            values
+        }
         def writeConfig = { Map values ->
             def props = new Properties()
             values.each { key, value -> props.setProperty(key, value) }
@@ -60,13 +70,12 @@ tasks.register('signingRegression') {
             incomplete.remove(missing)
             expectFailure(incomplete, "campo ${missing} obrigatório")
         }
-        expectFailure(valid + [storeFile: new File(fixture, 'missing.jks').absolutePath], 'keystore não encontrado')
+        expectFailure(withOverrides([storeFile: new File(fixture, 'missing.jks').absolutePath]), 'keystore não encontrado')
         def corrupt = new File(fixture, 'corrupt.jks')
         corrupt.text = 'not a key'
-        expectFailure(valid + [storeFile: corrupt.absolutePath], 'abrir o keystore')
-        expectFailure(valid + [storePassword: keySecret], 'abrir o keystore')
-        expectFailure(valid + [keyAlias: 'absent'], 'alias configurado')
-        expectFailure(valid + [keyPassword: storeSecret], 'senha da chave')
+        expectFailure(withOverrides([storeFile: corrupt.absolutePath]), 'abrir o keystore')
+        expectFailure(withOverrides([keyAlias: 'absent']), 'alias configurado')
+        expectFailure(withOverrides([keyPassword: storeSecret]), 'senha da chave')
         writeConfig(valid)
         def loaded = loadReleaseSigning(config)
         assert loaded.keyAlias == alias
@@ -93,10 +102,17 @@ tasks.register('signingRegression') {
         }
         def restored = new File(fixture, 'restored.jks')
         restored.bytes = store.bytes
-        writeConfig(valid + [storeFile: restored.absolutePath])
+        writeConfig(withOverrides([storeFile: restored.absolutePath]))
         assert loadReleaseSigning(config).keyAlias == alias
         assert fingerprint(java.security.KeyStore.getInstance(restored, storeSecret.toCharArray()).getCertificate(alias)) == fingerprint(keyStore.getCertificate(alias))
         new File(fixture, 'certificate-sha256.txt').text = fingerprint(keyStore.getCertificate(alias))
+
+        // Keep the intentional wrong-store-password check last. Some Windows
+        // providers retain failed probing state longer than Linux providers.
+        expectFailure(withOverrides([storePassword: keySecret]), 'abrir o keystore')
+        // The integrated APK test copies this fixture after the regression task,
+        // so always leave the disposable configuration in a valid state.
+        writeConfig(valid)
         println 'OK: configuração ausente/incompleta, caminho, arquivo, senhas, alias, assinatura e restauração verificados.'
     }
 }
