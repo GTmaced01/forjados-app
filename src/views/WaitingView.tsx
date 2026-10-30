@@ -38,7 +38,7 @@ export function WaitingView() {
         </p>
         <p className="muted waiting-quote">{FORJADOS_MAIN_MESSAGE}</p>
         <button className="secondary-button" onClick={handleLogout} disabled={leaving}>
-          {leaving ? 'Saindo...' : 'Sair da conta'}
+          {leaving ? 'Retornando ao login...' : 'Retornar ao login'}
         </button>
       </div>
     </div>
