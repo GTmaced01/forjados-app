@@ -535,6 +535,79 @@ export interface EventServicePersonOption {
   primary_team: string;
 }
 
+export type MaterialItemType = 'equipment' | 'consumable';
+export type MaterialStatus = 'available' | 'loaned' | 'maintenance' | 'unavailable';
+export type MaterialCondition = 'new' | 'good' | 'fair' | 'poor' | 'damaged';
+export type MaterialMovementType = 'entry' | 'exit' | 'loan' | 'return' | 'adjustment';
+
+export interface MaterialEditionOption {
+  id: string;
+  title: string;
+  starts_at: string;
+  is_active: boolean;
+}
+
+export interface MaterialSectorOption {
+  id: string;
+  edition_id: string;
+  name: string;
+}
+
+export interface MaterialItem {
+  id: string;
+  edition_id: string;
+  sector_unit_id: string;
+  name: string;
+  item_type: MaterialItemType;
+  category: string;
+  quantity: number;
+  unit: string;
+  minimum_quantity: number;
+  location: string;
+  responsible_name: string;
+  status: MaterialStatus;
+  condition: MaterialCondition;
+  notes: string;
+  image_path?: string | null;
+  image_url?: string | null;
+  is_archived: boolean;
+  created_by?: string | null;
+  updated_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MaterialMovement {
+  id: string;
+  item_id: string;
+  edition_id: string;
+  sector_unit_id: string;
+  movement_type: MaterialMovementType;
+  quantity: number;
+  quantity_delta: number;
+  previous_quantity: number;
+  resulting_quantity: number;
+  borrower: string;
+  due_date?: string | null;
+  notes: string;
+  created_by?: string | null;
+  created_by_name: string;
+  created_at: string;
+}
+
+export interface MaterialItemHistory {
+  id: string;
+  item_id: string;
+  edition_id: string;
+  sector_unit_id: string;
+  action: 'created' | 'updated' | 'archived' | 'restored';
+  before_data?: Record<string, unknown> | null;
+  after_data?: Record<string, unknown> | null;
+  created_by?: string | null;
+  created_by_name: string;
+  created_at: string;
+}
+
 export interface EventServicesSnapshot {
   units: EventServiceUnit[];
   positions: EventServicePosition[];
