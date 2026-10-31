@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { ArrowLeft, ExternalLink, Mail, ShieldCheck, Trash2 } from 'lucide-react';
 import { LegalDocumentsView } from './LegalDocumentsView';
+import { SupportFaqView } from './SupportFaqView';
 
 export type PublicResourceKind = 'privacy' | 'terms' | 'rules' | 'delete-account' | 'support';
 
@@ -106,22 +107,7 @@ function DeleteAccountPublicPage() {
 function SupportPublicPage() {
   return (
     <PublicPageShell>
-      <div className="admin-header">
-        <div>
-          <p className="eyebrow">Atendimento</p>
-          <h1>Suporte do FORJADOS</h1>
-          <p className="muted">Ajuda para acesso, cadastro, privacidade e utilização do aplicativo.</p>
-        </div>
-      </div>
-      <article className="panel wide legal-document">
-        <h2>Como falar conosco</h2>
-        <p>Envie sua solicitação para <a href="mailto:forjados.ofc@gmail.com">forjados.ofc@gmail.com</a>. Informe seu nome e descreva o problema, mas não envie sua senha.</p>
-        <p>Solicitações de privacidade e exclusão de conta também podem ser feitas por esse canal.</p>
-        <div className="public-resource-actions">
-          <a className="primary-button public-resource-link" href="mailto:forjados.ofc@gmail.com"><Mail size={16} />Enviar e-mail ao suporte</a>
-          <a className="secondary-button public-resource-link" href="/excluir-conta"><Trash2 size={16} />Excluir conta</a>
-        </div>
-      </article>
+      <SupportFaqView />
     </PublicPageShell>
   );
 }
