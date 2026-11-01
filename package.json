@@ -12,6 +12,8 @@
     "lint": "eslint .",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "check:secrets": "node scripts/check-secrets.mjs",
+    "supabase:baseline:check": "node scripts/validate-supabase-baseline.mjs --metadata",
+    "supabase:baseline:validate-dump": "node scripts/validate-supabase-baseline.mjs --dump",
     "preview": "vite preview",
     "mobile:check": "cap sync",
     "mobile:sync": "npm run build && cap sync",
