@@ -2,24 +2,26 @@
 
 ## Objetivo e regra de segurança
 
-Produzir uma baseline **somente de schema** que reconstrua o banco do FORJADOS
+Manter uma baseline **somente de schema** que reconstrua o banco do FORJADOS
 em PostgreSQL 17, sem exportar dados, usuários, credenciais ou secrets e sem
 alterar o projeto de produção. O banco remoto continua sendo a fonte de verdade.
 
-Até a validação completa terminar, não execute:
+A baseline oficial está em
+`supabase/baseline/production-schema.sql` e inclui os schemas `public` e
+`private`. O schema `private` é necessário porque gatilhos de tabelas públicas
+chamam funções privadas.
 
-- `supabase db reset --linked`;
+Não execute sem aprovação específica, backup e rollback verificados:
+
+- `supabase db reset --remote` ou o antigo `--linked`;
 - `supabase db push`;
 - `supabase migration repair`;
 - exclusão, renomeação ou consolidação das migrations históricas.
 
-Esses comandos podem alterar ou reconstruir o banco vinculado e exigem uma
-aprovação separada, depois de existir backup e rollback verificados.
+## Inventário verificado
 
-## Inventário verificado em 31/10/2026
-
-O snapshot versionado em `supabase/baseline/production-inventory.json` contém
-somente metadados do schema `public`:
+O snapshot em `supabase/baseline/production-inventory.json` registra somente
+metadados do schema `public`:
 
 | Objeto | Quantidade |
 | --- | ---: |
@@ -28,89 +30,107 @@ somente metadados do schema `public`:
 | Views | 0 |
 | Funções | 126 |
 | Políticas | 132 |
-| Triggers | 88 |
+| Triggers em `information_schema.triggers` | 88 |
 
 O repositório possui 37 migrations SQL, enquanto o histórico remoto possui 34.
 Há 9 correspondências exatas de versão e nome, 28 entradas locais sem par exato
-e 25 entradas remotas sem par exato. Essa divergência está registrada em
-`supabase/baseline/remote-migrations.json` e é intencionalmente preservada.
+e 25 entradas remotas sem par exato. Essa divergência está preservada em
+`supabase/baseline/remote-migrations.json`.
 
-Valide os metadados a qualquer momento:
+Valide metadados e o dump versionado com:
 
 ```powershell
 npm run supabase:baseline:check
 ```
 
-## Por que o dump não está versionado ainda
-
-O Supabase CLI executa o `pg_dump` por meio de Docker. O ambiente desta revisão
-não possui Docker/Podman nem uma credencial de banco que possa ser usada com
-segurança. Um arquivo inventado a partir dos catálogos não substitui um dump
-oficial e pode omitir grants, tipos, índices, funções ou detalhes de RLS.
-
-Por isso, o dump real só deve entrar no repositório depois da geração oficial,
-validação automatizada e reconstrução limpa descritas abaixo.
-
-## Etapa 1 — gerar um dump temporário no Windows
+## Gerar novamente a baseline no Windows
 
 1. Abra o Docker Desktop e aguarde o mecanismo ficar ativo.
-2. Abra o PowerShell na raiz do projeto e confirme a CLI e o vínculo:
+2. Na raiz do projeto, confirme a CLI, o projeto e o histórico remoto:
 
 ```powershell
 npx supabase --version
 npx supabase projects list
-npx supabase migration list --linked
+npx supabase migration list --remote
 ```
 
 3. Gere o arquivo fora do repositório. Não informe senha em chat, commit ou
-   captura de tela:
+captura de tela:
 
 ```powershell
-$baseline = Join-Path $env:TEMP 'forjados-public-schema.sql'
-npx supabase db dump --linked --schema public --file $baseline
+$baseline = Join-Path $env:TEMP 'forjados-public-private-schema.sql'
+npx supabase db dump --remote --schema "public,private" --file $baseline
 ```
 
-4. Rode a validação local:
+4. Valide antes de copiar ou versionar:
 
 ```powershell
 npm run supabase:baseline:validate-dump -- $baseline
-```
-
-O validador bloqueia `COPY`, `INSERT`, blocos de dados do `pg_dump`, objetos de
-`auth`/`storage` e padrões conhecidos de secrets. Ele também exige tabelas do
-schema `public` e instruções de RLS.
-
-## Etapa 2 — revisão antes de versionar
-
-Compare o dump com o inventário. Ele precisa representar as 56 tabelas e seus
-tipos, sequências, índices, constraints, funções, triggers, grants e políticas.
-Revise especialmente funções `SECURITY DEFINER`, `search_path` e privilégios de
-`anon`/`authenticated`.
-
-Somente após a revisão copie o arquivo para uma migration de baseline em uma
-branch isolada. Não substitua nem apague as 37 migrations existentes nesta
-etapa. Rode novamente:
-
-```powershell
 npm run check:secrets
-npm run supabase:baseline:validate-dump -- <migration-de-baseline.sql>
 ```
 
-## Etapa 3 — prova de reconstrução local
+O validador bloqueia `COPY`, `INSERT`, blocos de dados do `pg_dump`,
+objetos exportados de `auth`/`storage` e padrões conhecidos de secrets. Ele
+também exige exatamente as 56 tabelas públicas inventariadas e instruções de
+RLS.
 
-Com Docker ativo, inicialize o Supabase local e reconstrua **somente o banco
-local**. Nunca acrescente `--linked`:
+## Prova de reconstrução isolada
+
+Não coloque a baseline como primeira migration do histórico atual: as 37
+migrations locais divergentes são preservadas para investigação e não formam,
+sozinhas, uma cadeia reproduzível.
+
+Crie um projeto Supabase temporário contendo somente a baseline:
 
 ```powershell
+$testRoot = Join-Path $env:TEMP ("forjados-baseline-test-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+New-Item -ItemType Directory -Path $testRoot | Out-Null
+Set-Location $testRoot
+npx supabase init
+New-Item -ItemType Directory -Force ".\supabase\migrations" | Out-Null
+Copy-Item "$env:TEMP\forjados-public-private-schema.sql" ".\supabase\migrations\20261102120500_production_baseline.sql"
 npx supabase start
 npx supabase db reset --local --no-seed
-npx supabase db dump --local --schema public --file "$env:TEMP\forjados-rebuilt-schema.sql"
+npx supabase db dump --schema "public,private" --file "$env:TEMP\forjados-rebuilt-schema.sql"
 ```
 
-Compare o schema reconstruído com o dump remoto normalizado. Diferenças de
-comentários, ownership ou ordenação podem ser ruído; diferenças em tabelas,
-tipos, constraints, índices, funções, triggers, grants e políticas bloqueiam a
-conclusão.
+Compare os objetos reconstruídos com o inventário remoto. Diferenças textuais
+de comentários, ownership, ACL padrão ou ordenação podem ser ruído; diferenças
+em tabelas, tipos, constraints, índices, funções, gatilhos, grants ou políticas
+bloqueiam a conclusão.
+
+Ao terminar:
+
+```powershell
+npx supabase stop
+```
+
+## Evidência da reconstrução de 02/11/2026
+
+A tentativa com as migrations históricas falhou porque a primeira migration
+referenciava `public.profiles` antes da criação da tabela. Nenhum comando
+mutável foi executado no projeto remoto.
+
+O primeiro dump apenas de `public` revelou uma dependência real em
+`private.forjados_prepare_trail_group_traffic_v1`. O dump final de `public` e
+`private` foi validado, aplicado em uma instância Supabase local vazia e
+reaplicado por `db reset --local --no-seed`.
+
+O banco reconstruído apresentou:
+
+| Objeto | Reconstruído | Inventário remoto |
+| --- | ---: | ---: |
+| Tabelas públicas | 56 | 56 |
+| Tabelas públicas com RLS | 56 | 56 |
+| Funções públicas | 126 | 126 |
+| Políticas públicas | 132 | 132 |
+| Triggers públicos | 88 | 88 |
+| Views públicas | 0 | 0 |
+| Funções privadas necessárias | 31 | — |
+
+Os hashes dos dumps bruto e reconstruído diferem por normalização do PostgreSQL
+local e ACLs padrão. Por isso, a validação conclusiva foi feita pelos objetos do
+catálogo, não por igualdade byte a byte.
 
 ## Critérios para concluir a Issue #38
 
@@ -120,27 +140,27 @@ conclusão.
 - `npm run lint`, `npm test`, `npm run build`,
   `npm run check:secrets` e `npm run supabase:baseline:check` aprovados;
 - nenhum comando mutável executado no projeto remoto;
-- diferenças, riscos e rollback registrados no PR.
+- diferenças, riscos e rollback registrados na PR.
 
 ## Rollback
 
 Antes de qualquer reparo futuro do histórico remoto, preserve:
 
-1. o dump oficial validado;
+1. a baseline oficial validada;
 2. a lista remota de migrations anterior à mudança;
 3. o commit que mantém as migrations históricas;
 4. um backup/PITR compatível com o plano do projeto.
 
-Se a reconstrução divergir, interrompa o processo, descarte apenas o banco local
-de teste e volte ao inventário e ao dump. Não tente “corrigir” produção com
-`db push`, `migration repair` ou `db reset --linked`.
+Se a reconstrução divergir, interrompa o processo, pare apenas o Supabase local
+de teste e volte ao inventário e ao dump. Não tente corrigir produção com
+`db push`, `migration repair` ou `db reset --remote`.
 
 ## Riscos fora desta issue
 
 - Os avisos do advisor sobre funções `SECURITY DEFINER` exigem revisão função a
-  função e não serão corrigidos na baseline.
-- `account_deletion_receipts` e `internal_runtime_secrets` têm RLS sem políticas
-  por serem tabelas internas; qualquer mudança exige análise própria.
+  função e não são corrigidos pela baseline.
+- `account_deletion_receipts` e `internal_runtime_secrets` têm RLS sem
+  políticas por serem tabelas internas; qualquer mudança exige análise própria.
 - A proteção contra senhas vazadas depende do plano do Supabase.
-- Índices apenas classificados como não usados não devem ser removidos sem uma
-  janela representativa de tráfego e análise de planos de consulta.
+- Índices classificados como não usados não devem ser removidos sem uma janela
+  representativa de tráfego e análise de planos de consulta.
