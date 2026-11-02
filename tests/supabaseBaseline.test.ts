@@ -16,9 +16,14 @@ test('valida o inventário versionado e registra a divergência sem apagar hist�
   });
 });
 
-test('aceita dump somente de schema público com RLS', () => {
+test('aceita baseline dos schemas public e private com RLS', () => {
   assert.equal(validateSchemaDump(`
+    CREATE SCHEMA private;
+    CREATE FUNCTION private.prepare_example() RETURNS trigger
+      LANGUAGE plpgsql AS 'BEGIN RETURN NEW; END';
     CREATE TABLE public.example (id uuid primary key);
+    CREATE TRIGGER prepare_example BEFORE INSERT ON public.example
+      FOR EACH ROW EXECUTE FUNCTION private.prepare_example();
     ALTER TABLE public.example ENABLE ROW LEVEL SECURITY;
   `), true);
 });
