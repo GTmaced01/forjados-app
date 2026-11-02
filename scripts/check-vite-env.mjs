@@ -1,7 +1,7 @@
 import { pathToFileURL } from 'node:url';
 import { loadEnv } from 'vite';
 
-const PLACEHOLDER_PATTERN = /^(?:SUA_|SEU-|YOUR_|CHANGE[_-]?ME)/i;
+const PLACEHOLDER_PATTERN = /(?:SUA_|SEU-|YOUR_|CHANGE[_-]?ME)/i;
 
 export function validateViteEnv(env) {
   const errors = [];
